@@ -1,0 +1,70 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Backend install
+        working-directory: backend
+        run: npm ci
+      - name: Backend generate prisma
+        working-directory: backend
+        run: npx prisma generate
+      - name: Backend build
+        working-directory: backend
+        run: npm run build
+
+      - name: Frontend install
+        working-directory: frontend
+        run: npm ci
+      - name: Frontend typecheck
+        working-directory: frontend
+        run: npx tsc --noEmit
+      - name: Frontend build
+        working-directory: frontend
+        run: npm run build
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_WS_URL:  ${{ secrets.VITE_WS_URL }}
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key:      ${{ secrets.SSH_KEY }}
+          script: |
+            cd /opt/bizzo
+            bash scripts/deploy.sh
+
+      - name: Telegram notify success
+        if: success()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.DEPLOY_TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.DEPLOY_TELEGRAM_CHAT_ID }}" \
+            -d text="Bizzo deploy OK — ${{ github.sha }} by ${{ github.actor }}"
+
+      - name: Telegram notify failure
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.DEPLOY_TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.DEPLOY_TELEGRAM_CHAT_ID }}" \
+            -d text="Bizzo deploy FAILED — ${{ github.sha }} by ${{ github.actor }}"

@@ -1,0 +1,122 @@
+/* ============================================
+   MOBILE SOZLAMALARI
+   ============================================ */
+
+:root {
+  --safe-area-top:    env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left:   env(safe-area-inset-left, 0px);
+  --safe-area-right:  env(safe-area-inset-right, 0px);
+  --bottom-nav-height: 60px;
+}
+
+/* Touch feedback */
+* {
+  -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
+}
+
+button, a[role="button"], [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Safe area utilities */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pt-safe { padding-top:    env(safe-area-inset-top); }
+.pl-safe { padding-left:   env(safe-area-inset-left); }
+.pr-safe { padding-right:  env(safe-area-inset-right); }
+
+/* ============================================
+   PULL TO REFRESH
+   ============================================ */
+.pull-to-refresh {
+  position:   fixed;
+  top:        calc(var(--header-height, 56px) + 10px);
+  left:       50%;
+  transform:  translateX(-50%) translateY(-100px);
+  z-index:    100;
+  background: var(--color-bg-elevated);
+  border:     1px solid var(--color-border-primary);
+  border-radius: var(--radius-full, 9999px);
+  padding:    8px 16px;
+  font-size:  12px;
+  color:      var(--color-text-secondary);
+  display:    flex;
+  align-items: center;
+  gap:        8px;
+  transition: transform 0.3s ease;
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
+
+.pull-to-refresh.visible {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ============================================
+   BOTTOM SHEET (mobile modal)
+   ============================================ */
+@media (max-width: 639px) {
+  .modal-bottom-sheet {
+    position:      fixed !important;
+    bottom:        0 !important;
+    left:          0 !important;
+    right:         0 !important;
+    top:           auto !important;
+    margin:        0 !important;
+    max-width:     100% !important;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0 !important;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+    animation:     slideUpSheet 0.3s ease !important;
+    max-height:    92vh;
+    overflow-y:    auto;
+  }
+
+  @keyframes slideUpSheet {
+    from { transform: translateY(100%); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+}
+
+/* ============================================
+   iOS ZOOM oldini olish (input font 16px)
+   ============================================ */
+@media (max-width: 639px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="search"],
+  input[type="date"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* ============================================
+   SCROLL
+   ============================================ */
+.smooth-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+@media (max-width: 639px) {
+  .hide-scrollbar-mobile::-webkit-scrollbar { display: none; }
+  .hide-scrollbar-mobile { scrollbar-width: none; }
+}
+
+/* ============================================
+   TOUCH FEEDBACK
+   ============================================ */
+.touch-feedback {
+  position: relative;
+  overflow: hidden;
+}
+
+.touch-feedback:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}

@@ -1,0 +1,11 @@
+<h2 style="margin:0 0 16px;color:#0A0F1E">Счёт {{invoiceNumber}}</h2>
+<p>Уважаемый(-ая) {{customerName}},</p>
+<p>Вам выставлен новый счёт.</p>
+<table style="width:100%;border-collapse:collapse;margin:20px 0">
+  <tr style="background:#f3f4f6"><td style="padding:10px"><strong>Дата</strong></td><td style="padding:10px">{{issueDate}}</td></tr>
+  <tr><td style="padding:10px"><strong>Срок</strong></td><td style="padding:10px">{{dueDate}}</td></tr>
+  <tr style="background:#f3f4f6"><td style="padding:10px"><strong>Сумма</strong></td><td style="padding:10px;font-size:18px;color:#3B82F6"><strong>{{total}} сум</strong></td></tr>
+</table>
+<p style="text-align:center;margin:32px 0">
+  <a href="{{link}}" style="display:inline-block;padding:12px 28px;background:#3B82F6;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600">Посмотреть счёт</a>
+</p>

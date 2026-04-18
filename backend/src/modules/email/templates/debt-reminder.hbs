@@ -1,0 +1,9 @@
+<h2 style="margin:0 0 16px;color:#0A0F1E">Qarz eslatmasi</h2>
+<p>Hurmatli <strong>{{debtorName}}</strong>,</p>
+<p>Sizning {{companyName}} oldidagi qarzingiz haqida eslatamiz:</p>
+<table style="width:100%;border-collapse:collapse;margin:20px 0">
+  <tr style="background:#fef2f2"><td style="padding:10px"><strong>Qarz summasi</strong></td><td style="padding:10px;font-size:18px;color:#dc2626"><strong>{{amount}} soʻm</strong></td></tr>
+  <tr><td style="padding:10px"><strong>Muddati oʻtgan</strong></td><td style="padding:10px">{{overdueDays}} kun</td></tr>
+  {{#if dueDate}}<tr style="background:#f3f4f6"><td style="padding:10px"><strong>Toʻlov sanasi</strong></td><td style="padding:10px">{{dueDate}}</td></tr>{{/if}}
+</table>
+<p>Iltimos, qarzni imkon qadar tezroq yoping. Savollar boʻlsa, biz bilan bogʻlaning.</p>

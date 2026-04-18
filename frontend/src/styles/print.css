@@ -1,0 +1,61 @@
+/* ================================================
+   CHOP ETISH STILLARI
+   ================================================ */
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-family: 'Inter', Arial, sans-serif;
+    font-size: 12pt;
+  }
+
+  .no-print,
+  .sidebar,
+  .header,
+  .footer,
+  .action-buttons,
+  button:not(.print-btn) {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  h1, h2, h3 {
+    color: #000000 !important;
+    page-break-after: avoid;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  th, td {
+    border: 1px solid #cccccc;
+    padding: 6px 8px;
+    text-align: left;
+    color: #000000 !important;
+  }
+
+  th {
+    background-color: #f0f0f0 !important;
+    font-weight: 600;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+}

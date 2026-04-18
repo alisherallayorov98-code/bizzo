@@ -1,0 +1,299 @@
+import { useState } from 'react'
+import {
+  Warehouse as WarehouseIcon, Search, AlertTriangle,
+  Package, DollarSign, Plus,
+} from 'lucide-react'
+import { PageHeader } from '@components/layout/PageHeader/PageHeader'
+import { Button } from '@components/ui/Button/Button'
+import { Input } from '@components/ui/Input/Input'
+import { Card } from '@components/ui/Card/Card'
+import { Badge } from '@components/ui/Badge/Badge'
+import { KPICard } from '@components/charts/KPICard/KPICard'
+import { EmptyState } from '@components/ui/EmptyState/EmptyState'
+import { Skeleton } from '@components/ui/Skeleton/Skeleton'
+import { useWarehouses, useStockOverview } from '@features/warehouse/hooks/useWarehouse'
+import { formatCurrency } from '@utils/formatters'
+import { cn } from '@utils/cn'
+import { useT } from '@i18n/index'
+
+// ============================================
+// OMBOR KARTASI
+// ============================================
+function WarehouseCard({
+  warehouse,
+  active,
+  onClick,
+}: {
+  warehouse: { id: string; name: string; address?: string; itemCount: number; totalValue: number; isDefault: boolean }
+  active:    boolean
+  onClick:   () => void
+}) {
+  const t = useT()
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'w-full text-left p-4 rounded-xl border transition-all',
+        active
+          ? 'border-accent-primary bg-accent-primary/5'
+          : 'border-border-primary bg-bg-secondary hover:border-border-secondary hover:bg-bg-tertiary',
+      )}
+    >
+      <div className="flex items-start justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <WarehouseIcon size={16} className={active ? 'text-accent-primary' : 'text-text-muted'} />
+          <span className="text-sm font-semibold text-text-primary">{warehouse.name}</span>
+        </div>
+        {warehouse.isDefault && (
+          <Badge variant="primary" size="sm">{t('warehouse.primary')}</Badge>
+        )}
+      </div>
+      {warehouse.address && (
+        <p className="text-xs text-text-muted mb-3 truncate">{warehouse.address}</p>
+      )}
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <p className="text-text-muted">{t('warehouse.position')}</p>
+          <p className="font-semibold text-text-primary">{warehouse.itemCount}</p>
+        </div>
+        <div>
+          <p className="text-text-muted">{t('warehouse.valueCol')}</p>
+          <p className="font-semibold text-text-primary">{formatCurrency(warehouse.totalValue)}</p>
+        </div>
+      </div>
+    </button>
+  )
+}
+
+// ============================================
+// ASOSIY SAHIFA
+// ============================================
+export default function WarehouseOverviewPage() {
+  const t = useT()
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string | undefined>(undefined)
+  const [search, setSearch] = useState('')
+
+  const { data: warehouses = [], isLoading: warehousesLoading } = useWarehouses()
+  const { data: stockItems = [], isLoading: stockLoading }      = useStockOverview(selectedWarehouse)
+
+  const filtered = search
+    ? stockItems.filter(item =>
+        item.productName.toLowerCase().includes(search.toLowerCase()) ||
+        item.productCode?.toLowerCase().includes(search.toLowerCase()),
+      )
+    : stockItems
+
+  const totalValue  = stockItems.reduce((sum, i) => sum + i.totalValue, 0)
+  const lowCount    = stockItems.filter(i => i.isLow).length
+  const totalItems  = stockItems.length
+
+  return (
+    <div>
+      <PageHeader
+        title={t('nav.warehouse')}
+        description={t('warehouse.description')}
+        breadcrumbs={[
+          { label: t('nav.dashboard'), path: '/dashboard' },
+          { label: t('nav.warehouse'), path: '/warehouse' },
+          { label: t('warehouse.view') },
+        ]}
+        actions={
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Plus size={14} />}
+          >
+            {t('warehouse.addMove')}
+          </Button>
+        }
+      />
+
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <KPICard
+          title={t('warehouse.totalPositions')}
+          value={totalItems}
+          icon={<Package size={18} />}
+          iconColor="text-accent-primary"
+          iconBg="bg-accent-primary/10"
+          loading={stockLoading}
+        />
+        <KPICard
+          title={t('warehouse.value')}
+          value={formatCurrency(totalValue)}
+          icon={<DollarSign size={18} />}
+          iconColor="text-success"
+          iconBg="bg-success/10"
+          loading={stockLoading}
+        />
+        <KPICard
+          title={t('warehouse.lowStock')}
+          value={lowCount}
+          subtitle={t('warehouse.productsCount')}
+          icon={<AlertTriangle size={18} />}
+          iconColor={lowCount > 0 ? 'text-danger' : 'text-text-muted'}
+          iconBg={lowCount > 0 ? 'bg-danger/10' : 'bg-bg-elevated'}
+          loading={stockLoading}
+        />
+      </div>
+
+      <div className="grid grid-cols-4 gap-4">
+        {/* Omborlar paneli */}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-text-muted uppercase tracking-wider px-1">
+            {t('warehouse.warehousesLabel')}
+          </p>
+
+          <button
+            onClick={() => setSelectedWarehouse(undefined)}
+            className={cn(
+              'w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all',
+              selectedWarehouse === undefined
+                ? 'bg-accent-primary/10 text-accent-primary'
+                : 'text-text-secondary hover:bg-bg-tertiary',
+            )}
+          >
+            {t('warehouse.allWarehouses')}
+          </button>
+
+          {warehousesLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 rounded-xl" />
+            ))
+          ) : warehouses.map(w => (
+            <WarehouseCard
+              key={w.id}
+              warehouse={w}
+              active={selectedWarehouse === w.id}
+              onClick={() => setSelectedWarehouse(
+                selectedWarehouse === w.id ? undefined : w.id
+              )}
+            />
+          ))}
+        </div>
+
+        {/* Mahsulotlar jadvali */}
+        <div className="col-span-3">
+          <Card padding="none">
+            <div className="p-4 border-b border-border-primary">
+              <Input
+                placeholder={t('warehouse.productSearch')}
+                leftIcon={<Search size={15} />}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="max-w-xs"
+              />
+            </div>
+
+            {lowCount > 0 && (
+              <div className="px-4 py-2.5 bg-danger/5 border-b border-danger/20 flex items-center gap-2">
+                <AlertTriangle size={13} className="text-danger" />
+                <p className="text-xs text-danger">
+                  {lowCount} {t('warehouse.productsCount')} {t('warehouse.lowWarning')}
+                </p>
+              </div>
+            )}
+
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border-primary">
+                    {[
+                      { key: 'p', label: t('warehouse.colProduct'), align: 'left' },
+                      { key: 'w', label: t('warehouse.colWarehouse'), align: 'left' },
+                      { key: 's', label: t('warehouse.colStock'), align: 'right' },
+                      { key: 'a', label: t('warehouse.colAvgPrice'), align: 'right' },
+                      { key: 'v', label: t('warehouse.colValue'), align: 'right' },
+                      { key: 'x', label: '', align: 'left' },
+                    ].map(h => (
+                      <th
+                        key={h.key}
+                        className={cn(
+                          'px-4 py-3 text-[11px] font-semibold uppercase tracking-wider text-text-muted',
+                          h.align === 'right' ? 'text-right' : 'text-left',
+                        )}
+                      >
+                        {h.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {stockLoading ? (
+                    Array.from({ length: 8 }).map((_, i) => (
+                      <tr key={i} className="border-b border-border-primary">
+                        {Array.from({ length: 6 }).map((__, j) => (
+                          <td key={j} className="px-4 py-3">
+                            <Skeleton className="h-4 rounded" />
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  ) : !filtered.length ? (
+                    <tr>
+                      <td colSpan={6}>
+                        <EmptyState
+                          icon={<Package size={28} />}
+                          title={t('warehouse.notFound')}
+                          description={search ? t('warehouse.searchEmpty', { query: search }) : t('warehouse.empty')}
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    filtered.map(item => (
+                      <tr
+                        key={item.id}
+                        className={cn(
+                          'border-b border-border-primary hover:bg-bg-tertiary/50 transition-colors',
+                          item.isLow && 'bg-danger/3',
+                        )}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div>
+                              <p className="text-sm font-medium text-text-primary">{item.productName}</p>
+                              {item.productCode && (
+                                <p className="text-xs text-text-muted font-mono">{item.productCode}</p>
+                              )}
+                            </div>
+                            {item.isLow && (
+                              <AlertTriangle size={13} className="text-danger shrink-0" />
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="text-sm text-text-secondary">{item.warehouseName}</span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className={cn(
+                            'text-sm font-medium tabular-nums',
+                            item.isLow ? 'text-danger' : 'text-text-primary',
+                          )}>
+                            {item.quantity} {item.unit}
+                          </span>
+                          {item.isLow && (
+                            <p className="text-[10px] text-danger text-right">min: {item.minStock}</p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="text-sm text-text-secondary tabular-nums">
+                            {formatCurrency(item.avgPrice)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="text-sm font-medium text-text-primary tabular-nums">
+                            {formatCurrency(item.totalValue)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 w-8" />
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
