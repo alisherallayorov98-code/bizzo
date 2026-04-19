@@ -7,7 +7,6 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 RUN test -f /app/dist/main.js || (echo "BUILD FAILED: dist/main.js not found" && ls -la /app/dist/ && exit 1)
-RUN npx tsc --project tsconfig.seed.json || true
 
 FROM node:20-slim AS runner
 WORKDIR /app
@@ -16,9 +15,8 @@ ENV NODE_ENV=production
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/dist-seed ./dist-seed
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY prisma ./prisma
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist-seed/seed.js && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && npx ts-node prisma/seed.ts && node dist/main.js"]
