@@ -157,6 +157,11 @@ export const employeeService = {
     return data.data
   },
 
+  async bulkMarkSalaryPaid(recordIds: string[]): Promise<{ count: number; total: number }> {
+    const { data } = await api.post<{ data: { count: number; total: number } }>('/employees/salary/bulk-pay', { recordIds })
+    return data.data
+  },
+
   async giveAdvance(id: string, payload: {
     amount: number
     month:  number

@@ -8,9 +8,11 @@ import { KPICard } from '@components/charts/KPICard/KPICard'
 import { Modal } from '@components/ui/Modal/Modal'
 import { Input } from '@components/ui/Input/Input'
 import { Skeleton } from '@components/ui/Skeleton/Skeleton'
+import { BulkActionBar } from '@components/ui/BulkActionBar/BulkActionBar'
 import {
   useSalaryHistory, useMarkSalaryPaid,
   useCreateSalaryRecord, useEmployeeStats,
+  useBulkMarkSalaryPaid,
 } from '@features/employees/hooks/useEmployees'
 import type { SalaryHistoryItem } from '@services/employee.service'
 import { formatCurrency } from '@utils/formatters'
@@ -136,10 +138,22 @@ export default function SalaryPage() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [selectedYear,  setSelectedYear]  = useState(now.getFullYear())
   const [salaryModal,   setSalaryModal]   = useState<SalaryHistoryItem | null>(null)
+  const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set())
 
   const { data: stats }              = useEmployeeStats()
   const { data: history, isLoading } = useSalaryHistory(selectedMonth, selectedYear)
   const markPaid                     = useMarkSalaryPaid()
+  const bulkPay                      = useBulkMarkSalaryPaid()
+
+  const unpaidRecords = (history ?? []).filter((e: SalaryHistoryItem) => e.record && !e.record.isPaid)
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
   const totalPayable = history?.reduce(
     (sum: number, emp: SalaryHistoryItem) =>
@@ -151,7 +165,7 @@ export default function SalaryPage() {
   const unpaidCount = history?.filter((e: SalaryHistoryItem) => e.record && !e.record.isPaid).length ?? 0
 
   const HEADERS = [
-    t('employees.colEmployee'), t('employees.colPosition'), t('employees.colBasic'),
+    '', t('employees.colEmployee'), t('employees.colPosition'), t('employees.colBasic'),
     t('employees.colBonus'), t('employees.colDeduction'), t('employees.colAdvance'),
     t('employees.colTotal'), t('employees.colStatus'), '',
   ]
@@ -221,6 +235,22 @@ export default function SalaryPage() {
           </div>
         </div>
 
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          totalCount={unpaidRecords.length}
+          onSelectAll={() => setSelectedIds(new Set(unpaidRecords.map((e: SalaryHistoryItem) => e.record!.id)))}
+          onClearAll={() => setSelectedIds(new Set())}
+          actions={[{
+            label:   `To'lash (${selectedIds.size})`,
+            variant: 'primary',
+            loading: bulkPay.isPending,
+            onClick: async () => {
+              await bulkPay.mutateAsync(Array.from(selectedIds))
+              setSelectedIds(new Set())
+            },
+          }]}
+        />
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -236,7 +266,7 @@ export default function SalaryPage() {
               {isLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <tr key={i} className="border-b border-border-primary">
-                    {Array.from({ length: 9 }).map((__, j) => (
+                    {Array.from({ length: 10 }).map((__, j) => (
                       <td key={j} className="px-4 py-3">
                         <Skeleton className="h-4 rounded" style={{ width: '70%' }} />
                       </td>
@@ -245,7 +275,7 @@ export default function SalaryPage() {
                 ))
               ) : !history?.length ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-sm text-text-muted">
+                  <td colSpan={10} className="py-12 text-center text-sm text-text-muted">
                     {t('employees.notFoundThisMonth')}
                   </td>
                 </tr>
@@ -253,6 +283,16 @@ export default function SalaryPage() {
                 history.map((emp: SalaryHistoryItem) => (
                   <tr key={emp.id}
                     className="border-b border-border-primary hover:bg-bg-tertiary/50 transition-colors group">
+                    <td className="px-3 py-3 w-8">
+                      {emp.record && !emp.record.isPaid && (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(emp.record.id)}
+                          onChange={() => toggleSelect(emp.record!.id)}
+                          className="w-4 h-4 rounded border-border-primary accent-accent-primary cursor-pointer"
+                        />
+                      )}
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-full bg-accent-primary/20 flex items-center justify-center shrink-0">

@@ -126,6 +126,21 @@ export function useAddDailyWork() {
 }
 
 // ============================================
+// OMMAVIY ISH HAQI TO'LASH
+// ============================================
+export function useBulkMarkSalaryPaid() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (recordIds: string[]) => employeeService.bulkMarkSalaryPaid(recordIds),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: [EMPLOYEES_KEY] })
+      toast.success(`${data.count} ta xodimga ish haqi to'landi`)
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Xatolik'),
+  })
+}
+
+// ============================================
 // HAFTALIK TO'LOV
 // ============================================
 export function useMarkWeeklyPaid() {

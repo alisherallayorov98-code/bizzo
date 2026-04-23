@@ -81,6 +81,15 @@ export class EmployeesController {
     return this.employeesService.markSalaryPaid(user.companyId, recordId);
   }
 
+  @Post('salary/bulk-pay')
+  @ApiOperation({ summary: "Ommaviy ish haqi to'lash" })
+  bulkMarkSalaryPaid(
+    @CurrentUser() user: any,
+    @Body('recordIds') recordIds: string[],
+  ) {
+    return this.employeesService.bulkMarkSalaryPaid(user.companyId, recordIds);
+  }
+
   // ===== Daily work =====
 
   @Post('daily-work')

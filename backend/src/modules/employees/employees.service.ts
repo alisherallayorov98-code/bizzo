@@ -289,6 +289,31 @@ export class EmployeesService {
   }
 
   // ============================================
+  // OMMAVIY ISH HAQI TO'LASH
+  // ============================================
+  async bulkMarkSalaryPaid(companyId: string, recordIds: string[]) {
+    const now = new Date()
+    const result = await this.prisma.salaryRecord.updateMany({
+      where: {
+        id:       { in: recordIds },
+        employee: { companyId },
+        isPaid:   false,
+      },
+      data: { isPaid: true, paidAt: now },
+    })
+
+    const total = await this.prisma.salaryRecord.aggregate({
+      where: { id: { in: recordIds } },
+      _sum:  { totalAmount: true },
+    })
+
+    return {
+      count: result.count,
+      total: Number(total._sum.totalAmount ?? 0),
+    }
+  }
+
+  // ============================================
   // KUNLIK ISH YOZUVI
   // ============================================
   async addDailyWork(companyId: string, dto: CreateDailyWorkDto) {
