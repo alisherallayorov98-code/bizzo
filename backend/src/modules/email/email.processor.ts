@@ -32,6 +32,16 @@ export class EmailProcessor {
   @Process('send')
   async handleSend(job: Job<SendEmailJob>) {
     const { to, subject, template, context, emailLogId } = job.data;
+
+    if (!this.config.get('SMTP_USER') || !this.config.get('SMTP_PASS')) {
+      this.logger.warn(`SMTP sozlanmagan — email yuborilmadi: ${template} → ${to}`);
+      await this.prisma.emailLog.update({
+        where: { id: emailLogId },
+        data:  { status: 'FAILED', errorMessage: 'SMTP not configured' },
+      }).catch(() => {});
+      return;
+    }
+
     try {
       const lang = (context as any)?.lang === 'ru' ? 'ru' : 'uz';
       const html = this.emailService.render(template, context, lang);
