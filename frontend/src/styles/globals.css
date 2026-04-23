@@ -129,6 +129,7 @@ body {
   --sidebar-width:     260px;
   --sidebar-collapsed: 64px;
   --header-height:     60px;
+  --subtab-height:     36px;
   --page-padding:      24px;
 
   /* === SPACING (8px grid) === */

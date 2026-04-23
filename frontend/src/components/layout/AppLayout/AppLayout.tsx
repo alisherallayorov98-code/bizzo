@@ -1,9 +1,10 @@
 import { useCallback, useEffect } from 'react'
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { RefreshCw, WifiOff, AlertTriangle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@utils/cn'
 import { TopNavBar } from '../TopNavBar/TopNavBar'
+import { CORE_NAV_ITEMS, MODULE_NAV_ITEMS } from '@config/navigation'
 import { BottomNav } from '../BottomNav/BottomNav'
 import { useMobile, usePullToRefresh, usePWAInstall } from '@hooks/useMobile'
 import { OnboardingWizard } from '@components/onboarding/OnboardingWizard'
@@ -14,7 +15,8 @@ import { useQuery } from '@tanstack/react-query'
 import { billingService } from '@services/billing.service'
 
 function SubscriptionBanner() {
-  const navigate = useNavigate()
+  const navigate   = useNavigate()
+  const location   = useLocation()
   const { data: sub } = useQuery({
     queryKey: ['subscription-status'],
     queryFn:  () => billingService.getSubscription(),
@@ -24,10 +26,16 @@ function SubscriptionBanner() {
   const isExpired  = sub.status === 'EXPIRED'  || sub.status === 'CANCELED'
   const isPastDue  = sub.status === 'PAST_DUE'
   if (!isExpired && !isPastDue) return null
+  const allNav = [...CORE_NAV_ITEMS, ...MODULE_NAV_ITEMS]
+  const active = allNav.find(i => i.path !== '/dashboard' && location.pathname.startsWith(i.path.split('?')[0]))
+  const hasSubTabs = (active?.subTabs?.length ?? 0) > 1
+  const top = hasSubTabs ? 'calc(var(--header-height) + var(--subtab-height))' : 'var(--header-height)'
 
   return (
-    <div className={cn(
-      'fixed top-[var(--header-height)] left-0 right-0 z-20',
+    <div
+      style={{ top }}
+      className={cn(
+        'fixed left-0 right-0 z-20',
       'py-2 px-4 flex items-center justify-center gap-2 text-xs font-medium text-white',
       isExpired ? 'bg-danger/90 backdrop-blur-sm' : 'bg-warning/90 backdrop-blur-sm',
     )}>
@@ -47,11 +55,17 @@ function SubscriptionBanner() {
 
 function OfflineBanner() {
   const { isOnline } = useMobile()
+  const location     = useLocation()
   if (isOnline) return null
+  const allNav = [...CORE_NAV_ITEMS, ...MODULE_NAV_ITEMS]
+  const active = allNav.find(i => i.path !== '/dashboard' && location.pathname.startsWith(i.path.split('?')[0]))
+  const hasSubTabs = (active?.subTabs?.length ?? 0) > 1
+  const top = hasSubTabs ? 'calc(var(--header-height) + var(--subtab-height))' : 'var(--header-height)'
   return (
     <div
+      style={{ top }}
       className={cn(
-        'fixed top-[var(--header-height)] left-0 right-0 z-20',
+        'fixed left-0 right-0 z-20',
         'bg-[var(--color-warning)]/90 backdrop-blur-sm',
         'py-2 px-4 flex items-center justify-center gap-2',
         'text-xs font-medium text-white',
@@ -96,7 +110,19 @@ function PWAInstallBanner() {
 
 export function AppLayout() {
   const { isMobile } = useMobile()
-  const qc          = useQueryClient()
+  const qc           = useQueryClient()
+  const location     = useLocation()
+
+  // Sub-tab qatori ko'rinadimi — header offset hisoblash uchun
+  const allNavItems = [...CORE_NAV_ITEMS, ...MODULE_NAV_ITEMS]
+  const activeItem  = allNavItems.find(item => {
+    if (item.path === '/dashboard') return location.pathname === '/dashboard'
+    return location.pathname.startsWith(item.path.split('?')[0])
+  })
+  const hasSubTabs  = (activeItem?.subTabs?.length ?? 0) > 1
+  const topOffset   = hasSubTabs
+    ? 'calc(var(--header-height) + var(--subtab-height))'
+    : 'var(--header-height)'
 
   const handleRefresh = useCallback(async () => {
     await qc.invalidateQueries()
@@ -137,8 +163,9 @@ export function AppLayout() {
         )}
 
         <main
+          style={{ marginTop: topOffset }}
           className={cn(
-            'flex-1 mt-[var(--header-height)]',
+            'flex-1',
             'p-[var(--page-padding)]',
             isMobile && 'pb-[calc(var(--bottom-nav-height)+env(safe-area-inset-bottom)+24px)]',
           )}

@@ -1,209 +1,82 @@
 import { useState, useRef, useEffect } from 'react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, NavLink } from 'react-router-dom'
 import {
-  Menu, Bell, LogOut, User, ChevronDown, Settings,
-  RefreshCw, CheckCheck, Sun, Moon, X,
+  ChevronDown, Settings, Lock,
+  Menu, Bell, LogOut, User,
+  Sun, Moon, CheckCheck, RefreshCw,
 } from 'lucide-react'
-import { cn } from '@utils/cn'
-import { useUIStore } from '@store/ui.store'
-import { useAuth } from '@hooks/useAuth'
-import { Badge } from '@components/ui/Badge/Badge'
+import { cn }               from '@utils/cn'
+import { useUIStore }       from '@store/ui.store'
+import { useAuth }          from '@hooks/useAuth'
+import { useT }             from '@i18n/index'
+import { Badge }            from '@components/ui/Badge/Badge'
 import { LanguageSwitcher } from '@components/shared/LanguageSwitcher'
-import { useT } from '@i18n/index'
-import { UniversalSearch } from '@components/smart/UniversalSearch'
-import { MorningDigest } from '@components/smart/MorningDigest'
-import { useNotifications, useMarkRead, useMarkAllRead, useRefreshNotifications } from '@hooks/useNotifications'
+import { UniversalSearch }  from '@components/smart/UniversalSearch'
+import { MorningDigest }    from '@components/smart/MorningDigest'
+import {
+  useNotifications, useMarkRead, useMarkAllRead, useRefreshNotifications,
+} from '@hooks/useNotifications'
+import {
+  CORE_NAV_ITEMS, MODULE_NAV_ITEMS,
+  type NavItem, type SubTab,
+} from '@config/navigation'
 import type { AppNotification } from '@services/notifications.service'
 import { formatDistanceToNow } from 'date-fns'
 import { uz } from 'date-fns/locale'
-import { MODULE_NAV } from '@config/navigation'
-
-// ============================================
-// BARCHA NAV ELEMENTLAR
-// ============================================
-interface NavItemDef {
-  id:         string
-  label:      string
-  path:       string
-  permission?: string
-  children?: { label: string; path: string }[]
-}
-
-const ALL_NAV: NavItemDef[] = [
-  { id: 'dashboard',  label: 'Dashboard',    path: '/dashboard' },
-  { id: 'contacts',   label: 'Mijozlar',     path: '/contacts',   permission: 'contacts.view' },
-  { id: 'products',   label: 'Mahsulotlar',  path: '/products',   permission: 'products.view' },
-  {
-    id: 'warehouse', label: 'Ombor', path: '/warehouse', permission: 'warehouse.view',
-    children: [
-      { label: "Umumiy ko'rinish", path: '/warehouse' },
-      { label: 'Harakatlar',       path: '/warehouse/movements' },
-      { label: 'Inventarizatsiya', path: '/warehouse/inventory' },
-    ],
-  },
-  { id: 'employees',  label: 'Xodimlar',     path: '/employees',  permission: 'employees.view' },
-  { id: 'salary',     label: 'Ish haqi',     path: '/salary',     permission: 'salary.view' },
-  { id: 'debts',      label: 'Qarzlar',      path: '/debts',      permission: 'debts.view' },
-  { id: 'contracts',  label: 'Shartnomalar', path: '/contracts' },
-  { id: 'reports',    label: 'Hisobotlar',   path: '/reports',    permission: 'reports.view' },
-  { id: 'smart',      label: 'Smart Tahlil', path: '/smart' },
-  { id: 'import',     label: 'Import',       path: '/import' },
-]
-
-// ============================================
-// NAV ELEMENT (to'g'ridan-to'g'ri link)
-// ============================================
-function NavItem({ item }: { item: NavItemDef }) {
-  const [open, setOpen]      = useState(false)
-  const [dropPos, setDropPos] = useState({ left: 0, top: 0 })
-  const buttonRef             = useRef<HTMLButtonElement>(null)
-  const location              = useLocation()
-  const { hasPermission }     = useAuth()
-
-  if (item.permission && !hasPermission(item.permission)) return null
-
-  const isActive =
-    location.pathname === item.path ||
-    (item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'))
-
-  // Close on outside click
-  useEffect(() => {
-    if (!item.children || !open) return
-    const handler = (e: MouseEvent) => {
-      if (!buttonRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open, item.children])
-
-  // Close on route change
-  useEffect(() => { setOpen(false) }, [location.pathname])
-
-  const handleToggle = () => {
-    if (!open && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      setDropPos({ left: rect.left, top: rect.bottom })
-    }
-    setOpen(o => !o)
-  }
-
-  if (item.children) {
-    return (
-      <div className="relative shrink-0 h-full flex items-stretch">
-        <button
-          ref={buttonRef}
-          onClick={handleToggle}
-          className={cn(
-            'flex items-center gap-1 px-3 h-full text-sm font-medium transition-colors whitespace-nowrap border-b-2',
-            isActive
-              ? 'text-accent-primary border-accent-primary'
-              : 'text-text-secondary hover:text-text-primary border-transparent hover:border-border-secondary',
-          )}
-        >
-          {item.label}
-          <ChevronDown size={12} className={cn('transition-transform duration-150', open && 'rotate-180')} />
-        </button>
-
-        {/* position:fixed — overflow-x-auto ga qaramaydi */}
-        {open && (
-          <div
-            style={{ position: 'fixed', left: dropPos.left, top: dropPos.top, zIndex: 9999 }}
-            className="min-w-[190px] bg-bg-secondary border border-border-primary rounded-b-xl rounded-tr-xl shadow-xl overflow-hidden py-1"
-          >
-            {item.children.map(child => (
-              <NavLink
-                key={child.path}
-                to={child.path}
-                end={child.path === item.path}
-                onClick={() => setOpen(false)}
-                className={({ isActive: a }) => cn(
-                  'flex items-center px-4 py-2.5 text-sm transition-colors',
-                  a ? 'text-accent-primary bg-accent-primary/8 font-medium'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
-                )}
-              >
-                {child.label}
-              </NavLink>
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <NavLink
-      to={item.path}
-      end={item.id === 'dashboard'}
-      className={({ isActive: a }) => cn(
-        'flex items-center px-3 h-full text-sm font-medium transition-colors whitespace-nowrap border-b-2 shrink-0',
-        a
-          ? 'text-accent-primary border-accent-primary'
-          : 'text-text-secondary hover:text-text-primary border-transparent hover:border-border-secondary',
-      )}
-    >
-      {item.label}
-    </NavLink>
-  )
-}
 
 // ============================================
 // BILDIRISHNOMALAR
 // ============================================
 function NotificationButton() {
-  const [open, setOpen]  = useState(false)
-  const containerRef     = useRef<HTMLDivElement>(null)
-  const { data }         = useNotifications()
-  const markRead         = useMarkRead()
-  const markAllRead      = useMarkAllRead()
-  const refresh          = useRefreshNotifications()
-  const navigate         = useNavigate()
-  const t                = useT()
-
-  const items  = data?.items       ?? []
-  const unread = data?.unreadCount ?? 0
+  const [open, setOpen] = useState(false)
+  const ref             = useRef<HTMLDivElement>(null)
+  const t               = useT()
+  const navigate        = useNavigate()
+  const { data }        = useNotifications()
+  const markRead        = useMarkRead()
+  const markAll         = useMarkAllRead()
+  const refresh         = useRefreshNotifications()
+  const items           = data?.items       ?? []
+  const unread          = data?.unreadCount ?? 0
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    if (open) document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    if (open) document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
   }, [open])
 
-  function handleClick(n: { id: string; link: string | null; isRead: boolean }) {
-    if (!n.isRead) markRead.mutate(n.id)
-    if (n.link) { navigate(n.link); setOpen(false) }
-  }
-
   const typeColor = (type: string) => ({
-    warning: 'bg-warning', success: 'bg-success', danger: 'bg-danger', info: 'bg-accent-primary',
+    warning: 'bg-warning', success: 'bg-success',
+    danger: 'bg-danger',   info: 'bg-accent-primary',
   }[type] ?? 'bg-accent-primary')
 
   return (
-    <div ref={containerRef} className="relative shrink-0">
+    <div ref={ref} className="relative shrink-0">
       <button
         onClick={() => setOpen(!open)}
         className="relative flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
       >
-        <Bell size={16} />
+        <Bell size={17} />
         {unread > 0 && (
           <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-danger">
             <span className="absolute inset-0 rounded-full bg-danger animate-ping opacity-75" />
           </span>
         )}
       </button>
+
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-bg-secondary border border-border-primary rounded-xl shadow-xl z-50 animate-scale-in overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-80 bg-bg-secondary border border-border-primary rounded-xl shadow-xl z-[9999] animate-scale-in overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border-primary">
-            <span className="font-display font-semibold text-sm text-text-primary">{t('header.notifications')}</span>
+            <span className="font-display font-semibold text-sm text-text-primary">
+              {t('header.notifications')}
+            </span>
             <div className="flex items-center gap-1">
-              {unread > 0 && <Badge variant="danger" size="sm">{unread} {t('header.new')}</Badge>}
+              {unread > 0 && <Badge variant="danger" size="sm">{unread}</Badge>}
               <button onClick={() => refresh.mutate()} className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors">
                 <RefreshCw size={12} className={refresh.isPending ? 'animate-spin' : ''} />
               </button>
               {unread > 0 && (
-                <button onClick={() => markAllRead.mutate()} className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors">
+                <button onClick={() => markAll.mutate()} className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors">
                   <CheckCheck size={13} />
                 </button>
               )}
@@ -211,14 +84,26 @@ function NotificationButton() {
           </div>
           <div className="divide-y divide-border-primary max-h-72 overflow-y-auto">
             {items.length === 0 ? (
-              <div className="px-4 py-8 text-center text-sm text-text-muted">Bildirishnomalar yo'q</div>
+              <div className="px-4 py-8 text-center text-sm text-text-muted">
+                Bildirishnomalar yo'q
+              </div>
             ) : items.map((n: AppNotification) => (
-              <div key={n.id} onClick={() => handleClick(n)}
-                className={cn('flex gap-3 px-4 py-3 hover:bg-bg-tertiary transition-colors cursor-pointer', !n.isRead && 'bg-accent-primary/5')}
+              <div
+                key={n.id}
+                onClick={() => {
+                  if (!n.isRead) markRead.mutate(n.id)
+                  if (n.link) { navigate(n.link); setOpen(false) }
+                }}
+                className={cn(
+                  'flex gap-3 px-4 py-3 hover:bg-bg-tertiary transition-colors cursor-pointer',
+                  !n.isRead && 'bg-accent-primary/5',
+                )}
               >
                 <div className={cn('w-2 h-2 rounded-full mt-1.5 shrink-0', typeColor(n.type))} />
                 <div className="flex-1 min-w-0">
-                  <p className={cn('text-sm font-medium', n.isRead ? 'text-text-secondary' : 'text-text-primary')}>{n.title}</p>
+                  <p className={cn('text-sm font-medium', n.isRead ? 'text-text-secondary' : 'text-text-primary')}>
+                    {n.title}
+                  </p>
                   <p className="text-xs text-text-muted truncate">{n.message}</p>
                 </div>
                 <span className="text-[10px] text-text-muted shrink-0 mt-0.5">
@@ -245,20 +130,19 @@ function UserMenu() {
   const [open, setOpen]            = useState(false)
   const { user, logout, fullName } = useAuth()
   const navigate                   = useNavigate()
-  const containerRef               = useRef<HTMLDivElement>(null)
+  const ref                        = useRef<HTMLDivElement>(null)
   const t                          = useT()
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    if (open) document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    if (open) document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
   }, [open])
 
   return (
-    <div ref={containerRef} className="relative shrink-0">
-      <button onClick={() => setOpen(!open)}
+    <div ref={ref} className="relative shrink-0">
+      <button
+        onClick={() => setOpen(!open)}
         className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-bg-tertiary transition-colors"
       >
         <div className="w-7 h-7 rounded-full bg-accent-primary/20 border border-accent-primary/30 flex items-center justify-center shrink-0">
@@ -266,11 +150,14 @@ function UserMenu() {
             {user ? `${user.firstName[0]}${user.lastName[0]}` : '??'}
           </span>
         </div>
-        <span className="hidden md:block text-sm font-medium text-text-secondary max-w-[90px] truncate">{fullName}</span>
+        <span className="hidden md:block text-sm font-medium text-text-secondary max-w-[90px] truncate">
+          {fullName}
+        </span>
         <ChevronDown size={12} className={cn('text-text-muted transition-transform duration-150', open && 'rotate-180')} />
       </button>
+
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 bg-bg-secondary border border-border-primary rounded-xl shadow-xl z-50 animate-scale-in overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-56 bg-bg-secondary border border-border-primary rounded-xl shadow-xl z-[9999] animate-scale-in overflow-hidden">
           <div className="px-4 py-3 border-b border-border-primary">
             <p className="text-sm font-medium text-text-primary">{fullName}</p>
             <p className="text-xs text-text-muted mt-0.5">{user?.email}</p>
@@ -278,10 +165,10 @@ function UserMenu() {
           </div>
           <div className="p-1.5 space-y-0.5">
             {[
-              { icon: User,     label: t('header.profile'),  action: () => navigate('/settings/profile') },
-              { icon: Settings, label: t('header.settings'), action: () => navigate('/settings') },
+              { icon: User,     label: t('header.profile'),  to: '/settings/profile' },
+              { icon: Settings, label: t('header.settings'), to: '/settings' },
             ].map(item => (
-              <button key={item.label} onClick={() => { item.action(); setOpen(false) }}
+              <button key={item.label} onClick={() => { navigate(item.to); setOpen(false) }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary transition-colors"
               >
                 <item.icon size={15} />
@@ -304,7 +191,198 @@ function UserMenu() {
 }
 
 // ============================================
-// MOBILE MENU
+// MODULLAR DROPDOWN
+// ============================================
+function ModulesDropdown() {
+  const [open, setOpen]     = useState(false)
+  const ref                 = useRef<HTMLDivElement>(null)
+  const navigate            = useNavigate()
+  const location            = useLocation()
+  const { hasModule }       = useAuth()
+  const t                   = useT()
+
+  const activeModules = MODULE_NAV_ITEMS.filter(m => m.module && hasModule(m.module))
+  const lockedModules = MODULE_NAV_ITEMS.filter(m => m.module && !hasModule(m.module))
+
+  useEffect(() => {
+    const h = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    if (open) document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
+  }, [open])
+
+  useEffect(() => { setOpen(false) }, [location.pathname])
+
+  if (activeModules.length === 0 && lockedModules.length === 0) return null
+
+  const isModuleActive = activeModules.some(m =>
+    location.pathname.startsWith('/' + m.id)
+  )
+
+  return (
+    <div ref={ref} className="relative shrink-0">
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap',
+          isModuleActive
+            ? 'text-accent-primary bg-accent-primary/10'
+            : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
+        )}
+      >
+        <span>Modullar</span>
+        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} />
+        {activeModules.length > 0 && (
+          <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1 w-64 bg-bg-secondary border border-border-primary rounded-xl shadow-xl z-[9999] animate-scale-in overflow-hidden">
+          {activeModules.length > 0 && (
+            <div className="p-1.5">
+              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                Faol modullar
+              </p>
+              {activeModules.map(mod => (
+                <button
+                  key={mod.id}
+                  onClick={() => { navigate(mod.path); setOpen(false) }}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
+                    location.pathname.startsWith('/' + mod.id)
+                      ? 'bg-accent-primary/10 text-accent-primary'
+                      : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
+                  )}
+                >
+                  <div className="w-7 h-7 rounded-lg bg-bg-tertiary flex items-center justify-center">
+                    <mod.icon size={14} />
+                  </div>
+                  <span className="font-medium">{t(mod.tKey as any) || mod.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {lockedModules.length > 0 && (
+            <div className={cn('p-1.5', activeModules.length > 0 && 'border-t border-border-primary')}>
+              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                Qo'shish mumkin
+              </p>
+              {lockedModules.map(mod => (
+                <button
+                  key={mod.id}
+                  onClick={() => { navigate('/billing'); setOpen(false) }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-text-muted hover:bg-bg-tertiary transition-colors"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-bg-tertiary flex items-center justify-center opacity-50">
+                    <mod.icon size={14} />
+                  </div>
+                  <span className="flex-1 text-left">{t(mod.tKey as any) || mod.label}</span>
+                  <Lock size={12} className="opacity-60" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ============================================
+// NAV TUGMASI (asosiy bo'limlar)
+// ============================================
+function NavButton({ item }: { item: NavItem }) {
+  const location          = useLocation()
+  const navigate          = useNavigate()
+  const { hasPermission } = useAuth()
+  const t                 = useT()
+
+  if (item.permission && !hasPermission(item.permission)) return null
+
+  const isActive =
+    item.path === '/dashboard'
+      ? location.pathname === '/dashboard'
+      : location.pathname.startsWith(item.path)
+
+  return (
+    <button
+      onClick={() => navigate(item.path)}
+      className={cn(
+        'relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium',
+        'transition-all duration-150 whitespace-nowrap shrink-0',
+        isActive
+          ? 'text-accent-primary bg-accent-primary/10'
+          : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
+      )}
+    >
+      {isActive && (
+        <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-accent-primary rounded-full" />
+      )}
+      {t(item.tKey as any) || item.label}
+      {item.badge !== undefined && (
+        <Badge variant="danger" size="sm">{item.badge}</Badge>
+      )}
+    </button>
+  )
+}
+
+// ============================================
+// 2-QATOR: SUB-TABS
+// ============================================
+export function SubTabBar() {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  const allItems   = [...CORE_NAV_ITEMS, ...MODULE_NAV_ITEMS]
+  const activeItem = allItems.find(item => {
+    if (item.path === '/dashboard') return location.pathname === '/dashboard'
+    return location.pathname.startsWith(item.path.split('?')[0])
+  })
+
+  const subTabs = activeItem?.subTabs
+  if (!subTabs || subTabs.length <= 1) return null
+
+  return (
+    <div className="flex items-center gap-1 px-4 h-[var(--subtab-height)] bg-bg-primary/80 border-b border-border-primary/60 overflow-x-auto scrollbar-none">
+      <span className="text-[10px] font-semibold text-text-muted uppercase tracking-wider mr-2 shrink-0">
+        {activeItem?.label}:
+      </span>
+
+      {subTabs.map((tab: SubTab) => {
+        const [tabPath, tabQuery] = tab.path.split('?')
+        const isActive =
+          location.pathname === tabPath &&
+          (!tabQuery || location.search.includes(tabQuery.split('=')[1]))
+
+        return (
+          <button
+            key={tab.id}
+            onClick={() => navigate(tab.path)}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium',
+              'transition-all duration-150 whitespace-nowrap shrink-0',
+              isActive
+                ? 'bg-accent-primary/15 text-accent-primary border border-accent-primary/30'
+                : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
+            )}
+          >
+            {tab.icon && (
+              <tab.icon
+                size={11}
+                className={isActive ? 'text-accent-primary' : 'text-text-muted'}
+              />
+            )}
+            {tab.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ============================================
+// MOBILE MENYU (drawer)
 // ============================================
 function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { hasPermission, hasModule } = useAuth()
@@ -323,63 +401,54 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
       <div className="absolute left-0 top-0 bottom-0 w-72 bg-bg-secondary border-r border-border-primary flex flex-col animate-slide-in-left overflow-y-auto">
         <div className="flex items-center justify-between px-4 h-14 border-b border-border-primary shrink-0">
           <span className="font-display font-bold text-text-primary">Menyu</span>
-          <button onClick={onClose} className="p-1.5 rounded-md text-text-muted hover:bg-bg-tertiary transition-colors">
-            <X size={18} />
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-md text-text-muted hover:bg-bg-tertiary transition-colors text-xl leading-none"
+          >
+            ✕
           </button>
         </div>
-        <nav className="flex-1 p-3 space-y-0.5">
-          {ALL_NAV.map(item => {
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+          {CORE_NAV_ITEMS.map(item => {
             if (item.permission && !hasPermission(item.permission)) return null
-            if (item.children) {
-              return (
-                <div key={item.id}>
-                  <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted mt-2">
-                    {item.label}
-                  </div>
-                  {item.children.map(child => (
-                    <NavLink key={child.path} to={child.path}
-                      className={({ isActive }) => cn(
-                        'flex items-center px-3 py-2 rounded-lg text-sm transition-colors',
-                        isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary',
-                      )}
-                    >
-                      {child.label}
-                    </NavLink>
-                  ))}
-                </div>
-              )
-            }
             return (
-              <NavLink key={item.id} to={item.path} end={item.id === 'dashboard'}
+              <NavLink
+                key={item.id}
+                to={item.path}
+                end={item.id === 'dashboard'}
                 className={({ isActive }) => cn(
-                  'flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                  isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary',
+                  'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-accent-primary/10 text-accent-primary'
+                    : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary',
                 )}
               >
+                <item.icon size={16} className="shrink-0" />
                 {item.label}
               </NavLink>
             )
           })}
 
-          {MODULE_NAV.some(s => !s.module || hasModule(s.module)) && (
-            <div>
-              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted mt-3">
+          {MODULE_NAV_ITEMS.some(m => m.module && hasModule(m.module)) && (
+            <div className="pt-2">
+              <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                 Modullar
-              </div>
-              {MODULE_NAV.map(section =>
-                section.items.map(item => (
-                  <NavLink key={item.id} to={item.path}
-                    className={({ isActive }) => cn(
-                      'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
-                      !(!section.module || hasModule(section.module)) && 'opacity-40 pointer-events-none',
-                      isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary',
-                    )}
-                  >
-                    {section.color && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: section.color }} />}
-                    {item.label}
-                  </NavLink>
-                ))
-              )}
+              </p>
+              {MODULE_NAV_ITEMS.filter(m => m.module && hasModule(m.module)).map(mod => (
+                <NavLink
+                  key={mod.id}
+                  to={mod.path}
+                  className={({ isActive }) => cn(
+                    'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                    isActive
+                      ? 'bg-accent-primary/10 text-accent-primary'
+                      : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary',
+                  )}
+                >
+                  <mod.icon size={16} className="shrink-0" />
+                  {mod.label}
+                </NavLink>
+              ))}
             </div>
           )}
         </nav>
@@ -389,99 +458,73 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
 }
 
 // ============================================
-// TOP NAV BAR
+// ASOSIY TOPNAVBAR
 // ============================================
 export function TopNavBar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const theme       = useUIStore(s => s.theme)
   const toggleTheme = useUIStore(s => s.toggleTheme)
-  const { user }    = useAuth()
-  const { hasModule } = useAuth()
-
-  const hasActiveModule = MODULE_NAV.some(s => !s.module || hasModule(s.module))
 
   return (
     <>
       <MorningDigest />
 
-      <header className="fixed top-0 left-0 right-0 z-30 h-[var(--header-height)] bg-bg-secondary/95 backdrop-blur-md border-b border-border-primary flex items-center">
+      <div className="fixed top-0 left-0 right-0 z-30 flex flex-col">
+        {/* === 1-QATOR: ASOSIY NAV === */}
+        <header className="h-[var(--header-height)] bg-bg-secondary/95 backdrop-blur-md border-b border-border-primary flex items-center gap-1 px-3">
 
-        {/* Logo */}
-        <div className="flex items-center gap-2 px-3 shrink-0 border-r border-border-primary h-full">
-          <div className="w-6 h-6 rounded-md bg-accent-primary/20 border border-accent-primary/40 flex items-center justify-center shrink-0">
-            <div className="w-3 h-3 rounded-sm bg-accent-primary" />
-          </div>
-          <span className="hidden sm:block font-display font-bold text-sm text-text-primary leading-none truncate max-w-[120px]">
-            {user?.company?.name ?? 'ERP'}
-          </span>
-        </div>
-
-        {/* Mobile hamburger */}
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="lg:hidden flex items-center justify-center w-9 h-9 mx-1 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors shrink-0"
-        >
-          <Menu size={18} />
-        </button>
-
-        {/* Desktop nav — gorizontal scroll */}
-        <nav className="hidden lg:flex items-stretch flex-1 min-w-0 overflow-x-auto scrollbar-none h-full gap-0.5 px-1">
-          {ALL_NAV.map(item => (
-            <NavItem key={item.id} item={item} />
-          ))}
-
-          {/* Faol modullar */}
-          {hasActiveModule && MODULE_NAV.filter(s => !s.module || hasModule(s.module)).map(section =>
-            section.items.map(item => (
-              <NavLink
-                key={item.id}
-                to={item.path}
-                className={({ isActive }) => cn(
-                  'flex items-center gap-1.5 px-3 h-full text-sm font-medium transition-colors whitespace-nowrap border-b-2 shrink-0',
-                  isActive
-                    ? 'text-accent-primary border-accent-primary'
-                    : 'text-text-secondary hover:text-text-primary border-transparent hover:border-border-secondary',
-                )}
-              >
-                {section.color && (
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: section.color }} />
-                )}
-                {item.label}
-              </NavLink>
-            ))
-          )}
-
-          {/* Sozlamalar */}
-          <NavLink
-            to="/settings"
-            className={({ isActive }) => cn(
-              'flex items-center px-3 h-full text-sm font-medium transition-colors whitespace-nowrap border-b-2 shrink-0',
-              isActive
-                ? 'text-accent-primary border-accent-primary'
-                : 'text-text-secondary hover:text-text-primary border-transparent hover:border-border-secondary',
-            )}
-          >
-            Sozlamalar
+          {/* Logo */}
+          <NavLink to="/dashboard" className="flex items-center gap-2 mr-2 shrink-0 group">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-primary to-purple-600 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+              <span className="text-white font-black text-base">B</span>
+            </div>
+            <span className="hidden lg:block font-display font-black text-text-primary text-base tracking-tight">
+              BIZZO
+            </span>
           </NavLink>
-        </nav>
 
-        {/* O'ng tomon asboblar */}
-        <div className="flex items-center gap-1 px-2 shrink-0 border-l border-border-primary h-full ml-auto">
-          <UniversalSearch />
-          <div className="hidden sm:block"><LanguageSwitcher /></div>
+          {/* Mobile hamburger */}
           <button
-            onClick={toggleTheme}
-            className="flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
-            title={theme === 'dark' ? 'Kunduzgi rejim' : 'Kechki rejim'}
+            onClick={() => setMobileOpen(true)}
+            className="lg:hidden flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors shrink-0"
           >
-            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+            <Menu size={18} />
           </button>
-          <NotificationButton />
-          <div className="w-px h-5 bg-border-primary mx-0.5" />
-          <UserMenu />
-        </div>
-      </header>
 
+          {/* Desktop navigatsiya */}
+          <nav className="hidden lg:flex items-center gap-0.5 flex-1 overflow-x-auto scrollbar-none">
+            {CORE_NAV_ITEMS.map(item => (
+              <NavButton key={item.id} item={item} />
+            ))}
+            <div className="w-px h-4 bg-border-primary mx-1 shrink-0" />
+            <ModulesDropdown />
+          </nav>
+
+          {/* O'ng tomon */}
+          <div className="flex items-center gap-1 ml-auto shrink-0">
+            <div className="hidden md:block">
+              <UniversalSearch />
+            </div>
+            <div className="hidden sm:block">
+              <LanguageSwitcher />
+            </div>
+            <button
+              onClick={toggleTheme}
+              className="flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <NotificationButton />
+            <div className="w-px h-5 bg-border-primary mx-1 shrink-0" />
+            <UserMenu />
+          </div>
+        </header>
+
+        {/* === 2-QATOR: SUB-TABS (kerak bo'lganda) === */}
+        <SubTabBar />
+      </div>
+
+      {/* Mobile drawer */}
       <MobileMenu open={mobileOpen} onClose={() => setMobileOpen(false)} />
     </>
   )
