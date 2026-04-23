@@ -13,7 +13,8 @@ import { KPICard }          from '@components/charts/KPICard/KPICard'
 import { Modal }            from '@components/ui/Modal/Modal'
 import { TableRowSkeleton } from '@components/ui/Skeleton/Skeleton'
 import { EmptyState }       from '@components/ui/EmptyState/EmptyState'
-import { useDebts, useDebtStats, useAddDebtPayment } from '@features/debts/hooks/useDebts'
+import { useDebts, useDebtStats, useAddDebtPayment, useCreateDebt } from '@features/debts/hooks/useDebts'
+import { useContacts } from '@features/contacts/hooks/useContacts'
 import type { DebtRecord }  from '@services/debt.service'
 import { formatCurrency, formatDate, formatPhone } from '@utils/formatters'
 import { cn }               from '@utils/cn'
@@ -107,14 +108,135 @@ function PaymentModal({
 }
 
 // ============================================
+// YANGI QARZ MODALI
+// ============================================
+function NewDebtModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { data: contactsResult } = useContacts({ limit: 300 })
+  const contacts = contactsResult?.data ?? []
+  const createDebt = useCreateDebt()
+  const [form, setForm] = useState({
+    contactId: '',
+    type:      'RECEIVABLE' as 'RECEIVABLE' | 'PAYABLE',
+    amount:    '',
+    dueDate:   '',
+    notes:     '',
+  })
+
+  const reset = () => setForm({ contactId: '', type: 'RECEIVABLE', amount: '', dueDate: '', notes: '' })
+
+  const handleSubmit = async () => {
+    const amt = parseFloat(form.amount)
+    if (!form.contactId || !amt || amt <= 0) return
+    await createDebt.mutateAsync({
+      contactId: form.contactId,
+      type:      form.type,
+      amount:    amt,
+      dueDate:   form.dueDate || undefined,
+      notes:     form.notes   || undefined,
+    })
+    reset()
+    onClose()
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={() => { reset(); onClose() }}
+      title="Yangi qarz"
+      size="sm"
+      footer={
+        <>
+          <Button variant="secondary" size="sm" onClick={() => { reset(); onClose() }}>Bekor</Button>
+          <Button
+            variant="primary"
+            size="sm"
+            loading={createDebt.isPending}
+            disabled={!form.contactId || !form.amount}
+            onClick={handleSubmit}
+          >
+            Saqlash
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4 py-1">
+        {/* Tur tanlash */}
+        <div className="grid grid-cols-2 gap-2">
+          {(['RECEIVABLE', 'PAYABLE'] as const).map(type => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => setForm(f => ({ ...f, type }))}
+              className={cn(
+                'py-2.5 rounded-xl text-sm font-semibold border-2 transition-all',
+                form.type === type
+                  ? type === 'RECEIVABLE'
+                    ? 'border-success bg-success/10 text-success'
+                    : 'border-warning bg-warning/10 text-warning'
+                  : 'border-border-primary text-text-muted hover:border-border-secondary',
+              )}
+            >
+              {type === 'RECEIVABLE' ? '↑ Debitor' : '↓ Kreditor'}
+            </button>
+          ))}
+        </div>
+
+        {/* Kontakt */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-text-secondary">
+            {form.type === 'RECEIVABLE' ? 'Qarzdor kontakt' : 'Kreditor kontakt'} *
+          </label>
+          <select
+            value={form.contactId}
+            onChange={e => setForm(f => ({ ...f, contactId: e.target.value }))}
+            className="w-full h-9 rounded-lg border border-border-primary bg-bg-secondary text-sm text-text-primary px-3 focus:outline-none focus:border-accent-primary"
+          >
+            <option value="">Tanlang...</option>
+            {contacts.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Summa */}
+        <Input
+          label="Summa (so'm) *"
+          type="number"
+          placeholder="1 000 000"
+          value={form.amount}
+          onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+        />
+
+        {/* Muddat */}
+        <Input
+          label="To'lash muddati"
+          type="date"
+          value={form.dueDate}
+          onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
+        />
+
+        {/* Izoh */}
+        <Input
+          label="Izoh"
+          placeholder="Sabab, shartnoma raqami..."
+          value={form.notes}
+          onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+        />
+      </div>
+    </Modal>
+  )
+}
+
+// ============================================
 // ASOSIY SAHIFA
 // ============================================
 export default function DebtsPage() {
   const t = useT()
-  const [activeTab,   setActiveTab]   = useState<'RECEIVABLE' | 'PAYABLE'>('RECEIVABLE')
-  const [search,      setSearch]      = useState('')
-  const [paymentDebt, setPaymentDebt] = useState<DebtRecord | null>(null)
-  const [overdueOnly, setOverdueOnly] = useState(false)
+  const [activeTab,    setActiveTab]   = useState<'RECEIVABLE' | 'PAYABLE'>('RECEIVABLE')
+  const [search,       setSearch]      = useState('')
+  const [paymentDebt,  setPaymentDebt] = useState<DebtRecord | null>(null)
+  const [overdueOnly,  setOverdueOnly] = useState(false)
+  const [newDebtOpen,  setNewDebtOpen] = useState(false)
 
   const debouncedSearch = useDebounce(search, 400)
   const { data: stats } = useDebtStats()
@@ -154,7 +276,7 @@ export default function DebtsPage() {
             >
               Excel
             </Button>
-            <Button variant="primary" size="sm" leftIcon={<Plus size={14} />}>
+            <Button variant="primary" size="sm" leftIcon={<Plus size={14} />} onClick={() => setNewDebtOpen(true)}>
               {t('debts.addDebt')}
             </Button>
           </div>
@@ -422,6 +544,11 @@ export default function DebtsPage() {
         debt={paymentDebt}
         open={!!paymentDebt}
         onClose={() => setPaymentDebt(null)}
+      />
+
+      <NewDebtModal
+        open={newDebtOpen}
+        onClose={() => setNewDebtOpen(false)}
       />
     </div>
   )

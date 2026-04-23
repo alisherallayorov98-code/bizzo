@@ -34,3 +34,23 @@ export function useAddDebtPayment() {
     onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Xatolik'),
   })
 }
+
+export function useCreateDebt() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: {
+      contactId:  string
+      type:       'RECEIVABLE' | 'PAYABLE'
+      amount:     number
+      dueDate?:   string
+      notes?:     string
+    }) => debtService.create(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [DEBTS_KEY] })
+      qc.invalidateQueries({ queryKey: ['contacts'] })
+      qc.invalidateQueries({ queryKey: ['contact-full'] })
+      toast.success("Qarz qo'shildi")
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Xatolik'),
+  })
+}
