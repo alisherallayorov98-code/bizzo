@@ -3,10 +3,8 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { RefreshCw, WifiOff, AlertTriangle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@utils/cn'
-import { Sidebar } from '../Sidebar/Sidebar'
-import { Header } from '../Header/Header'
+import { TopNavBar } from '../TopNavBar/TopNavBar'
 import { BottomNav } from '../BottomNav/BottomNav'
-import { useUIStore } from '@store/ui.store'
 import { useMobile, usePullToRefresh, usePWAInstall } from '@hooks/useMobile'
 import { OnboardingWizard } from '@components/onboarding/OnboardingWizard'
 import { HelpCenter } from '@components/shared/HelpCenter/HelpCenter'
@@ -97,15 +95,9 @@ function PWAInstallBanner() {
 }
 
 export function AppLayout() {
-  const collapsed   = useUIStore(s => s.sidebarCollapsed)
-  const closeMobile = useUIStore(s => s.closeMobileSidebar)
   const location    = useLocation()
   const { isMobile } = useMobile()
   const qc          = useQueryClient()
-
-  useEffect(() => {
-    closeMobile()
-  }, [location.pathname, closeMobile])
 
   const handleRefresh = useCallback(async () => {
     await qc.invalidateQueries()
@@ -129,21 +121,9 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-bg-primary">
-      {!isMobile && <Sidebar />}
+      <TopNavBar />
 
-      <div
-        className={cn(
-          'flex flex-col min-h-screen transition-all duration-300',
-          !isMobile && (
-            collapsed
-              ? 'lg:pl-[var(--sidebar-collapsed)]'
-              : 'lg:pl-[var(--sidebar-width)]'
-          ),
-          'pl-0',
-        )}
-      >
-        <Header />
-
+      <div className="flex flex-col min-h-screen">
         <SubscriptionBanner />
         <OfflineBanner />
 
