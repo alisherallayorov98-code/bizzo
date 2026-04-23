@@ -145,6 +145,60 @@ body {
 }
 
 /* ============================================
+   LIGHT TEMA
+   ============================================ */
+html.light {
+  --color-bg-primary:      #F8FAFC;
+  --color-bg-secondary:    #FFFFFF;
+  --color-bg-tertiary:     #F1F5F9;
+  --color-bg-elevated:     #FFFFFF;
+  --color-bg-overlay:      rgba(248, 250, 252, 0.9);
+
+  --color-border-primary:  #E2E8F0;
+  --color-border-secondary:#CBD5E1;
+  --color-border-focus:    #3B82F6;
+  --color-border-hover:    #94A3B8;
+
+  --color-text-primary:    #0F172A;
+  --color-text-secondary:  #475569;
+  --color-text-muted:      #94A3B8;
+  --color-text-inverse:    #F8FAFC;
+  --color-text-link:       #2563EB;
+
+  --color-accent-primary:  #2563EB;
+  --color-accent-hover:    #1D4ED8;
+  --color-accent-active:   #1E40AF;
+  --color-accent-subtle:   rgba(37, 99, 235, 0.08);
+  --color-accent-glow:     rgba(37, 99, 235, 0.2);
+
+  --color-success:         #059669;
+  --color-success-hover:   #047857;
+  --color-success-bg:      rgba(5, 150, 105, 0.08);
+  --color-success-border:  rgba(5, 150, 105, 0.25);
+
+  --color-warning:         #D97706;
+  --color-warning-hover:   #B45309;
+  --color-warning-bg:      rgba(217, 119, 6, 0.08);
+  --color-warning-border:  rgba(217, 119, 6, 0.25);
+
+  --color-danger:          #DC2626;
+  --color-danger-hover:    #B91C1C;
+  --color-danger-bg:       rgba(220, 38, 38, 0.08);
+  --color-danger-border:   rgba(220, 38, 38, 0.25);
+
+  --color-info:            #0284C7;
+  --color-info-bg:         rgba(2, 132, 199, 0.08);
+  --color-info-border:     rgba(2, 132, 199, 0.25);
+
+  --shadow-xs:         0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-sm:         0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-md:         0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg:         0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-xl:         0 16px 40px rgba(0, 0, 0, 0.15);
+  --shadow-glow:       0 0 20px rgba(37, 99, 235, 0.2);
+}
+
+/* ============================================
    SCROLLBAR
    ============================================ */
 ::-webkit-scrollbar        { width: 6px; height: 6px; }

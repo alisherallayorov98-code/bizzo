@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Menu, Bell, LogOut, User, ChevronDown, Settings, RefreshCw, CheckCheck } from 'lucide-react'
+import { Menu, Bell, LogOut, User, ChevronDown, Settings, RefreshCw, CheckCheck, Sun, Moon } from 'lucide-react'
 import { cn } from '@utils/cn'
 import { useUIStore } from '@store/ui.store'
 import { useAuth } from '@hooks/useAuth'
@@ -214,8 +214,10 @@ function UserMenu() {
 // HEADER
 // ============================================
 export function Header() {
-  const openMobile = useUIStore(s => s.openMobileSidebar)
-  const collapsed  = useUIStore(s => s.sidebarCollapsed)
+  const openMobile  = useUIStore(s => s.openMobileSidebar)
+  const collapsed   = useUIStore(s => s.sidebarCollapsed)
+  const theme       = useUIStore(s => s.theme)
+  const toggleTheme = useUIStore(s => s.toggleTheme)
 
   return (
     <header
@@ -248,6 +250,13 @@ export function Header() {
       {/* O'ng */}
       <div className="flex items-center gap-1">
         <div className="hidden sm:block"><LanguageSwitcher /></div>
+        <button
+          onClick={toggleTheme}
+          className="flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
+          title={theme === 'dark' ? 'Kunduzgi rejim' : 'Kechki rejim'}
+        >
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
         <NotificationButton />
         <div className="w-px h-5 bg-border-primary mx-1" />
         <UserMenu />

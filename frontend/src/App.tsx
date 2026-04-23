@@ -1,10 +1,11 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { queryClient } from '@config/queryClient'
 import { ErrorBoundary } from '@components/shared/ErrorBoundary'
 import { useServiceWorker } from '@hooks/useServiceWorker'
+import { useUIStore } from '@store/ui.store'
 
 // Layout komponentlar
 const AppLayout        = lazy(() => import('@components/layout/AppLayout').then(m => ({ default: m.AppLayout })))
@@ -102,10 +103,19 @@ function UpdateBanner() {
   )
 }
 
+function ThemeProvider() {
+  const theme = useUIStore(s => s.theme)
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', theme === 'light')
+  }, [theme])
+  return null
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
+      <ThemeProvider />
       <BrowserRouter>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
