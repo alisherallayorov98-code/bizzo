@@ -5,7 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "startCommand": "sh -c 'npx prisma db push --skip-generate && (npx ts-node --transpile-only --skip-project prisma/seed.ts &) && node dist/main.js'",
+    "startCommand": "sh -c 'npx prisma db push --skip-generate && node dist/main.js'",
     "healthcheckPath": "/api/v1/health",
     "healthcheckTimeout": 60,
     "restartPolicyType": "ON_FAILURE",

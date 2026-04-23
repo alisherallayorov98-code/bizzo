@@ -7,6 +7,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { SeedService } from './common/seed/seed.service';
 
 // Biznes modullar
 import { AuthModule } from './modules/auth/auth.module';
@@ -99,6 +100,7 @@ import { RateLimitMiddleware, RATE_LIMITS } from './common/middleware/rate-limit
       useClass: ThrottlerGuard,
     },
     RateLimitMiddleware,
+    SeedService,
   ],
 })
 export class AppModule implements NestModule {
