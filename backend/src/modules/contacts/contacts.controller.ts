@@ -63,6 +63,18 @@ export class ContactsController {
   }
 
   // ============================================
+  // TO'LIQ 360° — :id/full oldin bo'lishi kerak
+  // ============================================
+  @Get(':id/full')
+  @ApiOperation({ summary: "Kontakt 360° — qarz, harakatlar, bitimlar" })
+  getContactFull(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+  ) {
+    return this.contactsService.getContactFull(user.companyId, id);
+  }
+
+  // ============================================
   // BITTA — :id dan keyin bo'lishi kerak
   // ============================================
   @Get(':id')

@@ -296,4 +296,95 @@ export class ContactsService {
     const { data } = await this.findAll(companyId, exportQuery);
     return data;
   }
+
+  // ============================================
+  // TO'LIQ KONTAKT (360°)
+  // ============================================
+  async getContactFull(companyId: string, contactId: string) {
+    const contact = await this.prisma.contact.findFirst({
+      where: { id: contactId, companyId, isActive: true },
+    });
+    if (!contact) throw new NotFoundException('Kontakt topilmadi');
+
+    const [rec, pay, overdueCount, movements, deals, recentDebts] =
+      await Promise.all([
+        this.prisma.debtRecord.aggregate({
+          where: { contactId, companyId, type: 'RECEIVABLE', remainAmount: { gt: 0 } },
+          _sum:   { remainAmount: true },
+          _count: true,
+        }),
+        this.prisma.debtRecord.aggregate({
+          where: { contactId, companyId, type: 'PAYABLE', remainAmount: { gt: 0 } },
+          _sum:   { remainAmount: true },
+          _count: true,
+        }),
+        this.prisma.debtRecord.count({
+          where: { contactId, companyId, remainAmount: { gt: 0 }, dueDate: { lt: new Date() } },
+        }),
+        this.prisma.stockMovement.findMany({
+          where: {
+            warehouse: { companyId },
+            referenceType: { in: ['INCOMING', 'OUTGOING'] },
+            reason: { contains: contactId },
+          },
+          take:    30,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            product:   { select: { name: true, unit: true } },
+            warehouse: { select: { name: true } },
+          },
+        }).catch(() => []),
+        this.prisma.deal.findMany({
+          where:   { contactId, companyId, isActive: true },
+          take:    20,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true, dealNumber: true, title: true,
+            stage: true, finalAmount: true, createdAt: true,
+          },
+        }).catch(() => []),
+        this.prisma.debtRecord.findMany({
+          where:   { contactId, companyId, remainAmount: { gt: 0 } },
+          take:    15,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true, type: true, amount: true, remainAmount: true,
+            dueDate: true, isOverdue: true, createdAt: true, notes: true,
+          },
+        }),
+      ]);
+
+    const receivable      = Number(rec._sum.remainAmount ?? 0);
+    const payable         = Number(pay._sum.remainAmount ?? 0);
+    const receivableCount = rec._count;
+    const payableCount    = pay._count;
+
+    return {
+      ...contact,
+      debtSummary: {
+        receivable,
+        receivableCount,
+        payable,
+        payableCount,
+        overdueCount,
+        net: receivable - payable,
+      },
+      movements: movements.map(m => ({
+        ...m,
+        quantity:    Number(m.quantity),
+        price:       Number(m.price),
+        totalAmount: Number(m.totalAmount),
+      })),
+      deals: deals.map(d => ({ ...d, finalAmount: Number(d.finalAmount) })),
+      recentDebts: recentDebts.map(d => ({
+        ...d,
+        amount:       Number(d.amount),
+        remainAmount: Number(d.remainAmount),
+      })),
+      stats: {
+        totalDeals: deals.length,
+        wonDeals:   deals.filter((d: any) => d.stage === 'WON').length,
+      },
+    };
+  }
 }
