@@ -245,6 +245,7 @@
     "description": "Barcha omborlardagi mahsulot qoldiqlari",
     "view": "Koʻrinish",
     "addMove": "Harakat qoʻshish",
+    "newWarehouse": "Yangi ombor",
     "primary": "Asosiy",
     "position": "Pozitsiya",
     "valueCol": "Qiymat",

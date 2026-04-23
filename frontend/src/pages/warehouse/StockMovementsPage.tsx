@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   ArrowDownCircle, ArrowUpCircle, RefreshCw,
-  Settings, Plus, Filter,
+  Settings, Plus, Filter, AlertTriangle,
 } from 'lucide-react'
 import { PageHeader } from '@components/layout/PageHeader/PageHeader'
 import { Button } from '@components/ui/Button/Button'
@@ -59,7 +59,7 @@ export default function StockMovementsPage() {
   const t = useT()
   const [typeFilter, setTypeFilter] = useState('')
 
-  const { data, isLoading } = useMovements({
+  const { data, isLoading, isError, refetch } = useMovements({
     type:  typeFilter || undefined,
     page:  1,
     limit: 50,
@@ -93,6 +93,18 @@ export default function StockMovementsPage() {
           </Button>
         }
       />
+
+      {isError && (
+        <div className="mb-4 p-4 rounded-xl border border-danger/30 bg-danger/5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={16} className="text-danger" />
+            <p className="text-sm text-danger">Harakatlar yuklanmadi. Qayta urinib ko'ring.</p>
+          </div>
+          <Button variant="secondary" size="xs" leftIcon={<RefreshCw size={12} />} onClick={() => refetch()}>
+            Qayta urinish
+          </Button>
+        </div>
+      )}
 
       <Card padding="none">
         {/* Filter */}

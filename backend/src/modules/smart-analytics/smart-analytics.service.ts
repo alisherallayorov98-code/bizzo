@@ -111,19 +111,19 @@ export class SmartAnalyticsService {
     // Debt health
     const [receivable, payable, overdueCount, totalDebts] = await Promise.all([
       this.prisma.debtRecord.aggregate({
-        where: { contact: { companyId }, type: 'RECEIVABLE', remainAmount: { gt: 0 } },
+        where: { companyId, type: 'RECEIVABLE', remainAmount: { gt: 0 } },
         _sum: { remainAmount: true },
-      }).then(r => Number(r._sum.remainAmount || 0)),
+      }).then(r => Number(r._sum.remainAmount || 0)).catch(() => 0),
       this.prisma.debtRecord.aggregate({
-        where: { contact: { companyId }, type: 'PAYABLE', remainAmount: { gt: 0 } },
+        where: { companyId, type: 'PAYABLE', remainAmount: { gt: 0 } },
         _sum: { remainAmount: true },
-      }).then(r => Number(r._sum.remainAmount || 0)),
+      }).then(r => Number(r._sum.remainAmount || 0)).catch(() => 0),
       this.prisma.debtRecord.count({
-        where: { contact: { companyId }, remainAmount: { gt: 0 }, dueDate: { lt: now } },
-      }),
+        where: { companyId, remainAmount: { gt: 0 }, dueDate: { lt: now } },
+      }).catch(() => 0),
       this.prisma.debtRecord.count({
-        where: { contact: { companyId }, remainAmount: { gt: 0 } },
-      }),
+        where: { companyId, remainAmount: { gt: 0 } },
+      }).catch(() => 0),
     ]);
     const overdueRatio = totalDebts > 0 ? overdueCount / totalDebts : 0;
     const debtRatio    = (receivable + payable) > 0 ? payable / (receivable + payable) : 0.5;
@@ -146,7 +146,7 @@ export class SmartAnalyticsService {
       this.prisma.salaryRecord.count({
         where: { employee: { companyId }, isPaid: false },
       }).catch(() => 0),
-      this.prisma.employee.count({ where: { companyId, isActive: true } }),
+      this.prisma.employee.count({ where: { companyId, isActive: true } }).catch(() => 0),
     ]);
     const unpaidRatio = totalEmployees > 0 ? unpaid / totalEmployees : 0;
     const empScore    = Math.round(15 * (1 - Math.min(1, unpaidRatio * 2)));
@@ -443,19 +443,19 @@ export class SmartAnalyticsService {
     // Muddati o'tgan qarzlar ortdi?
     const [overdueNow, overdueLast] = await Promise.all([
       this.prisma.debtRecord.aggregate({
-        where: { contact: { companyId }, remainAmount: { gt: 0 }, dueDate: { lt: new Date() } },
+        where: { companyId, remainAmount: { gt: 0 }, dueDate: { lt: new Date() } },
         _sum:  { remainAmount: true },
         _count: true,
-      }),
+      }).catch(() => ({ _sum: { remainAmount: null }, _count: 0 })),
       this.prisma.debtRecord.aggregate({
         where: {
-          contact:    { companyId },
+          companyId,
           remainAmount: { gt: 0 },
           dueDate:    { lt: new Date(Date.now() - 30 * 86400000) },
         },
         _sum:  { remainAmount: true },
         _count: true,
-      }),
+      }).catch(() => ({ _sum: { remainAmount: null }, _count: 0 })),
     ]);
 
     const overdueNowAmt  = Number(overdueNow._sum.remainAmount  || 0);

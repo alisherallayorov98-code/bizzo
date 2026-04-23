@@ -105,7 +105,7 @@ export class ReportsService {
         .sort((a, b) => Number(b.finalAmount) - Number(a.finalAmount))
         .slice(0, 10)
         .map(d => ({
-          contact:  d.contact.name,
+          contact:  d.contact?.name ?? '—',
           amount:   Number(d.finalAmount),
           closedAt: d.closedAt,
         })),
@@ -243,11 +243,12 @@ export class ReportsService {
     // Mijoz bo'yicha sotuv
     const byContact: Record<string, { name: string; total: number; count: number }> = {}
     deals.forEach(d => {
-      if (!byContact[d.contactId]) {
-        byContact[d.contactId] = { name: d.contact.name, total: 0, count: 0 }
+      const key = d.contactId ?? '__unknown__'
+      if (!byContact[key]) {
+        byContact[key] = { name: d.contact?.name ?? '—', total: 0, count: 0 }
       }
-      byContact[d.contactId].total += Number(d.finalAmount)
-      byContact[d.contactId].count++
+      byContact[key].total += Number(d.finalAmount)
+      byContact[key].count++
     })
 
     // Mahsulot bo'yicha sotuv
@@ -273,7 +274,7 @@ export class ReportsService {
       },
       deals: deals.map(d => ({
         dealNumber: d.dealNumber,
-        contact:    d.contact.name,
+        contact:    d.contact?.name ?? '—',
         amount:     Number(d.finalAmount),
         closedAt:   d.closedAt,
         itemsCount: d.items.length,

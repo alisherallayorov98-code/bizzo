@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ClipboardList, Search } from 'lucide-react'
+import { ClipboardList, Search, AlertTriangle, RefreshCw } from 'lucide-react'
 import { PageHeader } from '@components/layout/PageHeader/PageHeader'
 import { Button } from '@components/ui/Button/Button'
 import { Input } from '@components/ui/Input/Input'
@@ -178,9 +178,9 @@ export default function InventoryPage() {
     productId: string; warehouseId: string; current: number; unit: string; name: string
   } | null>(null)
 
-  const { data: warehouses = [] }            = useWarehouses()
-  const { data: stockItems = [], isLoading } = useStockOverview(selectedWarehouse)
-  const adjustMutation                       = useAdjustStock()
+  const { data: warehouses = [] }                              = useWarehouses()
+  const { data: stockItems = [], isLoading, isError, refetch } = useStockOverview(selectedWarehouse)
+  const adjustMutation                                          = useAdjustStock()
 
   const filtered = stockItems.filter(item => {
     if (!search) return true
@@ -225,6 +225,18 @@ export default function InventoryPage() {
           { label: t('warehouse.inventory') },
         ]}
       />
+
+      {isError && (
+        <div className="mb-4 p-4 rounded-xl border border-danger/30 bg-danger/5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={16} className="text-danger" />
+            <p className="text-sm text-danger">Qoldiqlar yuklanmadi. Qayta urinib ko'ring.</p>
+          </div>
+          <Button variant="secondary" size="xs" leftIcon={<RefreshCw size={12} />} onClick={() => refetch()}>
+            Qayta urinish
+          </Button>
+        </div>
+      )}
 
       {/* Statistika */}
       <div className="grid grid-cols-3 gap-4 mb-4">
