@@ -8,27 +8,27 @@ export interface ReportFilters {
 export const reportService = {
   async getFinancial(filters: ReportFilters) {
     const { data } = await api.get('/reports/financial', { params: filters })
-    return data
+    return data.data
   },
 
   async getWarehouse(filters: ReportFilters) {
     const { data } = await api.get('/reports/warehouse', { params: filters })
-    return data
+    return data.data
   },
 
   async getSales(filters: ReportFilters) {
     const { data } = await api.get('/reports/sales', { params: filters })
-    return data
+    return data.data
   },
 
   async getEmployees(filters: ReportFilters) {
     const { data } = await api.get('/reports/employees', { params: filters })
-    return data
+    return data.data
   },
 
   async getWaste(filters: ReportFilters) {
     const { data } = await api.get('/reports/waste', { params: filters })
-    return data
+    return data.data
   },
 
   async getChartsData(): Promise<{
@@ -37,6 +37,6 @@ export const reportService = {
     debts:  { month: string; debtor: number; creditor: number }[]
   }> {
     const { data } = await api.get('/reports/charts')
-    return data
+    return data.data
   },
 }
