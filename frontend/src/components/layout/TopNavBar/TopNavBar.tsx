@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   Menu, Bell, LogOut, User, ChevronDown, Settings,
-  RefreshCw, CheckCheck, Sun, Moon, Lock, X,
+  RefreshCw, CheckCheck, Sun, Moon, X,
 } from 'lucide-react'
 import { cn } from '@utils/cn'
 import { useUIStore } from '@store/ui.store'
@@ -15,70 +15,130 @@ import { MorningDigest } from '@components/smart/MorningDigest'
 import { useNotifications, useMarkRead, useMarkAllRead, useRefreshNotifications } from '@hooks/useNotifications'
 import { formatDistanceToNow } from 'date-fns'
 import { uz } from 'date-fns/locale'
-import { CORE_NAV, MODULE_NAV } from '@config/navigation'
-import type { NavItem } from '@config/navigation'
+import { MODULE_NAV } from '@config/navigation'
 
 // ============================================
-// TOP-NAV GURUH KONFIGURATSIYASI
+// BARCHA NAV ELEMENTLAR
 // ============================================
-interface NavGroup {
-  id:      string
-  label:   string
-  path?:   string            // to'g'ridan-to'g'ri link
-  items?:  NavItem[]         // dropdown elementlar
-  module?: string
-  color?:  string
+interface NavItemDef {
+  id:         string
+  label:      string
+  path:       string
+  permission?: string
+  children?: { label: string; path: string }[]
 }
 
-const CORE_GROUPS: NavGroup[] = [
+const ALL_NAV: NavItemDef[] = [
+  { id: 'dashboard',  label: 'Dashboard',    path: '/dashboard' },
+  { id: 'contacts',   label: 'Mijozlar',     path: '/contacts',   permission: 'contacts.view' },
+  { id: 'products',   label: 'Mahsulotlar',  path: '/products',   permission: 'products.view' },
   {
-    id:    'dashboard',
-    label: 'Dashboard',
-    path:  '/dashboard',
-  },
-  {
-    id:    'contacts',
-    label: 'Mijozlar',
-    path:  '/contacts',
-  },
-  {
-    id:    'products',
-    label: 'Mahsulotlar',
-    path:  '/products',
-  },
-  {
-    id:    'warehouse',
-    label: 'Ombor',
-    items: [
-      { id: 'wh-1', label: "Umumiy ko'rinish", path: '/warehouse',           icon: CORE_NAV[0].items[3].icon },
-      { id: 'wh-2', label: 'Harakatlar',       path: '/warehouse/movements', icon: CORE_NAV[0].items[3].icon },
-      { id: 'wh-3', label: 'Inventarizatsiya', path: '/warehouse/inventory', icon: CORE_NAV[0].items[3].icon },
+    id: 'warehouse', label: 'Ombor', path: '/warehouse', permission: 'warehouse.view',
+    children: [
+      { label: "Umumiy ko'rinish", path: '/warehouse' },
+      { label: 'Harakatlar',       path: '/warehouse/movements' },
+      { label: 'Inventarizatsiya', path: '/warehouse/inventory' },
     ],
   },
-  {
-    id:    'hr',
-    label: 'Xodimlar',
-    items: CORE_NAV[1].items,
-  },
-  {
-    id:    'finance',
-    label: 'Moliya',
-    items: CORE_NAV[2].items,
-  },
+  { id: 'employees',  label: 'Xodimlar',     path: '/employees',  permission: 'employees.view' },
+  { id: 'salary',     label: 'Ish haqi',     path: '/salary',     permission: 'salary.view' },
+  { id: 'debts',      label: 'Qarzlar',      path: '/debts',      permission: 'debts.view' },
+  { id: 'contracts',  label: 'Shartnomalar', path: '/contracts' },
+  { id: 'reports',    label: 'Hisobotlar',   path: '/reports',    permission: 'reports.view' },
+  { id: 'smart',      label: 'Smart Tahlil', path: '/smart' },
+  { id: 'import',     label: 'Import',       path: '/import' },
 ]
+
+// ============================================
+// NAV ELEMENT (to'g'ridan-to'g'ri link)
+// ============================================
+function NavItem({ item }: { item: NavItemDef }) {
+  const [open, setOpen]  = useState(false)
+  const containerRef     = useRef<HTMLDivElement>(null)
+  const location         = useLocation()
+  const { hasPermission } = useAuth()
+
+  if (item.permission && !hasPermission(item.permission)) return null
+
+  const isActive =
+    location.pathname === item.path ||
+    (item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'))
+
+  useEffect(() => {
+    if (!item.children) return
+    const handler = (e: MouseEvent) => {
+      if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    if (open) document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open, item.children])
+
+  if (item.children) {
+    return (
+      <div ref={containerRef} className="relative shrink-0">
+        <button
+          onClick={() => setOpen(!open)}
+          className={cn(
+            'flex items-center gap-1 px-3 h-full text-sm font-medium transition-colors whitespace-nowrap border-b-2',
+            isActive
+              ? 'text-accent-primary border-accent-primary'
+              : 'text-text-secondary hover:text-text-primary border-transparent hover:border-border-secondary',
+          )}
+        >
+          {item.label}
+          <ChevronDown size={12} className={cn('transition-transform duration-150', open && 'rotate-180')} />
+        </button>
+        {open && (
+          <div className="absolute left-0 top-full mt-0 min-w-[190px] bg-bg-secondary border border-border-primary rounded-b-xl rounded-tr-xl shadow-xl z-50 overflow-hidden py-1">
+            {item.children.map(child => (
+              <NavLink
+                key={child.path}
+                to={child.path}
+                end={child.path === item.path}
+                onClick={() => setOpen(false)}
+                className={({ isActive: a }) => cn(
+                  'flex items-center px-4 py-2.5 text-sm transition-colors',
+                  a ? 'text-accent-primary bg-accent-primary/8 font-medium'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
+                )}
+              >
+                {child.label}
+              </NavLink>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <NavLink
+      to={item.path}
+      end={item.id === 'dashboard'}
+      className={({ isActive: a }) => cn(
+        'flex items-center px-3 h-full text-sm font-medium transition-colors whitespace-nowrap border-b-2 shrink-0',
+        a
+          ? 'text-accent-primary border-accent-primary'
+          : 'text-text-secondary hover:text-text-primary border-transparent hover:border-border-secondary',
+      )}
+    >
+      {item.label}
+    </NavLink>
+  )
+}
 
 // ============================================
 // BILDIRISHNOMALAR
 // ============================================
 function NotificationButton() {
-  const [open, setOpen]   = useState(false)
-  const containerRef      = useRef<HTMLDivElement>(null)
-  const { data }          = useNotifications()
-  const markRead          = useMarkRead()
-  const markAllRead       = useMarkAllRead()
-  const refresh           = useRefreshNotifications()
-  const navigate          = useNavigate()
-  const t                 = useT()
+  const [open, setOpen]  = useState(false)
+  const containerRef     = useRef<HTMLDivElement>(null)
+  const { data }         = useNotifications()
+  const markRead         = useMarkRead()
+  const markAllRead      = useMarkAllRead()
+  const refresh          = useRefreshNotifications()
+  const navigate         = useNavigate()
+  const t                = useT()
 
   const items  = data?.items       ?? []
   const unread = data?.unreadCount ?? 0
@@ -97,14 +157,11 @@ function NotificationButton() {
   }
 
   const typeColor = (type: string) => ({
-    warning: 'bg-warning',
-    success: 'bg-success',
-    danger:  'bg-danger',
-    info:    'bg-accent-primary',
+    warning: 'bg-warning', success: 'bg-success', danger: 'bg-danger', info: 'bg-accent-primary',
   }[type] ?? 'bg-accent-primary')
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative shrink-0">
       <button
         onClick={() => setOpen(!open)}
         className="relative flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
@@ -116,24 +173,17 @@ function NotificationButton() {
           </span>
         )}
       </button>
-
       {open && (
         <div className="absolute right-0 top-full mt-2 w-80 bg-bg-secondary border border-border-primary rounded-xl shadow-xl z-50 animate-scale-in overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border-primary">
             <span className="font-display font-semibold text-sm text-text-primary">{t('header.notifications')}</span>
             <div className="flex items-center gap-1">
               {unread > 0 && <Badge variant="danger" size="sm">{unread} {t('header.new')}</Badge>}
-              <button
-                onClick={() => refresh.mutate()}
-                className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
-              >
+              <button onClick={() => refresh.mutate()} className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors">
                 <RefreshCw size={12} className={refresh.isPending ? 'animate-spin' : ''} />
               </button>
               {unread > 0 && (
-                <button
-                  onClick={() => markAllRead.mutate()}
-                  className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
-                >
+                <button onClick={() => markAllRead.mutate()} className="p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors">
                   <CheckCheck size={13} />
                 </button>
               )}
@@ -143,13 +193,8 @@ function NotificationButton() {
             {items.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-text-muted">Bildirishnomalar yo'q</div>
             ) : items.map(n => (
-              <div
-                key={n.id}
-                onClick={() => handleClick(n)}
-                className={cn(
-                  'flex gap-3 px-4 py-3 hover:bg-bg-tertiary transition-colors cursor-pointer',
-                  !n.isRead && 'bg-accent-primary/5',
-                )}
+              <div key={n.id} onClick={() => handleClick(n)}
+                className={cn('flex gap-3 px-4 py-3 hover:bg-bg-tertiary transition-colors cursor-pointer', !n.isRead && 'bg-accent-primary/5')}
               >
                 <div className={cn('w-2 h-2 rounded-full mt-1.5 shrink-0', typeColor(n.type))} />
                 <div className="flex-1 min-w-0">
@@ -163,10 +208,7 @@ function NotificationButton() {
             ))}
           </div>
           <div className="px-4 py-2.5 border-t border-border-primary">
-            <button
-              onClick={() => setOpen(false)}
-              className="text-xs text-accent-primary hover:text-accent-hover transition-colors w-full text-center"
-            >
+            <button onClick={() => setOpen(false)} className="text-xs text-accent-primary hover:text-accent-hover transition-colors w-full text-center">
               {t('header.viewAll')}
             </button>
           </div>
@@ -180,11 +222,11 @@ function NotificationButton() {
 // USER MENU
 // ============================================
 function UserMenu() {
-  const [open, setOpen]         = useState(false)
+  const [open, setOpen]            = useState(false)
   const { user, logout, fullName } = useAuth()
-  const navigate                = useNavigate()
-  const containerRef            = useRef<HTMLDivElement>(null)
-  const t                       = useT()
+  const navigate                   = useNavigate()
+  const containerRef               = useRef<HTMLDivElement>(null)
+  const t                          = useT()
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -195,22 +237,18 @@ function UserMenu() {
   }, [open])
 
   return (
-    <div ref={containerRef} className="relative">
-      <button
-        onClick={() => setOpen(!open)}
+    <div ref={containerRef} className="relative shrink-0">
+      <button onClick={() => setOpen(!open)}
         className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg hover:bg-bg-tertiary transition-colors"
       >
-        <div className="w-7 h-7 rounded-full bg-accent-primary/20 border border-accent-primary/30 flex items-center justify-center">
+        <div className="w-7 h-7 rounded-full bg-accent-primary/20 border border-accent-primary/30 flex items-center justify-center shrink-0">
           <span className="text-[11px] font-bold text-accent-primary">
             {user ? `${user.firstName[0]}${user.lastName[0]}` : '??'}
           </span>
         </div>
-        <span className="hidden md:block text-sm font-medium text-text-secondary max-w-[100px] truncate">
-          {fullName}
-        </span>
+        <span className="hidden md:block text-sm font-medium text-text-secondary max-w-[90px] truncate">{fullName}</span>
         <ChevronDown size={12} className={cn('text-text-muted transition-transform duration-150', open && 'rotate-180')} />
       </button>
-
       {open && (
         <div className="absolute right-0 top-full mt-2 w-56 bg-bg-secondary border border-border-primary rounded-xl shadow-xl z-50 animate-scale-in overflow-hidden">
           <div className="px-4 py-3 border-b border-border-primary">
@@ -223,9 +261,7 @@ function UserMenu() {
               { icon: User,     label: t('header.profile'),  action: () => navigate('/settings/profile') },
               { icon: Settings, label: t('header.settings'), action: () => navigate('/settings') },
             ].map(item => (
-              <button
-                key={item.label}
-                onClick={() => { item.action(); setOpen(false) }}
+              <button key={item.label} onClick={() => { item.action(); setOpen(false) }}
                 className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary transition-colors"
               >
                 <item.icon size={15} />
@@ -234,8 +270,7 @@ function UserMenu() {
             ))}
           </div>
           <div className="p-1.5 border-t border-border-primary">
-            <button
-              onClick={() => { logout(); setOpen(false) }}
+            <button onClick={() => { logout(); setOpen(false) }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-danger hover:bg-danger/10 transition-colors"
             >
               <LogOut size={15} />
@@ -249,192 +284,16 @@ function UserMenu() {
 }
 
 // ============================================
-// DROPDOWN NAV ITEM
-// ============================================
-function NavDropdown({ group }: { group: NavGroup }) {
-  const [open, setOpen]  = useState(false)
-  const containerRef     = useRef<HTMLDivElement>(null)
-  const location         = useLocation()
-  const { hasPermission, hasModule } = useAuth()
-
-  const visibleItems = (group.items ?? []).filter(item => {
-    const permitted  = item.permission ? hasPermission(item.permission) : true
-    const modEnabled = item.module     ? hasModule(item.module)         : true
-    return permitted && modEnabled
-  })
-  if (visibleItems.length === 0) return null
-
-  const isActive = visibleItems.some(item =>
-    location.pathname === item.path ||
-    (item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'))
-  )
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    if (open) document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  return (
-    <div ref={containerRef} className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className={cn(
-          'flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
-          isActive
-            ? 'text-accent-primary bg-accent-primary/10'
-            : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
-        )}
-      >
-        {group.label}
-        <ChevronDown size={13} className={cn('transition-transform duration-150', open && 'rotate-180')} />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 top-full mt-1 min-w-[180px] bg-bg-secondary border border-border-primary rounded-xl shadow-xl z-50 animate-scale-in overflow-hidden py-1">
-          {visibleItems.map(item => {
-            const isItemActive =
-              location.pathname === item.path ||
-              (item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'))
-
-            return (
-              <NavLink
-                key={item.id}
-                to={item.path}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  'flex items-center gap-2.5 px-3 py-2 mx-1 rounded-lg text-sm transition-colors',
-                  isItemActive
-                    ? 'text-accent-primary bg-accent-primary/10'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
-                )}
-              >
-                {group.color && (
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: group.color }} />
-                )}
-                {item.icon && <item.icon size={14} className="shrink-0 text-text-muted" />}
-                {item.label}
-              </NavLink>
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ============================================
-// TO'G'RIDAN-TO'G'RI LINK
-// ============================================
-function NavDirectLink({ group }: { group: NavGroup }) {
-  const { hasPermission } = useAuth()
-
-  // dashboard requires 'dashboard' permission check optional
-  if (group.id === 'contacts' && !hasPermission('contacts.view')) return null
-  if (group.id === 'products' && !hasPermission('products.view')) return null
-
-  return (
-    <NavLink
-      to={group.path!}
-      className={({ isActive }) => cn(
-        'px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
-        isActive
-          ? 'text-accent-primary bg-accent-primary/10'
-          : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
-      )}
-    >
-      {group.label}
-    </NavLink>
-  )
-}
-
-// ============================================
-// MODULLAR DROPDOWN
-// ============================================
-function ModulesDropdown() {
-  const [open, setOpen]    = useState(false)
-  const containerRef       = useRef<HTMLDivElement>(null)
-  const location           = useLocation()
-  const { hasModule }      = useAuth()
-
-  const activeModules = MODULE_NAV.filter(s => !s.module || hasModule(s.module))
-  if (activeModules.length === 0) return null
-
-  const isActive = activeModules.some(s =>
-    s.items.some(item => location.pathname.startsWith(item.path))
-  )
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
-    }
-    if (open) document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
-
-  return (
-    <div ref={containerRef} className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className={cn(
-          'flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
-          isActive
-            ? 'text-accent-primary bg-accent-primary/10'
-            : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
-        )}
-      >
-        Modullar
-        <ChevronDown size={13} className={cn('transition-transform duration-150', open && 'rotate-180')} />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 top-full mt-1 min-w-[200px] bg-bg-secondary border border-border-primary rounded-xl shadow-xl z-50 animate-scale-in overflow-hidden py-1">
-          {MODULE_NAV.map(section => {
-            const enabled = !section.module || hasModule(section.module)
-            if (!enabled) return (
-              <div key={section.id} className="px-3 py-2 mx-1 opacity-40">
-                <div className="flex items-center gap-2 text-xs text-text-muted">
-                  <Lock size={11} />
-                  {section.label}
-                </div>
-              </div>
-            )
-            return section.items.map(item => (
-              <NavLink
-                key={item.id}
-                to={item.path}
-                onClick={() => setOpen(false)}
-                className={({ isActive }) => cn(
-                  'flex items-center gap-2.5 px-3 py-2 mx-1 rounded-lg text-sm transition-colors',
-                  isActive
-                    ? 'text-accent-primary bg-accent-primary/10'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
-                )}
-              >
-                {section.color && (
-                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: section.color }} />
-                )}
-                {item.icon && <item.icon size={14} className="shrink-0" />}
-                {item.label}
-              </NavLink>
-            ))
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ============================================
 // MOBILE MENU
 // ============================================
 function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { hasPermission, hasModule } = useAuth()
   const location = useLocation()
 
-  useEffect(() => { onClose() }, [location.pathname])
+  useEffect(() => {
+    if (open) onClose()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
 
   if (!open) return null
 
@@ -448,77 +307,59 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
             <X size={18} />
           </button>
         </div>
-
-        <nav className="flex-1 p-3 space-y-1">
-          {CORE_GROUPS.map(group => {
-            if (group.path) {
+        <nav className="flex-1 p-3 space-y-0.5">
+          {ALL_NAV.map(item => {
+            if (item.permission && !hasPermission(item.permission)) return null
+            if (item.children) {
               return (
-                <NavLink
-                  key={group.id}
-                  to={group.path}
-                  className={({ isActive }) => cn(
-                    'flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                    isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary',
-                  )}
-                >
-                  {group.label}
-                </NavLink>
-              )
-            }
-            return (
-              <div key={group.id}>
-                <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted mt-2">
-                  {group.label}
-                </div>
-                {(group.items ?? [])
-                  .filter(item => {
-                    const ok1 = item.permission ? hasPermission(item.permission) : true
-                    const ok2 = item.module     ? hasModule(item.module)         : true
-                    return ok1 && ok2
-                  })
-                  .map(item => (
-                    <NavLink
-                      key={item.id}
-                      to={item.path}
+                <div key={item.id}>
+                  <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted mt-2">
+                    {item.label}
+                  </div>
+                  {item.children.map(child => (
+                    <NavLink key={child.path} to={child.path}
                       className={({ isActive }) => cn(
-                        'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
+                        'flex items-center px-3 py-2 rounded-lg text-sm transition-colors',
                         isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary',
                       )}
                     >
-                      {item.icon && <item.icon size={15} />}
-                      {item.label}
+                      {child.label}
                     </NavLink>
-                  ))
-                }
-              </div>
+                  ))}
+                </div>
+              )
+            }
+            return (
+              <NavLink key={item.id} to={item.path} end={item.id === 'dashboard'}
+                className={({ isActive }) => cn(
+                  'flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary',
+                )}
+              >
+                {item.label}
+              </NavLink>
             )
           })}
 
           {MODULE_NAV.some(s => !s.module || hasModule(s.module)) && (
             <div>
-              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted mt-2">
+              <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted mt-3">
                 Modullar
               </div>
-              {MODULE_NAV.map(section => {
-                const enabled = !section.module || hasModule(section.module)
-                return section.items.map(item => (
-                  <NavLink
-                    key={item.id}
-                    to={item.path}
+              {MODULE_NAV.map(section =>
+                section.items.map(item => (
+                  <NavLink key={item.id} to={item.path}
                     className={({ isActive }) => cn(
                       'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors',
-                      !enabled && 'opacity-40 pointer-events-none',
+                      !(!section.module || hasModule(section.module)) && 'opacity-40 pointer-events-none',
                       isActive ? 'bg-accent-primary/10 text-accent-primary' : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary',
                     )}
                   >
-                    {section.color && (
-                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: section.color }} />
-                    )}
-                    {item.icon && <item.icon size={15} />}
+                    {section.color && <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: section.color }} />}
                     {item.label}
                   </NavLink>
                 ))
-              })}
+              )}
             </div>
           )}
         </nav>
@@ -535,60 +376,77 @@ export function TopNavBar() {
   const theme       = useUIStore(s => s.theme)
   const toggleTheme = useUIStore(s => s.toggleTheme)
   const { user }    = useAuth()
+  const { hasModule } = useAuth()
+
+  const hasActiveModule = MODULE_NAV.some(s => !s.module || hasModule(s.module))
 
   return (
     <>
       <MorningDigest />
 
-      <header className="fixed top-0 left-0 right-0 z-30 h-[var(--header-height)] bg-bg-secondary/90 backdrop-blur-md border-b border-border-primary flex items-center px-4 gap-3">
+      <header className="fixed top-0 left-0 right-0 z-30 h-[var(--header-height)] bg-bg-secondary/95 backdrop-blur-md border-b border-border-primary flex items-center">
 
         {/* Logo */}
-        <div className="flex items-center gap-2 shrink-0 mr-2">
-          <div className="w-7 h-7 rounded-lg bg-accent-primary/20 border border-accent-primary/40 flex items-center justify-center">
-            <div className="w-3.5 h-3.5 rounded-sm bg-accent-primary" />
+        <div className="flex items-center gap-2 px-3 shrink-0 border-r border-border-primary h-full">
+          <div className="w-6 h-6 rounded-md bg-accent-primary/20 border border-accent-primary/40 flex items-center justify-center shrink-0">
+            <div className="w-3 h-3 rounded-sm bg-accent-primary" />
           </div>
-          <span className="hidden sm:block font-display font-bold text-sm text-text-primary leading-none">
-            {user?.company?.name ?? 'ERP Platform'}
+          <span className="hidden sm:block font-display font-bold text-sm text-text-primary leading-none truncate max-w-[120px]">
+            {user?.company?.name ?? 'ERP'}
           </span>
         </div>
 
-        {/* Desktop navigatsiya */}
-        <nav className="hidden lg:flex items-center gap-0.5 flex-1 min-w-0 overflow-x-auto scrollbar-none">
-          {CORE_GROUPS.map(group =>
-            group.path
-              ? <NavDirectLink key={group.id} group={group} />
-              : <NavDropdown   key={group.id} group={group} />
+        {/* Mobile hamburger */}
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="lg:hidden flex items-center justify-center w-9 h-9 mx-1 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors shrink-0"
+        >
+          <Menu size={18} />
+        </button>
+
+        {/* Desktop nav — gorizontal scroll */}
+        <nav className="hidden lg:flex items-stretch flex-1 min-w-0 overflow-x-auto scrollbar-none h-full gap-0.5 px-1">
+          {ALL_NAV.map(item => (
+            <NavItem key={item.id} item={item} />
+          ))}
+
+          {/* Faol modullar */}
+          {hasActiveModule && MODULE_NAV.filter(s => !s.module || hasModule(s.module)).map(section =>
+            section.items.map(item => (
+              <NavLink
+                key={item.id}
+                to={item.path}
+                className={({ isActive }) => cn(
+                  'flex items-center gap-1.5 px-3 h-full text-sm font-medium transition-colors whitespace-nowrap border-b-2 shrink-0',
+                  isActive
+                    ? 'text-accent-primary border-accent-primary'
+                    : 'text-text-secondary hover:text-text-primary border-transparent hover:border-border-secondary',
+                )}
+              >
+                {section.color && (
+                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: section.color }} />
+                )}
+                {item.label}
+              </NavLink>
+            ))
           )}
-          <ModulesDropdown />
 
           {/* Sozlamalar */}
           <NavLink
             to="/settings"
             className={({ isActive }) => cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap',
+              'flex items-center px-3 h-full text-sm font-medium transition-colors whitespace-nowrap border-b-2 shrink-0',
               isActive
-                ? 'text-accent-primary bg-accent-primary/10'
-                : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
+                ? 'text-accent-primary border-accent-primary'
+                : 'text-text-secondary hover:text-text-primary border-transparent hover:border-border-secondary',
             )}
           >
-            <Settings size={14} />
             Sozlamalar
           </NavLink>
         </nav>
 
-        {/* Mobile: hamburger */}
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="lg:hidden flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
-        >
-          <Menu size={18} />
-        </button>
-
-        {/* Spacer */}
-        <div className="flex-1 lg:flex-none" />
-
         {/* O'ng tomon asboblar */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 px-2 shrink-0 border-l border-border-primary h-full ml-auto">
           <UniversalSearch />
           <div className="hidden sm:block"><LanguageSwitcher /></div>
           <button
@@ -596,10 +454,10 @@ export function TopNavBar() {
             className="flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
             title={theme === 'dark' ? 'Kunduzgi rejim' : 'Kechki rejim'}
           >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
           </button>
           <NotificationButton />
-          <div className="w-px h-5 bg-border-primary mx-1" />
+          <div className="w-px h-5 bg-border-primary mx-0.5" />
           <UserMenu />
         </div>
       </header>
