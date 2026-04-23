@@ -199,7 +199,7 @@ function FinancialReport({ filters }: { filters: { dateFrom: string; dateTo: str
         {
           title:   'Eng yaxshi 10 ta sotuv',
           headers: ['Mijoz', 'Summa', 'Sana'],
-          rows: data.topSales.map((s: any) => [
+          rows: (data.topSales ?? []).map((s: any) => [
             s.contact,
             formatCurrency(s.amount),
             formatDate(s.closedAt, 'short'),
@@ -329,7 +329,7 @@ function FinancialReport({ filters }: { filters: { dateFrom: string; dateTo: str
         </div>
       </div>
 
-      {data.topSales.length > 0 && (
+      {(data.topSales?.length ?? 0) > 0 && (
         <Card padding="none">
           <div className="p-4 border-b border-[var(--color-border-primary)]">
             <h3 className="font-semibold text-[var(--color-text-primary)] text-sm">Eng yaxshi 10 ta sotuv</h3>
@@ -344,7 +344,7 @@ function FinancialReport({ filters }: { filters: { dateFrom: string; dateTo: str
                 </tr>
               </thead>
               <tbody>
-                {data.topSales.map((sale: any, i: number) => (
+                {(data.topSales ?? []).map((sale: any, i: number) => (
                   <tr key={i} className="border-b border-[var(--color-border-primary)]/50 hover:bg-[var(--color-bg-tertiary)]/30">
                     <td className="px-4 py-2.5 text-xs text-[var(--color-text-muted)]">{i + 1}</td>
                     <td className="px-4 py-2.5 text-xs text-[var(--color-text-primary)]">{sale.contact}</td>
@@ -432,7 +432,7 @@ function WarehouseReport({ filters }: { filters: { dateFrom: string; dateTo: str
               </tr>
             </thead>
             <tbody>
-              {data.topMovements.map((item: any, i: number) => (
+              {(data.topMovements ?? []).map((item: any, i: number) => (
                 <tr key={i} className="border-b border-[var(--color-border-primary)]/50 hover:bg-[var(--color-bg-tertiary)]/30">
                   <td className="px-4 py-3 text-sm text-[var(--color-text-muted)]">{i + 1}</td>
                   <td className="px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">{item.productName}</td>
@@ -447,7 +447,7 @@ function WarehouseReport({ filters }: { filters: { dateFrom: string; dateTo: str
         </div>
       </Card>
 
-      {data.lowStockItems.length > 0 && (
+      {(data.lowStockItems?.length ?? 0) > 0 && (
         <Card padding="none">
           <div className="p-4 border-b border-[var(--color-border-primary)] flex items-center gap-2">
             <h3 className="font-semibold text-[var(--color-text-primary)] text-sm">Kam qoldiqli mahsulotlar</h3>
@@ -463,7 +463,7 @@ function WarehouseReport({ filters }: { filters: { dateFrom: string; dateTo: str
                 </tr>
               </thead>
               <tbody>
-                {data.lowStockItems.map((item: any, i: number) => (
+                {(data.lowStockItems ?? []).map((item: any, i: number) => (
                   <tr key={i} className="border-b border-[var(--color-border-primary)]/50 hover:bg-[var(--color-bg-tertiary)]/30">
                     <td className="px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">{item.name}</td>
                     <td className="px-4 py-3 text-sm tabular-nums text-[var(--color-danger)]">
@@ -547,7 +547,7 @@ function SalesReport({ filters }: { filters: { dateFrom: string; dateTo: string 
               </tr>
             </thead>
             <tbody>
-              {data.byContact.map((c: any, i: number) => (
+              {(data.byContact ?? []).map((c: any, i: number) => (
                 <tr key={i} className="border-b border-[var(--color-border-primary)]/50 hover:bg-[var(--color-bg-tertiary)]/30">
                   <td className="px-4 py-3 text-sm text-[var(--color-text-muted)]">{i + 1}</td>
                   <td className="px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">{c.name}</td>
@@ -576,7 +576,7 @@ function SalesReport({ filters }: { filters: { dateFrom: string; dateTo: string 
               </tr>
             </thead>
             <tbody>
-              {data.byProduct.map((p: any, i: number) => (
+              {(data.byProduct ?? []).map((p: any, i: number) => (
                 <tr key={i} className="border-b border-[var(--color-border-primary)]/50 hover:bg-[var(--color-bg-tertiary)]/30">
                   <td className="px-4 py-3 text-sm text-[var(--color-text-muted)]">{i + 1}</td>
                   <td className="px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">{p.name}</td>
@@ -645,7 +645,7 @@ function EmployeesReport({ filters }: { filters: { dateFrom: string; dateTo: str
         />
       </div>
 
-      {data.byDepartment.length > 0 && (
+      {(data.byDepartment?.length ?? 0) > 0 && (
         <Card>
           <h3 className="font-semibold text-[var(--color-text-primary)] mb-4 text-sm">
             Bo'limlar bo'yicha ish haqi xarajati
@@ -676,7 +676,7 @@ function EmployeesReport({ filters }: { filters: { dateFrom: string; dateTo: str
               </tr>
             </thead>
             <tbody>
-              {data.employees.map((emp: any) => (
+              {(data.employees ?? []).map((emp: any) => (
                 <tr key={emp.id} className="border-b border-[var(--color-border-primary)]/50 hover:bg-[var(--color-bg-tertiary)]/30">
                   <td className="px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">{emp.name}</td>
                   <td className="px-4 py-3 text-sm text-[var(--color-text-secondary)]">{emp.position || '—'}</td>
@@ -774,7 +774,7 @@ function WasteReport({ filters }: { filters: { dateFrom: string; dateTo: string 
         />
       </div>
 
-      {data.byQuality.length > 0 && (
+      {(data.byQuality?.length ?? 0) > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
             <h3 className="font-semibold text-[var(--color-text-primary)] mb-4 text-sm">
@@ -783,14 +783,14 @@ function WasteReport({ filters }: { filters: { dateFrom: string; dateTo: string 
             <ResponsiveContainer width="100%" height={200}>
               <PieChart>
                 <Pie
-                  data={data.byQuality.map((q: any) => ({ name: q.name, value: q.totalWeight }))}
+                  data={(data.byQuality ?? []).map((q: any) => ({ name: q.name, value: q.totalWeight }))}
                   cx="50%" cy="50%"
                   innerRadius={50} outerRadius={80}
                   dataKey="value"
                   label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   labelLine={false}
                 >
-                  {data.byQuality.map((_: any, i: number) => (
+                  {(data.byQuality ?? []).map((_: any, i: number) => (
                     <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                   ))}
                 </Pie>
@@ -815,7 +815,7 @@ function WasteReport({ filters }: { filters: { dateFrom: string; dateTo: string 
                 </tr>
               </thead>
               <tbody>
-                {data.byQuality.map((q: any, i: number) => (
+                {(data.byQuality ?? []).map((q: any, i: number) => (
                   <tr key={i} className="border-b border-[var(--color-border-primary)]/50 hover:bg-[var(--color-bg-tertiary)]/30">
                     <td className="px-4 py-3">
                       <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-text-primary)]">
@@ -851,7 +851,7 @@ function WasteReport({ filters }: { filters: { dateFrom: string; dateTo: string 
                 </tr>
               </thead>
               <tbody>
-                {data.batches.map((b: any, i: number) => (
+                {(data.batches ?? []).map((b: any, i: number) => (
                   <tr key={i} className="border-b border-[var(--color-border-primary)]/50 hover:bg-[var(--color-bg-tertiary)]/30">
                     <td className="px-4 py-3 text-sm font-mono text-[var(--color-accent-primary)]">{b.batchNumber}</td>
                     <td className="px-4 py-3 text-sm">{b.qualityType}</td>
