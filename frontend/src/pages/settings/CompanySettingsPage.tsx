@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import {
   Building2, Users, Puzzle, CreditCard,
@@ -41,6 +41,8 @@ function CompanyForm() {
   const t = useT()
   const { data: company, isLoading } = useCompanySettings()
   const update = useUpdateCompany()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [form, setForm] = useState({
     name:      '',
     legalName: '',
@@ -50,6 +52,7 @@ function CompanyForm() {
     email:     '',
     currency:  'UZS',
     taxRegime: 'GENERAL',
+    logo:      '',
   })
 
   useEffect(() => {
@@ -63,9 +66,24 @@ function CompanyForm() {
         email:     company.email     || '',
         currency:  company.currency  || 'UZS',
         taxRegime: company.taxRegime || 'GENERAL',
+        logo:      company.logo      || '',
       })
+      if (company.logo) setLogoPreview(company.logo)
     }
   }, [company])
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 2 * 1024 * 1024) { alert('Fayl hajmi 2MB dan oshmasligi kerak'); return }
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const base64 = ev.target?.result as string
+      setLogoPreview(base64)
+      setForm(f => ({ ...f, logo: base64 }))
+    }
+    reader.readAsDataURL(file)
+  }
 
   if (isLoading) {
     return (
@@ -85,12 +103,8 @@ function CompanyForm() {
       {/* Logo bloki */}
       <div className="flex items-center gap-4 p-4 rounded-lg bg-[var(--color-bg-tertiary)] border border-[var(--color-border-primary)]">
         <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-[var(--color-accent-primary)] to-purple-500 flex items-center justify-center text-white font-black text-2xl overflow-hidden shrink-0">
-          {company?.logo ? (
-            <img
-              src={company.logo}
-              alt="Logo"
-              className="w-full h-full object-cover"
-            />
+          {logoPreview ? (
+            <img src={logoPreview} alt="Logo" className="w-full h-full object-cover" />
           ) : (
             <span>{form.name?.[0]?.toUpperCase() || 'B'}</span>
           )}
@@ -102,7 +116,8 @@ function CompanyForm() {
           <p className="text-xs text-[var(--color-text-muted)] mb-2">
             PNG, JPG — max 2MB
           </p>
-          <Button variant="secondary" size="xs" leftIcon={<Upload size={12} />}>
+          <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleLogoChange} />
+          <Button variant="secondary" size="xs" leftIcon={<Upload size={12} />} onClick={() => fileInputRef.current?.click()}>
             {t('settings.upload')}
           </Button>
         </div>

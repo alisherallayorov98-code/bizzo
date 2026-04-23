@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Calendar, CreditCard, FileText, XCircle } from 'lucide-react'
+import { Calendar, CreditCard, FileText, XCircle, Clock } from 'lucide-react'
 import { billingService, Subscription, BillingPayment } from '@services/billing.service'
 import { useT } from '@i18n/index'
 
@@ -35,6 +35,20 @@ export default function BillingPage() {
   return (
     <div className="p-8 max-w-6xl mx-auto">
       <h1 className="text-2xl font-bold mb-6" style={{ color: 'var(--color-text-primary)' }}>{t('billing.subscriptionTitle')}</h1>
+
+      {/* Tez kunda banner */}
+      <div className="mb-6 p-4 rounded-xl flex items-start gap-3"
+        style={{ backgroundColor: 'var(--color-accent-primary)10', border: '1px dashed var(--color-accent-primary)' }}>
+        <Clock size={18} style={{ color: 'var(--color-accent-primary)', flexShrink: 0, marginTop: 2 }} />
+        <div>
+          <p className="font-semibold text-sm" style={{ color: 'var(--color-accent-primary)' }}>
+            Tez kunda — Payme va Click integratsiyasi
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+            To'lov tizimi hozirda ishlab chiqilmoqda. Yaqinda Payme va Click orqali to'lov qilish imkoniyati qo'shiladi. Hozircha administrator orqali murojaat qiling.
+          </p>
+        </div>
+      </div>
 
       {!sub ? (
         <div className="p-8 rounded-xl text-center"

@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Plus, Search, Users, Clock, DollarSign,
+  Plus, Search, Users, Clock, DollarSign, Download,
   Phone, Building2, Eye, Edit2, Trash2, AlertCircle,
 } from 'lucide-react'
+import { exportToExcel } from '@utils/exporters'
 import { PageHeader } from '@components/layout/PageHeader/PageHeader'
 import { Button } from '@components/ui/Button/Button'
 import { Input } from '@components/ui/Input/Input'
@@ -207,6 +208,21 @@ export default function EmployeesListPage() {
     setEditEmployee(null)
   }
 
+  const handleExport = () => {
+    const rows = (data?.data ?? []).map(e => ({
+      firstName:    e.firstName,
+      lastName:     e.lastName,
+      phone:        e.phone ?? '',
+      position:     e.position,
+      department:   e.department ?? '',
+      employeeType: e.employeeType,
+      baseSalary:   Number(e.baseSalary ?? 0),
+      dailyRate:    Number(e.dailyRate ?? 0),
+      hireDate:     e.hireDate ? new Date(e.hireDate).toLocaleDateString('uz-UZ') : '',
+    }))
+    exportToExcel([{ name: 'Xodimlar', data: rows }], `bizzo-xodimlar-${new Date().toISOString().slice(0, 10)}`)
+  }
+
   const confirmDelete = async () => {
     if (!deleteTarget) return
     await updateMutation.mutateAsync({ id: deleteTarget.id, data: { isActive: false } })
@@ -230,14 +246,19 @@ export default function EmployeesListPage() {
           { label: t('nav.employees') },
         ]}
         actions={
-          <Button
-            variant="primary"
-            size="sm"
-            leftIcon={<Plus size={14} />}
-            onClick={() => setFormOpen(true)}
-          >
-            {t('employees.newEmployee')}
-          </Button>
+          <>
+            <Button variant="secondary" size="sm" leftIcon={<Download size={14} />} onClick={handleExport}>
+              {t('common.export')}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus size={14} />}
+              onClick={() => setFormOpen(true)}
+            >
+              {t('employees.newEmployee')}
+            </Button>
+          </>
         }
       />
 

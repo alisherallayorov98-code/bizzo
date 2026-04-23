@@ -16,6 +16,7 @@ export interface UpdateCompanyDto {
   email?:     string
   currency?:  string
   taxRegime?: string
+  logo?:      string
 }
 
 export interface CreateUserDto {

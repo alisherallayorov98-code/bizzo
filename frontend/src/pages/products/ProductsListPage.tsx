@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import * as XLSX from 'xlsx'
+import toast from 'react-hot-toast'
 import {
-  Plus, Search, Package, AlertTriangle,
+  Plus, Search, Package, AlertTriangle, Download,
   Layers, Tag, TrendingDown, Eye, Edit2, Trash2,
   BarChart2,
 } from 'lucide-react'
@@ -20,6 +22,7 @@ import {
   useProducts, useProductStats, useDeleteProduct, useBulkDeleteProducts,
 } from '@features/products/hooks/useProducts'
 import { useT } from '@i18n/index'
+import { productService } from '@services/product.service'
 import type { Product } from '@services/product.service'
 import { formatCurrency } from '@utils/formatters'
 import { cn } from '@utils/cn'
@@ -210,6 +213,30 @@ export default function ProductsListPage() {
   const selectAll   = useCallback(() => setSelectedIds(new Set(data?.data.map(p => p.id) ?? [])), [data])
   const clearSelect = useCallback(() => setSelectedIds(new Set()), [])
 
+  const handleExport = async () => {
+    try {
+      const res = await productService.getAll({ search: debouncedSearch || undefined, limit: 10000 })
+      const rows = (res.data ?? []).map((p: Product) => ({
+        'Kod':              p.code,
+        'Nomi':             p.name,
+        'Kategoriya':       p.category ?? '',
+        'O\'lchov':         p.unit,
+        'Turi':             p.isService ? 'Xizmat' : 'Tovar',
+        'Sotib olish narxi': Number(p.buyPrice),
+        'Sotuv narxi':      Number(p.sellPrice),
+        'Min. qoldiq':      p.minStock,
+        'Shtrix-kod':       p.barcode ?? '',
+        'Izoh':             p.description ?? '',
+      }))
+      const ws = XLSX.utils.json_to_sheet(rows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Mahsulotlar')
+      XLSX.writeFile(wb, `bizzo-mahsulotlar-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } catch {
+      toast.error('Eksport muvaffaqiyatsiz')
+    }
+  }
+
   const handleEdit = useCallback((p: Product) => {
     setEditProduct(p)
     setFormOpen(true)
@@ -244,14 +271,19 @@ export default function ProductsListPage() {
           { label: t('nav.products') },
         ]}
         actions={
-          <Button
-            variant="primary"
-            size="sm"
-            leftIcon={<Plus size={14} />}
-            onClick={() => setFormOpen(true)}
-          >
-            {t('products.newProduct')}
-          </Button>
+          <>
+            <Button variant="secondary" size="sm" leftIcon={<Download size={14} />} onClick={handleExport}>
+              {t('common.export')}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Plus size={14} />}
+              onClick={() => setFormOpen(true)}
+            >
+              {t('products.newProduct')}
+            </Button>
+          </>
         }
       />
 

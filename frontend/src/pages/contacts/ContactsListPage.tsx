@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import * as XLSX from 'xlsx'
+import toast from 'react-hot-toast'
 import {
   Plus, Search, Download,
   Users, TrendingUp, TrendingDown, AlertCircle,
@@ -21,6 +23,7 @@ import {
   useContacts, useContactStats, useDeleteContact, useBulkDeleteContacts,
 } from '@features/contacts/hooks/useContacts'
 import { useT } from '@i18n/index'
+import { contactService } from '@services/contact.service'
 import type { Contact, ContactType } from '@services/contact.service'
 import { formatCurrency, formatPhone, getInitials } from '@utils/formatters'
 import { cn } from '@utils/cn'
@@ -243,6 +246,30 @@ export default function ContactsListPage() {
 
   const clearSelect = useCallback(() => setSelectedIds(new Set()), [])
 
+  const handleExport = async () => {
+    try {
+      const all = await contactService.exportData({ type: typeTab !== 'ALL' ? typeTab : undefined, search: debouncedSearch || undefined })
+      const rows = all.map(c => ({
+        'Nomi':          c.name,
+        'Turi':          c.type === 'CUSTOMER' ? 'Mijoz' : c.type === 'SUPPLIER' ? 'Yetkazuvchi' : 'Ikkalasi',
+        'Telefon':       c.phone ?? '',
+        'Email':         c.email ?? '',
+        'Viloyat':       c.region ?? '',
+        'Manzil':        c.address ?? '',
+        'Qarz limiti':   c.creditLimit ?? 0,
+        'STIR':          c.stir ?? '',
+        'Yuridik nomi':  c.legalName ?? '',
+        'Izoh':          c.notes ?? '',
+      }))
+      const ws = XLSX.utils.json_to_sheet(rows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, 'Kontaktlar')
+      XLSX.writeFile(wb, `bizzo-kontaktlar-${new Date().toISOString().slice(0, 10)}.xlsx`)
+    } catch {
+      toast.error('Eksport muvaffaqiyatsiz')
+    }
+  }
+
   const handleEdit = useCallback((c: Contact) => {
     setEditContact(c)
     setFormOpen(true)
@@ -285,7 +312,7 @@ export default function ContactsListPage() {
         ]}
         actions={
           <>
-            <Button variant="secondary" size="sm" leftIcon={<Download size={14} />}>
+            <Button variant="secondary" size="sm" leftIcon={<Download size={14} />} onClick={handleExport}>
               {t('common.export')}
             </Button>
             <Button
