@@ -54,10 +54,11 @@ const ALL_NAV: NavItemDef[] = [
 // NAV ELEMENT (to'g'ridan-to'g'ri link)
 // ============================================
 function NavItem({ item }: { item: NavItemDef }) {
-  const [open, setOpen]  = useState(false)
-  const containerRef     = useRef<HTMLDivElement>(null)
-  const location         = useLocation()
-  const { hasPermission } = useAuth()
+  const [open, setOpen]      = useState(false)
+  const [dropPos, setDropPos] = useState({ left: 0, top: 0 })
+  const buttonRef             = useRef<HTMLButtonElement>(null)
+  const location              = useLocation()
+  const { hasPermission }     = useAuth()
 
   if (item.permission && !hasPermission(item.permission)) return null
 
@@ -65,20 +66,33 @@ function NavItem({ item }: { item: NavItemDef }) {
     location.pathname === item.path ||
     (item.path !== '/dashboard' && location.pathname.startsWith(item.path + '/'))
 
+  // Close on outside click
   useEffect(() => {
-    if (!item.children) return
+    if (!item.children || !open) return
     const handler = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) setOpen(false)
+      if (!buttonRef.current?.contains(e.target as Node)) setOpen(false)
     }
-    if (open) document.addEventListener('mousedown', handler)
+    document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [open, item.children])
 
+  // Close on route change
+  useEffect(() => { setOpen(false) }, [location.pathname])
+
+  const handleToggle = () => {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropPos({ left: rect.left, top: rect.bottom })
+    }
+    setOpen(o => !o)
+  }
+
   if (item.children) {
     return (
-      <div ref={containerRef} className="relative shrink-0">
+      <div className="relative shrink-0 h-full flex items-stretch">
         <button
-          onClick={() => setOpen(!open)}
+          ref={buttonRef}
+          onClick={handleToggle}
           className={cn(
             'flex items-center gap-1 px-3 h-full text-sm font-medium transition-colors whitespace-nowrap border-b-2',
             isActive
@@ -89,8 +103,13 @@ function NavItem({ item }: { item: NavItemDef }) {
           {item.label}
           <ChevronDown size={12} className={cn('transition-transform duration-150', open && 'rotate-180')} />
         </button>
+
+        {/* position:fixed — overflow-x-auto ga qaramaydi */}
         {open && (
-          <div className="absolute left-0 top-full mt-0 min-w-[190px] bg-bg-secondary border border-border-primary rounded-b-xl rounded-tr-xl shadow-xl z-50 overflow-hidden py-1">
+          <div
+            style={{ position: 'fixed', left: dropPos.left, top: dropPos.top, zIndex: 9999 }}
+            className="min-w-[190px] bg-bg-secondary border border-border-primary rounded-b-xl rounded-tr-xl shadow-xl overflow-hidden py-1"
+          >
             {item.children.map(child => (
               <NavLink
                 key={child.path}
