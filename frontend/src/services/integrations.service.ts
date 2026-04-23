@@ -30,7 +30,7 @@ export interface NotificationLog {
 }
 
 export const integrationsService = {
-  getAll: () =>
+  getAll: (): Promise<IntegrationDef[]> =>
     api.get('/integrations').then(r => r.data.data),
 
   save: (type: string, config: Record<string, any>, isActive: boolean) =>

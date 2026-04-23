@@ -19,8 +19,8 @@ export interface NotificationsResponse {
 }
 
 export const notificationsService = {
-  getAll:       (limit = 20)  => api.get<NotificationsResponse>(`/notifications?limit=${limit}`).then(r => r.data.data),
+  getAll:       (limit = 20)  => api.get(`/notifications?limit=${limit}`).then(r => r.data.data as NotificationsResponse),
   markRead:     (id: string)  => api.patch(`/notifications/${id}/read`).then(r => r.data.data),
   markAllRead:  ()            => api.patch('/notifications/read-all').then(r => r.data.data),
-  refresh:      ()            => api.post<{ count: number }>('/notifications/refresh').then(r => r.data.data),
+  refresh:      ()            => api.post('/notifications/refresh').then(r => r.data.data as { count: number }),
 }

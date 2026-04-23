@@ -13,6 +13,7 @@ import { useT } from '@i18n/index'
 import { UniversalSearch } from '@components/smart/UniversalSearch'
 import { MorningDigest } from '@components/smart/MorningDigest'
 import { useNotifications, useMarkRead, useMarkAllRead, useRefreshNotifications } from '@hooks/useNotifications'
+import type { AppNotification } from '@services/notifications.service'
 import { formatDistanceToNow } from 'date-fns'
 import { uz } from 'date-fns/locale'
 import { MODULE_NAV } from '@config/navigation'
@@ -192,7 +193,7 @@ function NotificationButton() {
           <div className="divide-y divide-border-primary max-h-72 overflow-y-auto">
             {items.length === 0 ? (
               <div className="px-4 py-8 text-center text-sm text-text-muted">Bildirishnomalar yo'q</div>
-            ) : items.map(n => (
+            ) : items.map((n: AppNotification) => (
               <div key={n.id} onClick={() => handleClick(n)}
                 className={cn('flex gap-3 px-4 py-3 hover:bg-bg-tertiary transition-colors cursor-pointer', !n.isRead && 'bg-accent-primary/5')}
               >

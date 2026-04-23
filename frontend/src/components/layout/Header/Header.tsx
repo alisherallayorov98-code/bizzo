@@ -10,6 +10,7 @@ import { useT } from '@i18n/index'
 import { UniversalSearch } from '@components/smart/UniversalSearch'
 import { MorningDigest } from '@components/smart/MorningDigest'
 import { useNotifications, useMarkRead, useMarkAllRead, useRefreshNotifications } from '@hooks/useNotifications'
+import type { AppNotification } from '@services/notifications.service'
 import { formatDistanceToNow } from 'date-fns'
 import { uz } from 'date-fns/locale'
 
@@ -94,7 +95,7 @@ function NotificationButton() {
               <div className="px-4 py-8 text-center text-sm text-text-muted">
                 Bildirishnomalar yo'q
               </div>
-            ) : items.map(n => (
+            ) : items.map((n: AppNotification) => (
               <div
                 key={n.id}
                 onClick={() => handleClick(n)}
