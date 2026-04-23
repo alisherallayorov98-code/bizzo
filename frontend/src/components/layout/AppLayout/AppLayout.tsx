@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react'
-import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import { RefreshCw, WifiOff, AlertTriangle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@utils/cn'
@@ -95,7 +95,6 @@ function PWAInstallBanner() {
 }
 
 export function AppLayout() {
-  const location    = useLocation()
   const { isMobile } = useMobile()
   const qc          = useQueryClient()
 
