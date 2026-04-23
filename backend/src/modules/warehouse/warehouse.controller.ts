@@ -9,6 +9,8 @@ import {
   CreateMovementDto,
   QueryMovementDto,
   AdjustStockDto,
+  CreateIncomingDto,
+  CreateOutgoingDto,
 } from './warehouse.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
@@ -67,6 +69,30 @@ export class WarehouseController {
     @Body() dto: CreateMovementDto,
   ) {
     return this.warehouseService.createMovement(user.companyId, dto, user.id);
+  }
+
+  // ============================================
+  // KIRIM HUJJATI
+  // ============================================
+  @Post('incoming')
+  @ApiOperation({ summary: 'Kirim hujjati (multi-qator)' })
+  createIncoming(
+    @CurrentUser() user: any,
+    @Body() dto: CreateIncomingDto,
+  ) {
+    return this.warehouseService.createIncoming(user.companyId, dto, user.id);
+  }
+
+  // ============================================
+  // CHIQIM HUJJATI
+  // ============================================
+  @Post('outgoing')
+  @ApiOperation({ summary: 'Chiqim hujjati (multi-qator)' })
+  createOutgoing(
+    @CurrentUser() user: any,
+    @Body() dto: CreateOutgoingDto,
+  ) {
+    return this.warehouseService.createOutgoing(user.companyId, dto, user.id);
   }
 
   // ============================================

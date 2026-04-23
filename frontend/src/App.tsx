@@ -39,6 +39,8 @@ const ProductFormPage     = lazy(() => import('@pages/products/ProductFormPage')
 const WarehousePage       = lazy(() => import('@pages/warehouse/WarehouseOverviewPage'))
 const StockMovementsPage  = lazy(() => import('@pages/warehouse/StockMovementsPage'))
 const InventoryPage       = lazy(() => import('@pages/warehouse/InventoryPage'))
+const IncomingPage        = lazy(() => import('@pages/warehouse/IncomingPage'))
+const OutgoingPage        = lazy(() => import('@pages/warehouse/OutgoingPage'))
 const EmployeesListPage   = lazy(() => import('@pages/employees/EmployeesListPage'))
 const EmployeeDetailPage  = lazy(() => import('@pages/employees/EmployeeDetailPage'))
 const SalaryPage          = lazy(() => import('@pages/employees/SalaryPage'))
@@ -161,9 +163,11 @@ export default function App() {
                 <Route path="/products/:id/edit" element={<ProductFormPage />} />
 
                 {/* Ombor */}
-                <Route path="/warehouse"           element={<WarehousePage />} />
-                <Route path="/warehouse/movements" element={<StockMovementsPage />} />
-                <Route path="/warehouse/inventory" element={<InventoryPage />} />
+                <Route path="/warehouse"            element={<WarehousePage />} />
+                <Route path="/warehouse/movements"  element={<StockMovementsPage />} />
+                <Route path="/warehouse/inventory"  element={<InventoryPage />} />
+                <Route path="/warehouse/incoming"   element={<IncomingPage />} />
+                <Route path="/warehouse/outgoing"   element={<OutgoingPage />} />
 
                 {/* Xodimlar */}
                 <Route path="/employees"         element={<EmployeesListPage />} />

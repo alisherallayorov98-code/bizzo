@@ -43,6 +43,36 @@ export interface AdjustStockDto {
   reason?:     string;
 }
 
+export interface IncomingLineDto {
+  productId: string;
+  quantity:  number;
+  price:     number;
+}
+
+export interface CreateIncomingDto {
+  warehouseId: string;
+  contactId?:  string;
+  lines:       IncomingLineDto[];
+  notes?:      string;
+  createDebt?: boolean;
+  dueDate?:    string;
+}
+
+export interface OutgoingLineDto {
+  productId: string;
+  quantity:  number;
+  price:     number;
+}
+
+export interface CreateOutgoingDto {
+  warehouseId: string;
+  contactId?:  string;
+  lines:       OutgoingLineDto[];
+  notes?:      string;
+  createDebt?: boolean;
+  dueDate?:    string;
+}
+
 @Injectable()
 export class WarehouseService {
   constructor(
@@ -365,6 +395,205 @@ export class WarehouseService {
       minStock:    Number(item.product.minStock),
       isLow:       Number(item.quantity) <= Number(item.product.minStock) && Number(item.product.minStock) > 0,
     }));
+  }
+
+  // ============================================
+  // KIRIM HUJJATI (MULTI-LINE)
+  // ============================================
+  async createIncoming(
+    companyId: string,
+    dto: CreateIncomingDto,
+    userId: string,
+  ) {
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id: dto.warehouseId, companyId, isActive: true },
+    });
+    if (!warehouse) throw new NotFoundException('Ombor topilmadi');
+
+    if (dto.lines.length === 0) {
+      throw new BadRequestException('Kamida bitta qator kerak');
+    }
+
+    const productIds = dto.lines.map(l => l.productId);
+    const products   = await this.prisma.product.findMany({
+      where: { id: { in: productIds }, companyId, isActive: true },
+    });
+    if (products.length !== productIds.length) {
+      throw new NotFoundException('Bir yoki bir nechta mahsulot topilmadi');
+    }
+    const productMap = new Map(products.map(p => [p.id, p]));
+
+    const totalAmount = dto.lines.reduce((s, l) => s + l.quantity * l.price, 0);
+
+    return this.prisma.$transaction(async tx => {
+      const movements = [];
+      for (const line of dto.lines) {
+        const product = productMap.get(line.productId)!;
+        const movement = await tx.stockMovement.create({
+          data: {
+            warehouseId:  dto.warehouseId,
+            productId:    line.productId,
+            type:         'IN' as any,
+            quantity:     line.quantity,
+            price:        line.price,
+            totalAmount:  line.quantity * line.price,
+            reason:       dto.contactId ? `Yetkazuvchi: ${dto.contactId}` : 'Kirim',
+            notes:        dto.notes,
+            createdById:  userId,
+          },
+        });
+        movements.push(movement);
+        await this._upsertStock(tx, dto.warehouseId, line.productId, line.quantity, line.price, 'in');
+
+        // Low stock check
+        const afterStock = await tx.stockItem.findUnique({
+          where: { warehouseId_productId: { warehouseId: dto.warehouseId, productId: line.productId } },
+        });
+        if (
+          afterStock &&
+          Number(afterStock.quantity) <= Number(product.minStock) &&
+          Number(product.minStock) > 0
+        ) {
+          this.notifications.create({
+            companyId,
+            title:    'Ombor kam qoldi',
+            message:  `${product.name} — ${Number(afterStock.quantity).toFixed(1)} ${product.unit} qoldi`,
+            type:     'warning',
+            category: 'stock',
+            link:     '/warehouse',
+          }).catch(() => {});
+        }
+      }
+
+      let debt = null;
+      if (dto.createDebt && dto.contactId && totalAmount > 0) {
+        debt = await tx.debtRecord.create({
+          data: {
+            companyId,
+            contactId:    dto.contactId,
+            type:         'PAYABLE' as any,
+            amount:       totalAmount,
+            paidAmount:   0,
+            remainAmount: totalAmount,
+            currency:     'UZS',
+            dueDate:      dto.dueDate ? new Date(dto.dueDate) : null,
+            notes:        dto.notes,
+            referenceType: 'INCOMING',
+          },
+        });
+      }
+
+      return { movements, debt, totalAmount };
+    });
+  }
+
+  // ============================================
+  // CHIQIM HUJJATI (MULTI-LINE)
+  // ============================================
+  async createOutgoing(
+    companyId: string,
+    dto: CreateOutgoingDto,
+    userId: string,
+  ) {
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id: dto.warehouseId, companyId, isActive: true },
+    });
+    if (!warehouse) throw new NotFoundException('Ombor topilmadi');
+
+    if (dto.lines.length === 0) {
+      throw new BadRequestException('Kamida bitta qator kerak');
+    }
+
+    const productIds = dto.lines.map(l => l.productId);
+    const products   = await this.prisma.product.findMany({
+      where: { id: { in: productIds }, companyId, isActive: true },
+    });
+    if (products.length !== productIds.length) {
+      throw new NotFoundException('Bir yoki bir nechta mahsulot topilmadi');
+    }
+
+    // Check stock availability for all lines upfront
+    const stockItems = await this.prisma.stockItem.findMany({
+      where: {
+        warehouseId: dto.warehouseId,
+        productId:   { in: productIds },
+      },
+    });
+    const stockMap = new Map(stockItems.map(s => [s.productId, Number(s.quantity)]));
+    const productMap = new Map(products.map(p => [p.id, p]));
+
+    for (const line of dto.lines) {
+      const product  = productMap.get(line.productId)!;
+      const avail    = stockMap.get(line.productId) ?? 0;
+      if (avail < line.quantity) {
+        throw new BadRequestException(
+          `${product.name}: yetarli qoldiq yo'q. Mavjud: ${avail} ${product.unit}, so'ralgan: ${line.quantity}`,
+        );
+      }
+    }
+
+    const totalAmount = dto.lines.reduce((s, l) => s + l.quantity * l.price, 0);
+
+    return this.prisma.$transaction(async tx => {
+      const movements = [];
+      for (const line of dto.lines) {
+        const product = productMap.get(line.productId)!;
+        const movement = await tx.stockMovement.create({
+          data: {
+            warehouseId:  dto.warehouseId,
+            productId:    line.productId,
+            type:         'OUT' as any,
+            quantity:     line.quantity,
+            price:        line.price,
+            totalAmount:  line.quantity * line.price,
+            reason:       dto.contactId ? `Mijoz: ${dto.contactId}` : 'Chiqim',
+            notes:        dto.notes,
+            createdById:  userId,
+          },
+        });
+        movements.push(movement);
+        await this._upsertStock(tx, dto.warehouseId, line.productId, -line.quantity, line.price, 'out');
+
+        // Low stock notification
+        const afterStock = await tx.stockItem.findUnique({
+          where: { warehouseId_productId: { warehouseId: dto.warehouseId, productId: line.productId } },
+        });
+        if (
+          afterStock &&
+          Number(afterStock.quantity) <= Number(product.minStock) &&
+          Number(product.minStock) > 0
+        ) {
+          this.notifications.create({
+            companyId,
+            title:    'Ombor kam qoldi',
+            message:  `${product.name} — ${Number(afterStock.quantity).toFixed(1)} ${product.unit} qoldi`,
+            type:     'warning',
+            category: 'stock',
+            link:     '/warehouse',
+          }).catch(() => {});
+        }
+      }
+
+      let debt = null;
+      if (dto.createDebt && dto.contactId && totalAmount > 0) {
+        debt = await tx.debtRecord.create({
+          data: {
+            companyId,
+            contactId:    dto.contactId,
+            type:         'RECEIVABLE' as any,
+            amount:       totalAmount,
+            paidAmount:   0,
+            remainAmount: totalAmount,
+            currency:     'UZS',
+            dueDate:      dto.dueDate ? new Date(dto.dueDate) : null,
+            notes:        dto.notes,
+            referenceType: 'OUTGOING',
+          },
+        });
+      }
+
+      return { movements, debt, totalAmount };
+    });
   }
 
   // ============================================

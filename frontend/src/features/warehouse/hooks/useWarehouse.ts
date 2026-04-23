@@ -1,6 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { warehouseService, type MovementQuery, type CreateMovementPayload } from '@services/warehouse.service'
+import {
+  warehouseService,
+  type MovementQuery,
+  type CreateMovementPayload,
+  type CreateIncomingPayload,
+  type CreateOutgoingPayload,
+} from '@services/warehouse.service'
 
 export const WAREHOUSE_KEY = 'warehouse'
 
@@ -60,6 +66,44 @@ export function useCreateMovement() {
       qc.invalidateQueries({ queryKey: [WAREHOUSE_KEY] })
       qc.invalidateQueries({ queryKey: ['products'] })
       toast.success('Harakat qayd etildi')
+    },
+    onError: (e: any) => {
+      toast.error(e?.response?.data?.message ?? 'Xatolik yuz berdi')
+    },
+  })
+}
+
+// ============================================
+// KIRIM HUJJATI
+// ============================================
+export function useCreateIncoming() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreateIncomingPayload) =>
+      warehouseService.createIncoming(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [WAREHOUSE_KEY] })
+      qc.invalidateQueries({ queryKey: ['debts'] })
+      toast.success('Kirim hujjati saqlandi')
+    },
+    onError: (e: any) => {
+      toast.error(e?.response?.data?.message ?? 'Xatolik yuz berdi')
+    },
+  })
+}
+
+// ============================================
+// CHIQIM HUJJATI
+// ============================================
+export function useCreateOutgoing() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: CreateOutgoingPayload) =>
+      warehouseService.createOutgoing(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [WAREHOUSE_KEY] })
+      qc.invalidateQueries({ queryKey: ['debts'] })
+      toast.success('Chiqim hujjati saqlandi')
     },
     onError: (e: any) => {
       toast.error(e?.response?.data?.message ?? 'Xatolik yuz berdi')

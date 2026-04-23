@@ -88,6 +88,36 @@ export interface CreateMovementPayload {
   toWarehouseId?: string
 }
 
+export interface DocumentLine {
+  productId: string
+  quantity:  number
+  price:     number
+}
+
+export interface CreateIncomingPayload {
+  warehouseId: string
+  contactId?:  string
+  lines:       DocumentLine[]
+  notes?:      string
+  createDebt?: boolean
+  dueDate?:    string
+}
+
+export interface CreateOutgoingPayload {
+  warehouseId: string
+  contactId?:  string
+  lines:       DocumentLine[]
+  notes?:      string
+  createDebt?: boolean
+  dueDate?:    string
+}
+
+export interface DocumentResult {
+  movements:   StockMovement[]
+  debt:        null | { id: string; amount: number; type: string }
+  totalAmount: number
+}
+
 // ============================================
 // SERVICE
 // ============================================
@@ -129,6 +159,16 @@ export const warehouseService = {
     reason?:     string
   }): Promise<StockMovement> {
     const { data } = await api.post<{ data: StockMovement }>('/warehouse/adjust', payload)
+    return data.data
+  },
+
+  async createIncoming(payload: CreateIncomingPayload): Promise<DocumentResult> {
+    const { data } = await api.post<{ data: DocumentResult }>('/warehouse/incoming', payload)
+    return data.data
+  },
+
+  async createOutgoing(payload: CreateOutgoingPayload): Promise<DocumentResult> {
+    const { data } = await api.post<{ data: DocumentResult }>('/warehouse/outgoing', payload)
     return data.data
   },
 }
