@@ -124,23 +124,23 @@ export interface ProductionStats {
 export const productionService = {
   async createFormula(payload: any) {
     const { data } = await api.post('/production/formulas', payload)
-    return data
+    return data.data
   },
   async getFormulas(): Promise<ProductionFormula[]> {
     const { data } = await api.get('/production/formulas')
-    return data
+    return data.data
   },
   async updateFormula(id: string, payload: any): Promise<ProductionFormula> {
     const { data } = await api.put(`/production/formulas/${id}`, payload)
-    return data
+    return data.data
   },
   async deleteFormula(id: string) {
     const { data } = await api.delete(`/production/formulas/${id}`)
-    return data
+    return data.data
   },
   async getCostEstimate(formulaId: string, multiplier: number): Promise<CostEstimate> {
     const { data } = await api.get(`/production/formulas/${formulaId}/cost-estimate?multiplier=${multiplier}`)
-    return data
+    return data.data
   },
   async createBatch(payload: {
     formulaId: string; inputMultiplier: number
@@ -148,33 +148,33 @@ export const productionService = {
     plannedStart?: string; plannedEnd?: string; notes?: string
   }) {
     const { data } = await api.post('/production/batches', payload)
-    return data
+    return data.data
   },
   async getBatches(query: Record<string, any> = {}) {
     const params = new URLSearchParams(
       Object.fromEntries(Object.entries(query).filter(([, v]) => v !== undefined && v !== '')),
     )
     const { data } = await api.get(`/production/batches?${params}`)
-    return data
+    return data.data
   },
   async getBatch(id: string): Promise<ProductionBatch> {
     const { data } = await api.get(`/production/batches/${id}`)
-    return data
+    return data.data
   },
   async updateBatch(id: string, payload: {
     inputMultiplier?: number; operatorId?: string; warehouseId?: string
     plannedStart?: string; plannedEnd?: string; notes?: string
   }) {
     const { data } = await api.put(`/production/batches/${id}`, payload)
-    return data
+    return data.data
   },
   async addOverhead(id: string, payload: { amount: number; description: string }) {
     const { data } = await api.post(`/production/batches/${id}/overhead`, payload)
-    return data
+    return data.data
   },
   async startBatch(id: string) {
     const { data } = await api.post(`/production/batches/${id}/start`)
-    return data
+    return data.data
   },
   async completeBatch(payload: {
     batchId: string
@@ -184,15 +184,15 @@ export const productionService = {
     notes?: string
   }) {
     const { data } = await api.post('/production/batches/complete', payload)
-    return data
+    return data.data
   },
   async getStats(): Promise<ProductionStats> {
     const { data } = await api.get('/production/stats')
-    return data
+    return data.data
   },
   async getAnalytics(formulaId?: string) {
     const params = formulaId ? `?formulaId=${formulaId}` : ''
     const { data } = await api.get(`/production/analytics${params}`)
-    return data
+    return data.data
   },
 }

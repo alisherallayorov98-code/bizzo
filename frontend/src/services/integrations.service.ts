@@ -31,29 +31,29 @@ export interface NotificationLog {
 
 export const integrationsService = {
   getAll: () =>
-    api.get<IntegrationDef[]>('/integrations').then(r => r.data),
+    api.get('/integrations').then(r => r.data.data),
 
   save: (type: string, config: Record<string, any>, isActive: boolean) =>
-    api.post(`/integrations/${type}`, { config, isActive }).then(r => r.data),
+    api.post(`/integrations/${type}`, { config, isActive }).then(r => r.data.data),
 
   toggle: (type: string) =>
-    api.patch(`/integrations/${type}/toggle`).then(r => r.data),
+    api.patch(`/integrations/${type}/toggle`).then(r => r.data.data),
 
   sendSms: (phone: string, message: string) =>
-    api.post('/integrations/sms/send', { phone, message }).then(r => r.data),
+    api.post('/integrations/sms/send', { phone, message }).then(r => r.data.data),
 
   sendBulkSms: (phones: string[], message: string) =>
-    api.post('/integrations/sms/send-bulk', { phones, message }).then(r => r.data),
+    api.post('/integrations/sms/send-bulk', { phones, message }).then(r => r.data.data),
 
   testTelegram: (chatId: string, message: string) =>
-    api.post('/integrations/telegram/test', { chatId, message }).then(r => r.data),
+    api.post('/integrations/telegram/test', { chatId, message }).then(r => r.data.data),
 
   getTelegramBotInfo: (botToken: string) =>
-    api.post('/integrations/telegram/bot-info', { botToken }).then(r => r.data),
+    api.post('/integrations/telegram/bot-info', { botToken }).then(r => r.data.data),
 
   getLogs: (params?: { type?: string; status?: string; limit?: number; offset?: number }) =>
-    api.get<{ logs: NotificationLog[]; total: number }>('/integrations/logs', { params }).then(r => r.data),
+    api.get('/integrations/logs', { params }).then(r => r.data.data),
 
   getStats: () =>
-    api.get('/integrations/stats').then(r => r.data),
+    api.get('/integrations/stats').then(r => r.data.data),
 }

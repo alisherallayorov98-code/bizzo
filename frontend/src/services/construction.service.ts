@@ -81,45 +81,45 @@ export interface ConstructionStats {
 export const constructionService = {
   async createProject(payload: Partial<ConstructionProject>) {
     const { data } = await api.post('/construction/projects', payload)
-    return data
+    return data.data
   },
   async getProjects(query: Record<string, any> = {}) {
     const params = new URLSearchParams(
       Object.fromEntries(Object.entries(query).filter(([, v]) => v !== undefined && v !== '')),
     )
     const { data } = await api.get(`/construction/projects?${params}`)
-    return data
+    return data.data
   },
   async getProject(id: string) {
     const { data } = await api.get(`/construction/projects/${id}`)
-    return data
+    return data.data
   },
   async getStats(): Promise<ConstructionStats> {
     const { data } = await api.get('/construction/stats')
-    return data
+    return data.data
   },
   async addBudgetItem(payload: Partial<BudgetItem> & { projectId: string }) {
     const { data } = await api.post('/construction/budget-items', payload)
-    return data
+    return data.data
   },
   async addExpense(payload: Partial<ProjectExpense> & { projectId: string }) {
     const { data } = await api.post('/construction/expenses', payload)
-    return data
+    return data.data
   },
   async addWorkLog(payload: {
     projectId: string; workDate: string
     progress: number; description?: string; workersCount?: number; issues?: string
   }) {
     const { data } = await api.post('/construction/work-logs', payload)
-    return data
+    return data.data
   },
   async updateProject(id: string, payload: Partial<ConstructionProject> & { status?: string }) {
     const { data } = await api.put(`/construction/projects/${id}`, payload)
-    return data
+    return data.data
   },
   async updateStatus(id: string, status: string) {
     const { data } = await api.put(`/construction/projects/${id}/status`, { status })
-    return data
+    return data.data
   },
   async deleteProject(id: string) {
     await api.delete(`/construction/projects/${id}`)
@@ -132,17 +132,17 @@ export const constructionService = {
     priority?: TaskPriority; assignedToId?: string; dueDate?: string
   }) {
     const { data } = await api.post('/construction/tasks', payload)
-    return data
+    return data.data
   },
   async updateTask(id: string, payload: Partial<ProjectTask>) {
     const { data } = await api.put(`/construction/tasks/${id}`, payload)
-    return data
+    return data.data
   },
   async deleteTask(id: string) {
     await api.delete(`/construction/tasks/${id}`)
   },
   async updateExpense(id: string, payload: { isPaid: boolean }) {
     const { data } = await api.patch(`/construction/expenses/${id}`, payload)
-    return data
+    return data.data
   },
 }

@@ -99,7 +99,7 @@ export const contactService = {
 
   async bulkDelete(ids: string[]): Promise<{ deleted: number }> {
     const { data } = await api.delete('/contacts', { data: { ids } })
-    return data
+    return data.data
   },
 
   async addNote(id: string, note: string): Promise<void> {

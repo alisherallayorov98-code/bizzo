@@ -48,17 +48,17 @@ export interface ModuleInfo {
 export const settingsService = {
   async getCompany(): Promise<CompanySettings> {
     const { data } = await api.get('/settings/company')
-    return data
+    return data.data
   },
 
   async updateCompany(payload: Partial<CompanySettings>) {
     const { data } = await api.put('/settings/company', payload)
-    return data
+    return data.data
   },
 
   async getUsers(): Promise<UserSetting[]> {
     const { data } = await api.get('/settings/users')
-    return data
+    return data.data
   },
 
   async createUser(payload: {
@@ -67,46 +67,46 @@ export const settingsService = {
     role: string; phone?: string
   }) {
     const { data } = await api.post('/settings/users', payload)
-    return data
+    return data.data
   },
 
   async updateUserRole(id: string, role: string) {
     const { data } = await api.put(`/settings/users/${id}/role`, { role })
-    return data
+    return data.data
   },
 
   async toggleUserActive(id: string) {
     const { data } = await api.put(`/settings/users/${id}/toggle`)
-    return data
+    return data.data
   },
 
   async changePassword(oldPassword: string, newPassword: string) {
     const { data } = await api.put('/settings/password', { oldPassword, newPassword })
-    return data
+    return data.data
   },
 
   async getModules(): Promise<ModuleInfo[]> {
     const { data } = await api.get('/settings/modules')
-    return data
+    return data.data
   },
 
   async activateModule(type: string, months = 1) {
     const { data } = await api.post(`/settings/modules/${type}/activate`, { months })
-    return data
+    return data.data
   },
 
   async deactivateModule(type: string) {
     const { data } = await api.delete(`/settings/modules/${type}`)
-    return data
+    return data.data
   },
 
   async getPlan() {
     const { data } = await api.get('/settings/plan')
-    return data
+    return data.data
   },
 
   async updatePlan(plan: string) {
     const { data } = await api.put('/settings/plan', { plan })
-    return data
+    return data.data
   },
 }

@@ -48,43 +48,43 @@ export interface ImportResult {
 
 export const importService = {
   // Templates
-  getTemplates:        ()                  => api.get<ImportTemplate[]>('/import/templates').then(r => r.data),
-  getTemplate:         (entity: ImportEntity) => api.get<ImportTemplate>(`/import/templates/${entity}`).then(r => r.data),
+  getTemplates:        ()                  => api.get('/import/templates').then(r => r.data.data),
+  getTemplate:         (entity: ImportEntity) => api.get(`/import/templates/${entity}`).then(r => r.data.data),
 
   // Sessions
-  getSessions:         ()                  => api.get<MigrationSession[]>('/import/sessions').then(r => r.data),
-  getSession:          (id: string)        => api.get<MigrationSession>(`/import/sessions/${id}`).then(r => r.data),
+  getSessions:         ()                  => api.get('/import/sessions').then(r => r.data.data),
+  getSession:          (id: string)        => api.get(`/import/sessions/${id}`).then(r => r.data.data),
   createSession:       (name: string, source = 'EXCEL') =>
-    api.post<MigrationSession>('/import/sessions', { name, source }).then(r => r.data),
-  getProgress:         ()                  => api.get('/import/progress').then(r => r.data),
+    api.post('/import/sessions', { name, source }).then(r => r.data.data),
+  getProgress:         ()                  => api.get('/import/progress').then(r => r.data.data),
 
   // Column detection
   detectColumns:       (headers: string[]) =>
-    api.post<{ mapping: Record<string, string> }>('/import/detect-columns', { headers }).then(r => r.data),
+    api.post('/import/detect-columns', { headers }).then(r => r.data.data),
 
   // Preview
   preview:             (entity: ImportEntity, rows: any[], mapping: Record<string, string>) =>
-    api.post<{ total: number; preview: PreviewRow[] }>('/import/preview', { entity, rows, mapping }).then(r => r.data),
+    api.post('/import/preview', { entity, rows, mapping }).then(r => r.data.data),
 
   // Import
   importContacts:      (sessionId: string, rows: any[], dupStrategy?: DupStrategy) =>
-    api.post<ImportResult>('/import/contacts',  { sessionId, rows, dupStrategy }).then(r => r.data),
+    api.post('/import/contacts',  { sessionId, rows, dupStrategy }).then(r => r.data.data),
   importProducts:      (sessionId: string, rows: any[], dupStrategy?: DupStrategy) =>
-    api.post<ImportResult>('/import/products',  { sessionId, rows, dupStrategy }).then(r => r.data),
+    api.post('/import/products',  { sessionId, rows, dupStrategy }).then(r => r.data.data),
   importDebts:         (sessionId: string, rows: any[]) =>
-    api.post<ImportResult>('/import/debts',     { sessionId, rows }).then(r => r.data),
+    api.post('/import/debts',     { sessionId, rows }).then(r => r.data.data),
   importStock:         (sessionId: string, rows: any[]) =>
-    api.post<ImportResult>('/import/stock',     { sessionId, rows }).then(r => r.data),
+    api.post('/import/stock',     { sessionId, rows }).then(r => r.data.data),
   importEmployees:     (sessionId: string, rows: any[]) =>
-    api.post<ImportResult>('/import/employees', { sessionId, rows }).then(r => r.data),
+    api.post('/import/employees', { sessionId, rows }).then(r => r.data.data),
   importDeals:         (sessionId: string, rows: any[]) =>
-    api.post<ImportResult>('/import/deals',     { sessionId, rows }).then(r => r.data),
+    api.post('/import/deals',     { sessionId, rows }).then(r => r.data.data),
 
   // Reconciliation
   getReconciliation:   (sessionId: string) =>
-    api.get(`/import/reconciliation/${sessionId}`).then(r => r.data),
+    api.get(`/import/reconciliation/${sessionId}`).then(r => r.data.data),
 
   // Rollback
   rollback:            (sessionId: string) =>
-    api.delete(`/import/sessions/${sessionId}/rollback`).then(r => r.data),
+    api.delete(`/import/sessions/${sessionId}/rollback`).then(r => r.data.data),
 }

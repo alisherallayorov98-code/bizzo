@@ -115,6 +115,6 @@ export const productService = {
 
   async bulkDelete(ids: string[]): Promise<{ deleted: number }> {
     const { data } = await api.delete('/products', { data: { ids } })
-    return data
+    return data.data
   },
 }
