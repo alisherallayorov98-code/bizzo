@@ -110,7 +110,6 @@ export class SeedService implements OnApplicationBootstrap {
           productId:   product.id,
           type:        'IN',
           quantity:    qty,
-          unitPrice:   product.buyPrice,
           totalAmount: parseFloat(product.buyPrice.toString()) * qty,
           reason:      'Boshlang`ich qoldiq',
           createdAt:   new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),

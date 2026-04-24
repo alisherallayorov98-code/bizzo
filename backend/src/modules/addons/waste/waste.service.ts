@@ -617,7 +617,7 @@ export class WasteService {
           type:         'RECEIVABLE',
           amount:       saleAmount,
           remainAmount: saleAmount,
-          description:  `Chiqindi partiyasi #${batch.batchNumber} (${dto.weight} kg × ${dto.sellPricePerKg} so'm)${dto.notes ? ': ' + dto.notes : ''}`,
+          notes:        `Chiqindi partiyasi #${batch.batchNumber} (${dto.weight} kg × ${dto.sellPricePerKg} so'm)${dto.notes ? ': ' + dto.notes : ''}`,
           dueDate,
         },
       }),
