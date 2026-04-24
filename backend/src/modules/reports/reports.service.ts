@@ -470,9 +470,9 @@ export class ReportsService {
       expenseByCategory[e.category] = (expenseByCategory[e.category] ?? 0) + Number(e.amount)
     }
 
-    const totalBudget  = projects.reduce<number>((s, p) => s + Number(p.contractAmount ?? 0), 0)
-    const totalExpense = expenses.reduce<number>((s, e) => s + Number(e.amount), 0)
-    const paidExpense  = expenses.filter(e => e.isPaid).reduce<number>((s, e) => s + Number(e.amount), 0)
+    const totalBudget  = projects.reduce((s: number, p) => s + Number(p.contractAmount ?? 0), 0)
+    const totalExpense = expenses.reduce((s: number, e) => s + Number(e.amount), 0)
+    const paidExpense  = expenses.filter(e => e.isPaid).reduce((s: number, e) => s + Number(e.amount), 0)
 
     const overdueCount = projects.filter(p =>
       p.status === 'IN_PROGRESS' && p.endDate && p.endDate < new Date(),
@@ -535,7 +535,7 @@ export class ReportsService {
       outputByProduct[o.productId].qty += Number(o.actualQty ?? o.plannedQty ?? 0)
     }
 
-    const totalOverhead = batches.reduce<number>((s, b) => s + Number(b.overheadCost ?? 0), 0)
+    const totalOverhead = batches.reduce((s: number, b) => s + Number(b.overheadCost ?? 0), 0)
 
     return {
       summary: {
