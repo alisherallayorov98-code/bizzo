@@ -8,21 +8,25 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
 export interface CreateProductDto {
-  code?:        string;
-  barcode?:     string;
-  name:         string;
-  description?: string;
-  category?:    string;
-  unit?:        string;
-  buyPrice?:    number;
-  sellPrice?:   number;
-  minPrice?:    number;
-  minStock?:    number;
-  isService?:   boolean;
+  code?:           string;
+  barcode?:        string;
+  name:            string;
+  description?:    string;
+  category?:       string;
+  unit?:           string;
+  buyPrice?:       number;
+  sellPrice?:      number;
+  wholesalePrice?: number | null;
+  vipPrice?:       number | null;
+  minPrice?:       number;
+  minStock?:       number;
+  isService?:      boolean;
+  image?:          string;
 }
 
 export interface QueryProductDto {
   search?:     string;
+  barcode?:    string;
   category?:   string;
   isService?:  boolean;
   isLow?:      boolean;
@@ -71,6 +75,7 @@ export class ProductsService {
   async findAll(companyId: string, query: QueryProductDto) {
     const {
       search,
+      barcode,
       category,
       isService,
       sortBy    = 'name',
@@ -84,6 +89,7 @@ export class ProductsService {
       isActive: true,
       ...(category  !== undefined && { category }),
       ...(isService !== undefined && { isService }),
+      ...(barcode   !== undefined && { barcode }),
     };
 
     if (search) {
@@ -129,10 +135,12 @@ export class ProductsService {
         totalStock,
         avgPrice,
         isLow,
-        buyPrice:  Number(p.buyPrice),
-        sellPrice: Number(p.sellPrice),
-        minPrice:  Number(p.minPrice),
-        minStock:  Number(p.minStock),
+        buyPrice:       Number(p.buyPrice),
+        sellPrice:      Number(p.sellPrice),
+        minPrice:       Number(p.minPrice),
+        minStock:       Number(p.minStock),
+        wholesalePrice: p.wholesalePrice != null ? Number(p.wholesalePrice) : null,
+        vipPrice:       p.vipPrice       != null ? Number(p.vipPrice)       : null,
       };
     });
 
@@ -153,6 +161,23 @@ export class ProductsService {
   }
 
   // ============================================
+  // NARX DARAJASI BO'YICHA NARX QAYTARISH
+  // ============================================
+  getPriceForContact(product: any, priceLevel: 'RETAIL' | 'WHOLESALE' | 'VIP' = 'RETAIL'): number {
+    if (priceLevel === 'VIP'       && product.vipPrice)       return Number(product.vipPrice)
+    if (priceLevel === 'WHOLESALE' && product.wholesalePrice) return Number(product.wholesalePrice)
+    return Number(product.sellPrice)
+  }
+
+  async getContactPriceLevel(contactId: string): Promise<'RETAIL' | 'WHOLESALE' | 'VIP'> {
+    const contact = await this.prisma.contact.findUnique({
+      where:  { id: contactId },
+      select: { priceLevel: true },
+    })
+    return (contact?.priceLevel as any) || 'RETAIL'
+  }
+
+  // ============================================
   // BITTA MAHSULOT
   // ============================================
   async findOne(companyId: string, id: string) {
@@ -164,8 +189,21 @@ export class ProductsService {
         },
         movements: {
           orderBy: { createdAt: 'desc' },
-          take:    20,
+          take:    30,
           include: { warehouse: { select: { id: true, name: true } } },
+        },
+        dealItems: {
+          take:    20,
+          orderBy: { deal: { createdAt: 'desc' } },
+          include: {
+            deal: {
+              select: {
+                id: true, dealNumber: true, title: true,
+                stage: true, finalAmount: true, closedAt: true, createdAt: true,
+                contact: { select: { name: true } },
+              },
+            },
+          },
         },
       },
     });

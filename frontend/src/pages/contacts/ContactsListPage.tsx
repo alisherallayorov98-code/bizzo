@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
@@ -28,6 +28,7 @@ import type { Contact, ContactType } from '@services/contact.service'
 import { formatCurrency, formatPhone, getInitials } from '@utils/formatters'
 import { cn } from '@utils/cn'
 import { useDebounce } from '@hooks/useDebounce'
+import { useKeyboardShortcuts } from '@hooks/useKeyboardShortcuts'
 
 // ============================================
 // KONTAKT TURI BADGE
@@ -105,7 +106,15 @@ function ContactRow({
 
       {/* Tur */}
       <td className="px-4 py-3">
-        <ContactTypeBadge type={contact.type} />
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <ContactTypeBadge type={contact.type} />
+          {(contact as any).priceLevel === 'WHOLESALE' && (
+            <Badge variant="success" size="sm">Ulgurji</Badge>
+          )}
+          {(contact as any).priceLevel === 'VIP' && (
+            <Badge variant="primary" size="sm">⭐ VIP</Badge>
+          )}
+        </div>
       </td>
 
       {/* Telefon */}
@@ -246,6 +255,12 @@ export default function ContactsListPage() {
 
   const clearSelect = useCallback(() => setSelectedIds(new Set()), [])
 
+  const searchRef = useRef<HTMLInputElement>(null)
+  useKeyboardShortcuts([
+    { key: 'n', ctrl: true, handler: () => { setEditContact(null); setFormOpen(true) } },
+    { key: '/', skipInput: true, handler: () => searchRef.current?.focus() },
+  ])
+
   const handleExport = async () => {
     try {
       const all = await contactService.exportData({ type: typeTab !== 'ALL' ? typeTab : undefined, search: debouncedSearch || undefined })
@@ -320,6 +335,7 @@ export default function ContactsListPage() {
               size="sm"
               leftIcon={<Plus size={14} />}
               onClick={() => setFormOpen(true)}
+              title="Ctrl+N"
             >
               {t('contacts.newContact')}
             </Button>
@@ -370,7 +386,8 @@ export default function ContactsListPage() {
         {/* Filtr qatori */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 border-b border-border-primary">
           <Input
-            placeholder={t('contacts.searchPlaceholder')}
+            ref={searchRef}
+            placeholder={`${t('contacts.searchPlaceholder')} (/)`}
             leftIcon={<Search size={15} />}
             value={search}
             onChange={e => handleSearch(e.target.value)}

@@ -4,11 +4,13 @@ import { DebtsController }      from './debts.controller'
 import { DebtsService }         from './debts.service'
 import { DebtsCronService }     from './debts-cron.service'
 import { NotificationsModule }  from '../notifications/notifications.module'
+import { IntegrationsModule }   from '../integrations/integrations.module'
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     NotificationsModule,
+    IntegrationsModule,
   ],
   controllers: [DebtsController],
   providers:   [DebtsService, DebtsCronService],

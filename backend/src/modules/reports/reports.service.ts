@@ -441,6 +441,129 @@ export class ReportsService {
   }
 
   // ============================================
+  // QURILISH HISOBOTI
+  // ============================================
+  async getConstructionReport(companyId: string, filters: ReportFilters) {
+    const from = new Date(filters.dateFrom)
+    const to   = new Date(filters.dateTo + 'T23:59:59')
+
+    const [projects, expenses] = await Promise.all([
+      this.prisma.constructionProject.findMany({
+        where: { companyId, isActive: true },
+        include: {
+          _count: { select: { tasks: true, workLogs: true, expenses: true } },
+        },
+      }).catch(() => []),
+      this.prisma.projectExpense.findMany({
+        where:  { project: { companyId }, expenseDate: { gte: from, lte: to } },
+        select: { amount: true, category: true, isPaid: true, expenseDate: true },
+      }).catch(() => []),
+    ])
+
+    const statusCounts: Record<string, number> = {}
+    for (const p of projects) {
+      statusCounts[p.status] = (statusCounts[p.status] ?? 0) + 1
+    }
+
+    const expenseByCategory: Record<string, number> = {}
+    for (const e of expenses) {
+      expenseByCategory[e.category] = (expenseByCategory[e.category] ?? 0) + Number(e.amount)
+    }
+
+    const totalBudget  = projects.reduce((s, p) => s + Number(p.contractAmount ?? 0), 0)
+    const totalExpense = expenses.reduce((s, e) => s + Number(e.amount), 0)
+    const paidExpense  = expenses.filter(e => e.isPaid).reduce((s, e) => s + Number(e.amount), 0)
+
+    const overdueCount = projects.filter(p =>
+      p.status === 'IN_PROGRESS' && p.endDate && p.endDate < new Date(),
+    ).length
+
+    return {
+      summary: {
+        totalProjects:  projects.length,
+        activeProjects: (statusCounts['IN_PROGRESS'] ?? 0) + (statusCounts['PLANNING'] ?? 0),
+        completedProjects: statusCounts['COMPLETED'] ?? 0,
+        overdueProjects: overdueCount,
+        totalBudget,
+        totalExpense,
+        paidExpense,
+        unpaidExpense: totalExpense - paidExpense,
+        profit: totalBudget - totalExpense,
+      },
+      statusDistribution: Object.entries(statusCounts).map(([status, count]) => ({ status, count })),
+      expenseByCategory:  Object.entries(expenseByCategory).map(([category, amount]) => ({ category, amount })),
+      projects: projects.map(p => ({
+        id:       p.id,
+        name:     p.name,
+        status:   p.status,
+        budget:   Number(p.contractAmount ?? 0),
+        tasks:    p._count.tasks,
+        workLogs: p._count.workLogs,
+        expenses: p._count.expenses,
+        isOverdue: p.status === 'IN_PROGRESS' && !!p.endDate && p.endDate < new Date(),
+        endDate:  p.endDate,
+      })),
+    }
+  }
+
+  // ============================================
+  // ISHLAB CHIQARISH HISOBOTI
+  // ============================================
+  async getProductionReport(companyId: string, filters: ReportFilters) {
+    const from = new Date(filters.dateFrom)
+    const to   = new Date(filters.dateTo + 'T23:59:59')
+
+    const [batches, outputs] = await Promise.all([
+      this.prisma.productionBatch.findMany({
+        where:   { companyId, createdAt: { gte: from, lte: to } },
+        include: { formula: { select: { name: true } }, outputs: { include: { product: { select: { name: true, unit: true } } } } },
+      }).catch(() => []),
+      this.prisma.batchOutput.findMany({
+        where:  { batch: { companyId, actualEnd: { gte: from, lte: to } } },
+        include: { product: { select: { name: true, unit: true } } },
+      }).catch(() => []),
+    ])
+
+    const statusCounts: Record<string, number> = {}
+    for (const b of batches) statusCounts[b.status] = (statusCounts[b.status] ?? 0) + 1
+
+    const outputByProduct: Record<string, { name: string; unit: string; qty: number }> = {}
+    for (const o of outputs) {
+      const name = (o.product as any)?.name ?? o.productId
+      const unit = (o.product as any)?.unit ?? ''
+      if (!outputByProduct[o.productId]) outputByProduct[o.productId] = { name, unit, qty: 0 }
+      outputByProduct[o.productId].qty += Number(o.actualQty ?? o.plannedQty ?? 0)
+    }
+
+    const totalOverhead = batches.reduce((s, b) => s + Number(b.overheadCost ?? 0), 0)
+
+    return {
+      summary: {
+        totalBatches:     batches.length,
+        planned:          statusCounts['PLANNED']     ?? 0,
+        inProgress:       statusCounts['IN_PROGRESS'] ?? 0,
+        completed:        statusCounts['COMPLETED']   ?? 0,
+        cancelled:        statusCounts['CANCELLED']   ?? 0,
+        totalOverhead,
+        successRate: batches.length > 0
+          ? Number(((statusCounts['COMPLETED'] ?? 0) / batches.length * 100).toFixed(1))
+          : 0,
+      },
+      statusDistribution: Object.entries(statusCounts).map(([status, count]) => ({ status, count })),
+      outputByProduct:    Object.values(outputByProduct).sort((a, b) => b.qty - a.qty),
+      batches: batches.map(b => ({
+        id:         b.id,
+        batchNumber: b.batchNumber,
+        formula:    b.formula?.name ?? '—',
+        status:     b.status,
+        overhead:   Number(b.overheadCost ?? 0),
+        plannedStart: b.plannedStart,
+        actualEnd:    b.actualEnd,
+      })),
+    }
+  }
+
+  // ============================================
   // DASHBOARD CHART MA'LUMOTLARI
   // ============================================
   async getChartsData(companyId: string) {

@@ -40,6 +40,7 @@ model Company {
   modules      CompanyModule[]
   auditLogs    AuditLog[]
   debtRecords  DebtRecord[]
+  attachments  Attachment[]
 
   @@map("companies")
 }
@@ -78,6 +79,7 @@ model User {
   emailVerifications EmailVerification[]
   passwordResets     PasswordReset[]
   assignedDeals      Deal[]             @relation("DealAssignee")
+  attachments        Attachment[]
 
   @@unique([companyId, email])
   @@map("users")
@@ -156,12 +158,14 @@ model Contact {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   createdById  String?
+  priceLevel   String      @default("RETAIL")
 
-  debtRecords  DebtRecord[]
-  deals        Deal[]
-  invoices     Invoice[]
-  contracts    Contract[]
+  debtRecords          DebtRecord[]
+  deals                Deal[]
+  invoices             Invoice[]
+  contracts            Contract[]
   constructionProjects ConstructionProject[]
+  serviceTickets       ServiceTicket[]
 
   @@index([companyId, type])
   @@index([companyId, name])
@@ -191,9 +195,11 @@ model Product {
   unit         String      @default("dona")
   buyPrice     Decimal     @default(0) @db.Decimal(18, 2)
   sellPrice    Decimal     @default(0) @db.Decimal(18, 2)
-  minPrice     Decimal     @default(0) @db.Decimal(18, 2)
-  minStock     Decimal     @default(0) @db.Decimal(18, 3)
-  image        String?
+  minPrice       Decimal     @default(0) @db.Decimal(18, 2)
+  wholesalePrice Decimal?    @db.Decimal(18, 2)
+  vipPrice       Decimal?    @db.Decimal(18, 2)
+  minStock       Decimal     @default(0) @db.Decimal(18, 3)
+  image          String?
   isService    Boolean     @default(false)
   isActive     Boolean     @default(true)
   createdAt    DateTime    @default(now())
@@ -1395,4 +1401,71 @@ model MigrationSnapshot {
 
   @@index([companyId])
   @@map("migration_snapshots")
+}
+
+// ============================================================
+// XIZMAT KO'RSATISH MODULI (Service)
+// ============================================================
+
+model ServiceTicket {
+  id          String          @id @default(cuid())
+  companyId   String
+  contactId   String?
+  contact     Contact?        @relation(fields: [contactId], references: [id])
+  title       String
+  description String?
+  status      ServiceStatus   @default(OPEN)
+  priority    ServicePriority @default(MEDIUM)
+  assigneeId  String?
+  dueDate     DateTime?
+  resolvedAt  DateTime?
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([companyId, status])
+  @@index([companyId, priority])
+  @@index([contactId])
+  @@map("service_tickets")
+}
+
+enum ServiceStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+}
+
+enum ServicePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ============================================================
+// BIRIKTIRILGAN FAYLLAR (ATTACHMENTS)
+// ============================================================
+
+model Attachment {
+  id           String   @id @default(cuid())
+  companyId    String
+  company      Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  entityType   String
+  entityId     String
+
+  fileName     String
+  fileUrl      String
+  fileSize     Int
+  mimeType     String
+
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+
+  createdAt    DateTime @default(now())
+
+  @@index([companyId, entityType, entityId])
+  @@map("attachments")
 }

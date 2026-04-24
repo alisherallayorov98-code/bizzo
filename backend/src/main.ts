@@ -1,7 +1,9 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import * as path from 'path';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { PerformanceInterceptor } from './common/interceptors/performance.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -16,9 +18,12 @@ async function bootstrap() {
 
   initSentry();
 
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: new WinstonLoggerService(),
   });
+
+  // Lokal fayllar uchun (MinIO yo'q bo'lsa fallback)
+  app.useStaticAssets(path.resolve('./uploads'), { prefix: '/uploads' });
 
   const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
     .split(',')

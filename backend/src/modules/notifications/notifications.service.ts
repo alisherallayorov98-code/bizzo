@@ -150,6 +150,45 @@ export class NotificationsService {
       }
     } catch {}
 
+    // 5. Qurilish muddati yaqinlashgan/o'tgan loyihalar
+    try {
+      const now7 = new Date(Date.now() + 7 * 86400000);
+      const projects = await this.prisma.constructionProject.findMany({
+        where: { companyId, isActive: true, status: 'IN_PROGRESS', endDate: { lte: now7 } },
+        take:  5,
+      });
+      for (const p of projects) {
+        const overdue = p.endDate! < new Date();
+        const days    = Math.abs(Math.ceil((p.endDate!.getTime() - Date.now()) / 86400000));
+        alerts.push({
+          title:    overdue ? "Loyiha muddati o'tdi" : 'Loyiha muddati yaqin',
+          message:  `"${p.name}" — ${overdue ? `${days} kun kechikdi` : `${days} kun qoldi`}`,
+          type:     overdue ? 'danger' : 'warning',
+          category: 'contract',
+          link:     `/construction/${p.id}`,
+        });
+      }
+    } catch {}
+
+    // 6. Obuna muddati yaqinlashgan
+    try {
+      const in14 = new Date(Date.now() + 14 * 86400000);
+      const sub = await this.prisma.subscription.findUnique({
+        where:   { companyId },
+        include: { plan: { select: { displayName: true } } },
+      });
+      if (sub && sub.status === 'ACTIVE' && sub.currentPeriodEnd && sub.currentPeriodEnd <= in14) {
+        const days = Math.ceil((sub.currentPeriodEnd.getTime() - Date.now()) / 86400000);
+        alerts.push({
+          title:    'Obuna muddati yaqin',
+          message:  `${sub.plan.displayName} tarifi ${days} kunda tugaydi`,
+          type:     days <= 3 ? 'danger' : 'warning',
+          category: 'system',
+          link:     '/billing',
+        });
+      }
+    } catch {}
+
     if (alerts.length === 0) return 0;
 
     // Bugun yaratilgan smart bildirishnomalarni o'chirib yangisini yozamiz
@@ -159,7 +198,7 @@ export class NotificationsService {
     await this.prisma.notification.deleteMany({
       where: {
         companyId,
-        category:  { in: ['stock', 'debt', 'salary', 'contract'] },
+        category:  { in: ['stock', 'debt', 'salary', 'contract', 'system'] },
         createdAt: { gte: todayStart },
       },
     });

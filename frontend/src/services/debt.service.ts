@@ -57,4 +57,9 @@ export const debtService = {
     const { data } = await api.post<{ data: DebtRecord }>('/debts/payment', { debtId, amount, notes })
     return data.data
   },
+
+  async sendReminder(debtId: string): Promise<{ success: boolean; error?: string }> {
+    const { data } = await api.post<{ success: boolean; error?: string }>(`/debts/${debtId}/send-reminder`)
+    return data
+  },
 }

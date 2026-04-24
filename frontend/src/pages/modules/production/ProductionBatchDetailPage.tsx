@@ -21,6 +21,7 @@ import { settingsService } from '@services/settings.service'
 import { formatCurrency, formatDate, formatDateTime } from '@utils/formatters'
 import { cn } from '@utils/cn'
 import type { ProductionBatch } from '@services/production.service'
+import { productionService } from '@services/production.service'
 
 // ============================================
 // STATUS BADGE
@@ -357,9 +358,17 @@ export default function ProductionBatchDetailPage() {
   const { data: batch, isLoading } = useBatch(id!)
   const startBatch = useStartBatch()
 
-  const [editModal,     setEditModal]     = useState(false)
-  const [overheadModal, setOverheadModal] = useState(false)
-  const [completeModal, setCompleteModal] = useState(false)
+  const [editModal,          setEditModal]          = useState(false)
+  const [overheadModal,      setOverheadModal]      = useState(false)
+  const [completeModal,      setCompleteModal]      = useState(false)
+  const [availabilityOpen,   setAvailabilityOpen]   = useState(false)
+
+  const { data: availability, isLoading: availLoading } = useQuery({
+    queryKey: ['batch-availability', id],
+    queryFn:  () => productionService.checkAvailability(id!),
+    enabled:  !!id && batch?.status === 'PLANNED',
+    staleTime: 30_000,
+  })
 
   if (isLoading) return (
     <div className="space-y-4">
@@ -422,10 +431,20 @@ export default function ProductionBatchDetailPage() {
             )}
             {isPlanned && (
               <Button
+                variant="secondary"
+                leftIcon={<Package size={15} />}
+                onClick={() => setAvailabilityOpen(true)}
+              >
+                Material tekshiruv
+              </Button>
+            )}
+            {isPlanned && (
+              <Button
                 variant="primary"
                 leftIcon={<Play size={15} />}
                 onClick={() => startBatch.mutate(batch.id)}
-                disabled={startBatch.isPending}
+                disabled={startBatch.isPending || availability?.canStart === false}
+                title={availability?.canStart === false ? (availability.reason ?? '') : ''}
               >
                 Boshlash
               </Button>
@@ -700,6 +719,58 @@ export default function ProductionBatchDetailPage() {
           onClose={() => setCompleteModal(false)}
         />
       )}
+
+      {/* Availability check modal */}
+      <Modal open={availabilityOpen} onClose={() => setAvailabilityOpen(false)} title="Material mavjudligi tekshiruvi" size="md">
+        {availLoading ? (
+          <div className="py-8 text-center text-text-muted">Tekshirilmoqda...</div>
+        ) : availability ? (
+          <div className="space-y-4">
+            <div className={`flex items-center gap-3 p-3 rounded-lg ${availability.canStart ? 'bg-success/10 border border-success/30' : 'bg-danger/10 border border-danger/30'}`}>
+              {availability.canStart
+                ? <CheckCircle2 size={20} className="text-success shrink-0" />
+                : <AlertTriangle size={20} className="text-danger shrink-0" />
+              }
+              <p className={`text-sm font-medium ${availability.canStart ? 'text-success' : 'text-danger'}`}>
+                {availability.canStart ? 'Barcha materiallar yetarli. Partiyani boshlash mumkin!' : availability.reason}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {availability.checks.map(c => (
+                <div key={c.productId} className={`flex items-center justify-between p-3 rounded-lg border ${c.sufficient ? 'border-border-primary bg-bg-tertiary' : 'border-danger/30 bg-danger/5'}`}>
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">{c.productName}</p>
+                    <p className="text-xs text-text-muted">
+                      Kerak: <span className="font-medium">{c.required} {c.unit}</span>
+                      {' '} · Mavjud: <span className={`font-medium ${c.sufficient ? 'text-success' : 'text-danger'}`}>{c.available} {c.unit}</span>
+                      {!c.sufficient && <span className="text-danger"> (-{c.shortage} yetishmaydi)</span>}
+                    </p>
+                  </div>
+                  {c.sufficient
+                    ? <CheckCircle2 size={16} className="text-success shrink-0" />
+                    : <AlertTriangle size={16} className="text-danger shrink-0" />
+                  }
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setAvailabilityOpen(false)}>Yopish</Button>
+              {availability.canStart && (
+                <Button
+                  variant="primary"
+                  leftIcon={<Play size={14} />}
+                  onClick={() => { startBatch.mutate(batch.id); setAvailabilityOpen(false) }}
+                  disabled={startBatch.isPending}
+                >
+                  Boshlash
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </div>
   )
 }

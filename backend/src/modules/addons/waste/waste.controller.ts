@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post,
+  Controller, Get, Post, Put,
   Body, Param, Query,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
@@ -80,6 +80,28 @@ export class WasteController {
   }
 
   // ============================================
+  // BITTA PARTIYA DETALI
+  // ============================================
+  @Get('batches/:id')
+  @ApiOperation({ summary: 'Partiya detallari' })
+  getBatchById(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.wasteService.getBatchById(user.companyId, id);
+  }
+
+  // ============================================
+  // PARTIYANI SOTISH
+  // ============================================
+  @Put('batches/:id/sell')
+  @ApiOperation({ summary: 'Partiyani sotish' })
+  sellBatch(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Body() body: { buyerId: string; sellPricePerKg: number; weight: number; notes?: string },
+  ) {
+    return this.wasteService.sellBatch(user.companyId, id, body);
+  }
+
+  // ============================================
   // XODIM TAYINLASH
   // ============================================
   @Post('batches/:id/workers')
@@ -90,5 +112,18 @@ export class WasteController {
     @Body() body: any,
   ) {
     return this.wasteService.assignWorker(user.companyId, { ...body, batchId });
+  }
+
+  // ============================================
+  // XODIMLAR HISOBOTI
+  // ============================================
+  @Get('workers-report')
+  @ApiOperation({ summary: "Xodimlar ish hisoboti" })
+  getWorkersReport(
+    @CurrentUser() user: any,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo')   dateTo?:   string,
+  ) {
+    return this.wasteService.getWorkersReport(user.companyId, { dateFrom, dateTo });
   }
 }

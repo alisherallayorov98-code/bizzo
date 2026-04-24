@@ -3,7 +3,7 @@ import { useLocation, useNavigate, NavLink } from 'react-router-dom'
 import {
   ChevronDown, Settings, Lock,
   Menu, Bell, LogOut, User,
-  Sun, Moon, CheckCheck, RefreshCw,
+  Sun, Moon, CheckCheck, RefreshCw, Command,
 } from 'lucide-react'
 import { cn }               from '@utils/cn'
 import { useUIStore }       from '@store/ui.store'
@@ -505,6 +505,13 @@ export function TopNavBar() {
             <div className="hidden md:block">
               <UniversalSearch />
             </div>
+            <button
+              title="Sahifalar ro'yxati (Ctrl+Shift+P)"
+              onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'P', ctrlKey: true, shiftKey: true, bubbles: true }))}
+              className="hidden md:flex items-center justify-center w-8 h-8 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
+            >
+              <Command size={15} />
+            </button>
             <div className="hidden sm:block">
               <LanguageSwitcher />
             </div>

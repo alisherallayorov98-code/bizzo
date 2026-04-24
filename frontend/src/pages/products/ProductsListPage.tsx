@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
@@ -28,6 +28,7 @@ import { formatCurrency } from '@utils/formatters'
 import { cn } from '@utils/cn'
 import { useDebounce } from '@hooks/useDebounce'
 import { BulkActionBar } from '@components/ui/BulkActionBar/BulkActionBar'
+import { useKeyboardShortcuts } from '@hooks/useKeyboardShortcuts'
 
 // ============================================
 // MAHSULOT QATORI
@@ -67,8 +68,10 @@ function ProductRow({
       {/* Nom */}
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-bg-elevated border border-border-primary flex items-center justify-center shrink-0">
-            {product.isService
+          <div className="w-8 h-8 rounded-lg bg-bg-elevated border border-border-primary flex items-center justify-center shrink-0 overflow-hidden">
+            {product.image ? (
+              <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+            ) : product.isService
               ? <BarChart2 size={14} className="text-accent-primary" />
               : <Package size={14} className="text-text-muted" />
             }
@@ -246,6 +249,12 @@ export default function ProductsListPage() {
     setDeleteTarget(p)
   }, [])
 
+  const searchRef = useRef<HTMLInputElement>(null)
+  useKeyboardShortcuts([
+    { key: 'n', ctrl: true, handler: () => { setEditProduct(null); setFormOpen(true) } },
+    { key: '/', skipInput: true, handler: () => searchRef.current?.focus() },
+  ])
+
   const handleView = useCallback((p: Product) => {
     navigate(`/products/${p.id}`)
   }, [navigate])
@@ -280,6 +289,7 @@ export default function ProductsListPage() {
               size="sm"
               leftIcon={<Plus size={14} />}
               onClick={() => setFormOpen(true)}
+              title="Ctrl+N"
             >
               {t('products.newProduct')}
             </Button>
@@ -347,7 +357,8 @@ export default function ProductsListPage() {
         {/* Filtr */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-4 border-b border-border-primary">
           <Input
-            placeholder={t('products.searchPlaceholder')}
+            ref={searchRef}
+            placeholder={`${t('products.searchPlaceholder')} (/)`}
             leftIcon={<Search size={15} />}
             value={search}
             onChange={e => handleSearch(e.target.value)}

@@ -195,4 +195,12 @@ export const productionService = {
     const { data } = await api.get(`/production/analytics${params}`)
     return data.data
   },
+  async checkAvailability(batchId: string): Promise<{
+    canStart: boolean
+    reason:   string | null
+    checks:   { productId: string; productName: string; unit: string; required: number; available: number; sufficient: boolean; shortage: number }[]
+  }> {
+    const { data } = await api.get(`/production/batches/${batchId}/availability`)
+    return data.data
+  },
 }

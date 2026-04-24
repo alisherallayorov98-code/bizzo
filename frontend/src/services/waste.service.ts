@@ -158,6 +158,26 @@ export const wasteService = {
     return data.data
   },
 
+  async getBatchById(id: string): Promise<WasteBatch & {
+    qualityType:       WasteQualityType
+    processingRecords: any[]
+    workerAssignments: any[]
+    summary:           { totalProcessed: number; totalOutput: number; totalLoss: number; remaining: number; isFullyProcessed: boolean }
+  }> {
+    const { data } = await api.get(`/waste/batches/${id}`)
+    return data.data
+  },
+
+  async sellBatch(id: string, payload: {
+    buyerId:        string
+    sellPricePerKg: number
+    weight:         number
+    notes?:         string
+  }) {
+    const { data } = await api.put(`/waste/batches/${id}/sell`, payload)
+    return data.data
+  },
+
   async assignWorker(batchId: string, payload: {
     employeeId:   string
     workDate:     string
@@ -166,5 +186,17 @@ export const wasteService = {
   }) {
     const { data } = await api.post(`/waste/batches/${batchId}/workers`, payload)
     return data.data
+  },
+
+  async getWorkersReport(filters?: { dateFrom?: string; dateTo?: string }) {
+    const params = new URLSearchParams()
+    Object.entries(filters ?? {}).forEach(([k, v]) => {
+      if (v !== undefined && v !== '') params.append(k, String(v))
+    })
+    const { data } = await api.get(`/waste/workers-report?${params}`)
+    return data.data as {
+      summary: { employee: any; totalHours: number; totalAmount: number; unpaidAmount: number; shifts: number }[]
+      records: any[]
+    }
   },
 }

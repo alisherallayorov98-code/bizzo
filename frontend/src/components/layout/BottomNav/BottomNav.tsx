@@ -34,6 +34,10 @@ const MORE_ITEMS: Array<{ icon: any; label: string; path: string }> = [
   { icon: Settings,   label: 'Sozlamalar', path: '/settings'  },
 ]
 
+function haptic(pattern: number | number[] = 10) {
+  if ('vibrate' in navigator) navigator.vibrate(pattern)
+}
+
 function MoreDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate()
 
@@ -67,7 +71,7 @@ function MoreDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
           {MORE_ITEMS.map(item => (
             <button
               key={item.path}
-              onClick={() => { navigate(item.path); onClose() }}
+              onClick={() => { haptic(10); navigate(item.path); onClose() }}
               className={cn(
                 'flex flex-col items-center gap-2 p-3 rounded-xl',
                 'bg-[var(--color-bg-tertiary)] border border-[var(--color-border-primary)]',
@@ -123,6 +127,7 @@ export function BottomNav() {
             <button
               key={item.id}
               onClick={() => {
+                haptic(10)
                 if (item.path) {
                   navigate(item.path)
                   setMoreOpen(false)

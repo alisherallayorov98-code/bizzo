@@ -581,6 +581,47 @@ export class ProductionService {
   }
 
   // ============================================
+  // MATERIAL MAVJUDLIGI TEKSHIRUVI
+  // ============================================
+  async checkBatchAvailability(companyId: string, batchId: string) {
+    const batch = await this.prisma.productionBatch.findFirst({
+      where: { id: batchId, companyId },
+      include: { inputs: { include: { product: { select: { name: true, unit: true } } } } },
+    })
+    if (!batch) throw new NotFoundException('Partiya topilmadi')
+    if (!batch.warehouseId) {
+      return { canStart: false, reason: "Omborxona ko'rsatilmagan", checks: [] }
+    }
+
+    const checks = await Promise.all(
+      batch.inputs.map(async input => {
+        const stock = await this.prisma.stockItem.findFirst({
+          where: { warehouseId: batch.warehouseId!, productId: input.productId },
+        })
+        const available  = Number(stock?.quantity ?? 0)
+        const required   = Number(input.plannedQty)
+        const sufficient = available >= required
+        return {
+          productId:   input.productId,
+          productName: (input.product as any).name,
+          unit:        input.unit,
+          required,
+          available,
+          sufficient,
+          shortage:    sufficient ? 0 : required - available,
+        }
+      }),
+    )
+
+    const canStart = checks.every(c => c.sufficient)
+    return {
+      canStart,
+      reason: canStart ? null : `${checks.filter(c => !c.sufficient).length} ta material yetishmaydi`,
+      checks,
+    }
+  }
+
+  // ============================================
   // TANNARX KALKULYATOR
   // ============================================
   async getCostEstimate(companyId: string, formulaId: string, multiplier: number) {

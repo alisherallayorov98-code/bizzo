@@ -58,8 +58,39 @@ function ImportWizard({
     queryFn:  () => importService.getTemplate(entity),
   })
 
+  // 1C XML fayl o'qish
+  const handle1CFile = useCallback(async (file: File) => {
+    setLoading(true)
+    try {
+      const xml    = await file.text()
+      const result = await importService.parse1C(xml)
+      if (!result.rows.length) {
+        toast.error('1C fayldan ma\'lumot topilmadi. CommerceML 2.x format kerak.')
+        return
+      }
+
+      const hdrs = Object.keys(result.rows[0])
+      setHeaders(hdrs)
+      setRawRows(result.rows)
+
+      const detected = await importService.detectColumns(hdrs)
+      const identityMapping: Record<string, string> = {}
+      hdrs.forEach(h => { identityMapping[h] = detected.mapping[h] ?? h })
+      setMapping(identityMapping)
+
+      const entityKey = result.entity as ImportEntity
+      toast.success(`1C fayldan ${result.rows.length} ta ${result.entity} ma'lumoti topildi`)
+      setStep('map')
+    } catch (e: any) {
+      toast.error('1C faylni o\'qishda xatolik: ' + e.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   // Excel/CSV fayl o'qish
   const handleFile = useCallback(async (file: File) => {
+    if (file.name.endsWith('.xml')) { await handle1CFile(file); return }
     setLoading(true)
     try {
       const buf  = await file.arrayBuffer()
@@ -88,7 +119,7 @@ function ImportWizard({
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [handle1CFile])
 
   const handlePreview = async () => {
     setLoading(true)
@@ -214,12 +245,19 @@ function ImportWizard({
             onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
           >
             <Upload size={32} className="mx-auto mb-3 text-text-muted" />
-            <p className="text-sm font-medium text-text-primary mb-1">Excel yoki CSV faylni shu yerga tashlang</p>
+            <p className="text-sm font-medium text-text-primary mb-1">Excel, CSV yoki 1C XML faylni shu yerga tashlang</p>
             <p className="text-xs text-text-muted mb-4">Ixtiyoriy format — tizim avtomatik moslashtiradi</p>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              {['.xlsx', '.csv', '.xml (1C)'].map(fmt => (
+                <span key={fmt} className="px-2 py-0.5 rounded bg-bg-tertiary border border-border-primary text-[10px] text-text-muted font-mono">
+                  {fmt}
+                </span>
+              ))}
+            </div>
             <label className="cursor-pointer">
               <input
                 type="file"
-                accept=".xlsx,.xls,.csv"
+                accept=".xlsx,.xls,.csv,.xml"
                 className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}
               />

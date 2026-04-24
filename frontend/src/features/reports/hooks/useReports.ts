@@ -50,3 +50,21 @@ export function useWasteReport(filters: ReportFilters) {
     staleTime: STALE,
   })
 }
+
+export function useConstructionReport(filters: ReportFilters) {
+  return useQuery({
+    queryKey: [REPORTS_KEY, 'construction', filters],
+    queryFn:  () => reportService.getConstruction(filters),
+    enabled:  enabled(filters),
+    staleTime: STALE,
+  })
+}
+
+export function useProductionReport(filters: ReportFilters) {
+  return useQuery({
+    queryKey: [REPORTS_KEY, 'production', filters],
+    queryFn:  () => reportService.getProduction(filters),
+    enabled:  enabled(filters),
+    staleTime: STALE,
+  })
+}

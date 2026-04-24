@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post, Body, Param, Query,
+  Controller, Get, Post, Body, Param, Query, HttpCode,
 } from '@nestjs/common'
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger'
 import { DebtsService, CreateDebtDto, AddPaymentDto } from './debts.service'
@@ -37,5 +37,11 @@ export class DebtsController {
     @Param('contactId') contactId: string,
   ) {
     return this.debtsService.getByContact(user.companyId, contactId)
+  }
+
+  @Post(':id/send-reminder')
+  @HttpCode(200)
+  sendReminder(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.debtsService.sendReminder(user.companyId, id)
   }
 }

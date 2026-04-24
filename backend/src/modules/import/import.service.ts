@@ -675,6 +675,105 @@ export class ImportService {
     }).catch(() => {})
   }
 
+  // ──────────────────────────────────────────────
+  // 1C XML FORMAT PARSER (CommerceML 2.x)
+  // ──────────────────────────────────────────────
+  parse1CXml(xml: string): { entity: string; rows: any[] } {
+    const getTag  = (src: string, tag: string): string => {
+      const m = src.match(new RegExp(`<${tag}[^>]*>([^<]*)<\\/${tag}>`, 'i'))
+      return m ? m[1].trim() : ''
+    }
+    const getBlock = (src: string, tag: string): string[] => {
+      const out: string[] = []
+      const re = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'ig')
+      let m: RegExpExecArray | null
+      while ((m = re.exec(src)) !== null) out.push(m[0])
+      return out
+    }
+
+    // ── Products: <Товар> or <Номенклатура> ──
+    const productBlocks = [...getBlock(xml, 'Товар'), ...getBlock(xml, 'Номенклатура')]
+    if (productBlocks.length > 0) {
+      const rows = productBlocks.map(block => {
+        const name     = getTag(block, 'Наименование') || getTag(block, 'НаименованиеПолное')
+        const code     = getTag(block, 'Артикул') || getTag(block, 'Код')
+        const barcode  = getTag(block, 'Штрихкод')
+        const unit     = getTag(block, 'БазоваяЕдиница') || getTag(block, 'ЕдиницаИзмерения') || 'dona'
+        const buyPrice = parseFloat(getTag(block, 'ЦенаЗакупки') || getTag(block, 'Себестоимость') || '0') || 0
+        const sellPrice = parseFloat(getTag(block, 'ЦенаПродажи') || getTag(block, 'Цена') || '0') || 0
+        const category = getTag(block, 'Группа') || getTag(block, 'Категория')
+        const qty      = parseFloat(getTag(block, 'Количество') || '0') || 0
+
+        return {
+          name: name || undefined,
+          code: code || undefined,
+          barcode: barcode || undefined,
+          unit: unit !== 'dona' ? unit : undefined,
+          buyPrice: buyPrice || undefined,
+          sellPrice: sellPrice || undefined,
+          category: category || undefined,
+          openingStock: qty || undefined,
+          openingAvgPrice: buyPrice || undefined,
+        }
+      }).filter(r => r.name)
+
+      return { entity: 'product', rows }
+    }
+
+    // ── Contacts: <Контрагент> or <Партнер> ──
+    const contactBlocks = [...getBlock(xml, 'Контрагент'), ...getBlock(xml, 'Партнер')]
+    if (contactBlocks.length > 0) {
+      const rows = contactBlocks.map(block => {
+        const name    = getTag(block, 'Наименование') || getTag(block, 'НаименованиеПолное')
+        const stir    = getTag(block, 'ИНН')
+        const phone   = getTag(block, 'Телефон') || getTag(block, 'НомерТелефона')
+        const email   = getTag(block, 'ЭлектроннаяПочта') || getTag(block, 'Email')
+        const address = getTag(block, 'Адрес') || getTag(block, 'ЮридическийАдрес')
+        const typeRaw = getTag(block, 'ТипКонтрагента') || ''
+        const type    = typeRaw.toLowerCase().includes('поставщик') ? 'SUPPLIER'
+                      : typeRaw.toLowerCase().includes('покупател') ? 'CUSTOMER'
+                      : undefined
+
+        return {
+          name: name || undefined,
+          stir: stir || undefined,
+          phone: phone || undefined,
+          email: email || undefined,
+          address: address || undefined,
+          type,
+        }
+      }).filter(r => r.name)
+
+      return { entity: 'contact', rows }
+    }
+
+    // ── Employees: <Сотрудник> ──
+    const empBlocks = getBlock(xml, 'Сотрудник')
+    if (empBlocks.length > 0) {
+      const rows = empBlocks.map(block => {
+        const fullName  = getTag(block, 'Наименование') || getTag(block, 'ФИО')
+        const parts     = fullName.split(/\s+/)
+        const firstName = parts[1] || parts[0] || ''
+        const lastName  = parts[0] || ''
+        const position  = getTag(block, 'Должность')
+        const phone     = getTag(block, 'Телефон')
+        const salary    = parseFloat(getTag(block, 'Оклад') || '0') || 0
+
+        return {
+          firstName: firstName || undefined,
+          lastName:  lastName  || undefined,
+          position:  position  || undefined,
+          phone:     phone     || undefined,
+          baseSalary: salary   || undefined,
+        }
+      }).filter(r => r.firstName)
+
+      return { entity: 'employee', rows }
+    }
+
+    return { entity: 'unknown', rows: [] }
+  }
+
   private normalizeContactType(type?: string): 'CUSTOMER' | 'SUPPLIER' | 'BOTH' {
     if (!type) return 'CUSTOMER'
     const t = type.toUpperCase()

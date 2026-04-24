@@ -8,11 +8,13 @@ export interface HealthScore {
   total: number; // 0-100
   grade: 'A' | 'B' | 'C' | 'D' | 'F';
   components: {
-    revenue:   { score: number; max: number; label: string; trend: 'up' | 'down' | 'stable' };
-    debt:      { score: number; max: number; label: string; trend: 'up' | 'down' | 'stable' };
-    stock:     { score: number; max: number; label: string; trend: 'up' | 'down' | 'stable' };
-    employees: { score: number; max: number; label: string; trend: 'up' | 'down' | 'stable' };
-    cashflow:  { score: number; max: number; label: string; trend: 'up' | 'down' | 'stable' };
+    revenue:      { score: number; max: number; label: string; trend: 'up' | 'down' | 'stable' };
+    debt:         { score: number; max: number; label: string; trend: 'up' | 'down' | 'stable' };
+    stock:        { score: number; max: number; label: string; trend: 'up' | 'down' | 'stable' };
+    employees:    { score: number; max: number; label: string; trend: 'up' | 'down' | 'stable' };
+    cashflow:     { score: number; max: number; label: string; trend: 'up' | 'down' | 'stable' };
+    construction: { score: number; max: number; label: string; trend: 'up' | 'down' | 'stable' };
+    production:   { score: number; max: number; label: string; trend: 'up' | 'down' | 'stable' };
   };
   insight: string;
 }
@@ -157,8 +159,34 @@ export class SmartAnalyticsService {
       ? Math.min(15, 15)
       : Math.max(0, 15 + Math.round(netCash / (payable || 1) * 10));
 
+    // Construction health
+    const [totalProjects, overdueProjects, completedProjects] = await Promise.all([
+      this.prisma.constructionProject.count({ where: { companyId, isActive: true, status: { in: ['PLANNING', 'IN_PROGRESS', 'ON_HOLD'] } } }).catch(() => 0),
+      this.prisma.constructionProject.count({ where: { companyId, isActive: true, status: 'IN_PROGRESS', endDate: { lt: now } } }).catch(() => 0),
+      this.prisma.constructionProject.count({ where: { companyId, status: 'COMPLETED', actualEndDate: { gte: thisMonth.start } } }).catch(() => 0),
+    ]);
+    const overdueProjectRatio = totalProjects > 0 ? overdueProjects / totalProjects : 0;
+    const constructionScore   = totalProjects === 0
+      ? 8
+      : Math.round(8 * (1 - Math.min(1, overdueProjectRatio)));
+    const constructionTrend: 'up' | 'down' | 'stable' =
+      overdueProjectRatio === 0 ? 'up' : overdueProjectRatio > 0.3 ? 'down' : 'stable';
+
+    // Production health
+    const [totalBatches, completedBatches, failedBatches] = await Promise.all([
+      this.prisma.productionBatch.count({ where: { companyId, createdAt: { gte: thisMonth.start } } }).catch(() => 0),
+      this.prisma.productionBatch.count({ where: { companyId, status: 'COMPLETED', actualEnd: { gte: thisMonth.start } } }).catch(() => 0),
+      this.prisma.productionBatch.count({ where: { companyId, status: 'CANCELLED', updatedAt: { gte: thisMonth.start } } }).catch(() => 0),
+    ]);
+    const prodSuccessRate = totalBatches > 0 ? completedBatches / totalBatches : 1;
+    const productionScore = totalBatches === 0
+      ? 7
+      : Math.round(7 * prodSuccessRate);
+    const productionTrend: 'up' | 'down' | 'stable' =
+      prodSuccessRate >= 0.9 ? 'up' : prodSuccessRate < 0.5 ? 'down' : 'stable';
+
     const total = Math.min(100, Math.max(0,
-      revScore + debtScore + stockScore + empScore + cashflowScore,
+      revScore + debtScore + stockScore + empScore + cashflowScore + constructionScore + productionScore,
     ));
 
     const grade: HealthScore['grade'] =
@@ -176,11 +204,13 @@ export class SmartAnalyticsService {
       total,
       grade,
       components: {
-        revenue:   { score: revScore,       max: 20, label: 'Savdo o\'sishi',    trend: revGrowth > 2 ? 'up' : revGrowth < -2 ? 'down' : 'stable' },
-        debt:      { score: debtScore,      max: 20, label: 'Qarz holati',       trend: overdueRatio < 0.1 ? 'up' : overdueRatio > 0.3 ? 'down' : 'stable' },
-        stock:     { score: stockScore,     max: 15, label: 'Ombor holati',      trend: lowRatio < 0.1 ? 'up' : lowRatio > 0.3 ? 'down' : 'stable' },
-        employees: { score: empScore,       max: 15, label: 'Xodimlar',          trend: unpaidRatio < 0.1 ? 'up' : 'down' },
-        cashflow:  { score: cashflowScore,  max: 15, label: 'Naqd pul oqimi',    trend: netCash > 0 ? 'up' : 'down' },
+        revenue:      { score: revScore,          max: 20, label: 'Savdo o\'sishi',       trend: revGrowth > 2 ? 'up' : revGrowth < -2 ? 'down' : 'stable' },
+        debt:         { score: debtScore,         max: 20, label: 'Qarz holati',          trend: overdueRatio < 0.1 ? 'up' : overdueRatio > 0.3 ? 'down' : 'stable' },
+        stock:        { score: stockScore,        max: 15, label: 'Ombor holati',         trend: lowRatio < 0.1 ? 'up' : lowRatio > 0.3 ? 'down' : 'stable' },
+        employees:    { score: empScore,          max: 15, label: 'Xodimlar',             trend: unpaidRatio < 0.1 ? 'up' : 'down' },
+        cashflow:     { score: cashflowScore,     max: 15, label: 'Naqd pul oqimi',       trend: netCash > 0 ? 'up' : 'down' },
+        construction: { score: constructionScore, max: 8,  label: 'Qurilish loyihalari',  trend: constructionTrend },
+        production:   { score: productionScore,   max: 7,  label: 'Ishlab chiqarish',     trend: productionTrend },
       },
       insight: insights[grade],
     };
@@ -627,5 +657,61 @@ export class SmartAnalyticsService {
       const order = { high: 0, medium: 1, low: 2 };
       return order[a.severity] - order[b.severity];
     });
+  }
+
+  // ----------------------------------------------------------
+  // 9. AI CONTEXT (LLM uchun strukturalangan ma'lumot)
+  // ----------------------------------------------------------
+  async getAIContext(companyId: string): Promise<string> {
+    const [health, forecast, anomalies, alerts, depletion] = await Promise.all([
+      this.getHealthScore(companyId),
+      this.getSalesForecast(companyId),
+      this.getAnomalies(companyId),
+      this.getSmartAlerts(companyId),
+      this.getStockDepletion(companyId),
+    ]);
+
+    const fmt = (n: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(n));
+
+    const lines: string[] = [
+      `=== BIZNES HOLATI HISOBOTI (${new Date().toLocaleDateString('uz-UZ')}) ===`,
+      ``,
+      `UMUMIY SKOR: ${health.total}/100 (Daraja: ${health.grade})`,
+      `Xulosa: ${health.insight}`,
+      ``,
+      `KOMPONENTLAR:`,
+      ...Object.entries(health.components).map(
+        ([, v]) => `  - ${v.label}: ${v.score}/${v.max} (${v.trend})`,
+      ),
+      ``,
+      `SAVDO BASHORATI (${forecast.month}):`,
+      `  Kutilayotgan: ${fmt(forecast.predicted)} so'm`,
+      `  O'sish: ${forecast.growthRate > 0 ? '+' : ''}${forecast.growthRate}%`,
+      `  Ishonch: ${forecast.confidence}%`,
+      ``,
+    ];
+
+    if (anomalies.length > 0) {
+      lines.push(`ANOMALIYALAR (${anomalies.length} ta):`);
+      anomalies.forEach(a => lines.push(`  [${a.severity.toUpperCase()}] ${a.title}: ${a.description}`));
+      lines.push('');
+    }
+
+    if (alerts.length > 0) {
+      lines.push(`OGOHLANTIRISHLAR (${alerts.length} ta):`);
+      alerts.forEach(a => lines.push(`  [${a.severity.toUpperCase()}] ${a.title}`));
+      lines.push('');
+    }
+
+    const critDep = depletion.filter(d => d.urgency === 'critical');
+    if (critDep.length > 0) {
+      lines.push(`KRITIK OMBOR (${critDep.length} ta mahsulot tugatilayapti):`);
+      critDep.slice(0, 5).forEach(d =>
+        lines.push(`  - ${d.name}: ${d.daysUntilEmpty ?? '?'} kun qoldi`),
+      );
+      lines.push('');
+    }
+
+    return lines.join('\n');
   }
 }

@@ -80,6 +80,11 @@ export class ProductionController {
     return this.productionService.addOverhead(user.companyId, id, dto)
   }
 
+  @Get('batches/:id/availability')
+  checkBatchAvailability(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.productionService.checkBatchAvailability(user.companyId, id)
+  }
+
   @Post('batches/:id/start')
   startBatch(@CurrentUser() user: any, @Param('id') id: string) {
     return this.productionService.startBatch(user.companyId, id, user.id)

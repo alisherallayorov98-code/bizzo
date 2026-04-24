@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
+import { SmsService } from '../integrations/sms/sms.service'
 import { Prisma } from '@prisma/client'
 
 export interface CreateDebtDto {
@@ -21,7 +22,10 @@ export interface AddPaymentDto {
 
 @Injectable()
 export class DebtsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private sms: SmsService,
+  ) {}
 
   // ============================================
   // RO'YXAT
@@ -239,5 +243,31 @@ export class DebtsService {
     ])
 
     return { contact, receivable, payable }
+  }
+
+  // ============================================
+  // SMS ESLATMA YUBORISH
+  // ============================================
+  async sendReminder(companyId: string, debtId: string) {
+    const debt = await this.prisma.debtRecord.findFirst({
+      where:   { id: debtId, contact: { companyId }, remainAmount: { gt: 0 } },
+      include: { contact: { select: { name: true, phone: true } } },
+    })
+    if (!debt) throw new NotFoundException('Qarz yozuvi topilmadi')
+
+    const phone = debt.contact.phone
+    if (!phone) {
+      return { success: false, error: 'Kontaktda telefon raqami mavjud emas' }
+    }
+
+    const amount = Number(debt.remainAmount).toLocaleString('uz-UZ')
+    const duePart = debt.dueDate
+      ? ` (muddat: ${new Date(debt.dueDate).toLocaleDateString('uz-UZ')})`
+      : ''
+    const message =
+      `Hurmatli ${debt.contact.name}, sizning ${amount} so'm miqdoridagi qarzingiz${duePart} to'lanmagan. Iltimos, to'lovni amalga oshiring.`
+
+    const result = await this.sms.send(companyId, phone, message)
+    return { success: result.success, error: result.error }
   }
 }

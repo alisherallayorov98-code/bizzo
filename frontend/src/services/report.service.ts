@@ -31,6 +31,16 @@ export const reportService = {
     return data.data
   },
 
+  async getConstruction(filters: ReportFilters) {
+    const { data } = await api.get('/reports/construction', { params: filters })
+    return data.data
+  },
+
+  async getProduction(filters: ReportFilters) {
+    const { data } = await api.get('/reports/production', { params: filters })
+    return data.data
+  },
+
   async getChartsData(): Promise<{
     sales:  { month: string; sotuv: number; maqsad: number }[]
     stock:  { month: string; kirim: number; chiqim: number }[]

@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
@@ -6,6 +6,7 @@ import { queryClient } from '@config/queryClient'
 import { ErrorBoundary } from '@components/shared/ErrorBoundary'
 import { useServiceWorker } from '@hooks/useServiceWorker'
 import { useUIStore } from '@store/ui.store'
+import { PermissionGate } from '@components/auth/PermissionGate'
 
 // Layout komponentlar
 const AppLayout        = lazy(() => import('@components/layout/AppLayout').then(m => ({ default: m.AppLayout })))
@@ -61,8 +62,18 @@ const ProductionModule    = lazy(() => import('@pages/modules/production'))
 // Smart Analytics
 const SmartInsightsPage   = lazy(() => import('@pages/smart/SmartInsightsPage'))
 
+// Xizmat moduli
+const ServiceTicketsPage  = lazy(() => import('@pages/service/ServiceTicketsPage'))
+
+// POS
+const POSPage             = lazy(() => import('@pages/pos/POSPage'))
+
 // Import Markazi
 const ImportCenterPage    = lazy(() => import('@pages/import/ImportCenterPage'))
+
+// Landing
+const LandingLayout       = lazy(() => import('@pages/landing/LandingLayout').then(m => ({ default: m.LandingLayout })))
+const LandingPage         = lazy(() => import('@pages/landing/LandingPage'))
 
 // Billing
 const PricingPage         = lazy(() => import('@pages/billing/PricingPage'))
@@ -73,6 +84,7 @@ const BillingSuccessPage  = lazy(() => import('@pages/billing/SuccessPage'))
 // Xato sahifalar
 const NotFoundPage        = lazy(() => import('@pages/errors/NotFoundPage'))
 const UnauthorizedPage    = lazy(() => import('@pages/errors/UnauthorizedPage'))
+const OfflinePage         = lazy(() => import('@pages/errors/OfflinePage'))
 
 // Loading komponenti
 function LoadingScreen() {
@@ -113,14 +125,45 @@ function ThemeProvider() {
   return null
 }
 
+function OfflineDetector({ children }: { children: React.ReactNode }) {
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine)
+
+  useEffect(() => {
+    const setOnline  = () => setIsOnline(true)
+    const setOffline = () => setIsOnline(false)
+    window.addEventListener('online',  setOnline)
+    window.addEventListener('offline', setOffline)
+    return () => {
+      window.removeEventListener('online',  setOnline)
+      window.removeEventListener('offline', setOffline)
+    }
+  }, [])
+
+  if (!isOnline) {
+    return (
+      <Suspense fallback={<LoadingScreen />}>
+        <OfflinePage />
+      </Suspense>
+    )
+  }
+
+  return <>{children}</>
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider />
+      <OfflineDetector>
       <BrowserRouter>
         <Suspense fallback={<LoadingScreen />}>
           <Routes>
+            {/* Landing sahifalar (public) */}
+            <Route element={<LandingLayout />}>
+              <Route path="/" element={<LandingPage />} />
+            </Route>
+
             {/* Ochiq: tariflar */}
             <Route path="/pricing" element={<PricingPage />} />
             <Route path="/billing/success" element={<BillingSuccessPage />} />
@@ -147,7 +190,6 @@ export default function App() {
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
                 {/* Asosiy */}
-                <Route index element={<Navigate to="/dashboard" replace />} />
                 <Route path="/dashboard" element={<DashboardPage />} />
 
                 {/* Kontragentlar */}
@@ -170,12 +212,12 @@ export default function App() {
                 <Route path="/warehouse/outgoing"   element={<OutgoingPage />} />
 
                 {/* Xodimlar */}
-                <Route path="/employees"         element={<EmployeesListPage />} />
-                <Route path="/employees/:id"     element={<EmployeeDetailPage />} />
-                <Route path="/salary"            element={<SalaryPage />} />
+                <Route path="/employees"         element={<PermissionGate><EmployeesListPage /></PermissionGate>} />
+                <Route path="/employees/:id"     element={<PermissionGate><EmployeeDetailPage /></PermissionGate>} />
+                <Route path="/salary"            element={<PermissionGate><SalaryPage /></PermissionGate>} />
 
                 {/* Qarzlar */}
-                <Route path="/debts" element={<DebtsPage />} />
+                <Route path="/debts" element={<PermissionGate><DebtsPage /></PermissionGate>} />
 
                 {/* Shartnomalar */}
                 <Route path="/contracts"           element={<ContractsListPage />} />
@@ -184,14 +226,14 @@ export default function App() {
                 <Route path="/contracts/:id"       element={<ContractDetailPage />} />
 
                 {/* Hisobotlar */}
-                <Route path="/reports" element={<ReportsPage />} />
-                <Route path="/smart"   element={<SmartInsightsPage />} />
+                <Route path="/reports" element={<PermissionGate><ReportsPage /></PermissionGate>} />
+                <Route path="/smart"   element={<PermissionGate><SmartInsightsPage /></PermissionGate>} />
 
                 {/* Import Markazi */}
-                <Route path="/import" element={<ImportCenterPage />} />
+                <Route path="/import" element={<PermissionGate><ImportCenterPage /></PermissionGate>} />
 
                 {/* Sozlamalar */}
-                <Route path="/settings/*" element={<CompanySettingsPage />} />
+                <Route path="/settings/*" element={<PermissionGate><CompanySettingsPage /></PermissionGate>} />
 
                 {/* Obuna va toʻlovlar */}
                 <Route path="/billing"          element={<BillingPage />} />
@@ -202,6 +244,8 @@ export default function App() {
                 <Route path="/sales/*"        element={<SalesModule />} />
                 <Route path="/construction/*" element={<ConstructionModule />} />
                 <Route path="/production/*"   element={<ProductionModule />} />
+                <Route path="/service"        element={<PermissionGate><ServiceTicketsPage /></PermissionGate>} />
+                <Route path="/pos"           element={<PermissionGate><POSPage /></PermissionGate>} />
 
                 {/* Ruxsatsiz */}
                 <Route path="/unauthorized" element={<UnauthorizedPage />} />
@@ -213,6 +257,8 @@ export default function App() {
           </Routes>
         </Suspense>
       </BrowserRouter>
+
+      </OfflineDetector>
 
       {/* PWA yangilash banneri */}
       <UpdateBanner />

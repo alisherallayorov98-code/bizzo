@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   FileText, FileSpreadsheet,
-  TrendingUp, Package, Users, Recycle,
+  TrendingUp, Package, Users, Recycle, HardHat, Factory,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -15,6 +15,7 @@ import { Skeleton }   from '@components/ui/Skeleton/Skeleton'
 import {
   useFinancialReport, useWarehouseReport,
   useSalesReport, useEmployeesReport, useWasteReport,
+  useConstructionReport, useProductionReport,
 } from '@features/reports/hooks/useReports'
 import { exportToExcel, exportToPDF } from '@utils/exporters'
 import { formatCurrency, formatDate, formatWeight } from '@utils/formatters'
@@ -884,16 +885,174 @@ function WasteReport({ filters }: { filters: { dateFrom: string; dateTo: string 
 }
 
 // ============================================
+// QURILISH HISOBOTI
+// ============================================
+function ConstructionReport({ filters }: { filters: any }) {
+  const { data, isLoading } = useConstructionReport(filters)
+  const fmt = (n: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(n))
+
+  if (isLoading) return <div className="text-center py-8 text-[var(--color-text-muted)]">Yuklanmoqda...</div>
+  if (!data) return null
+
+  const { summary } = data
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Jami loyihalar',  value: String(summary.totalProjects),   color: '' },
+          { label: 'Aktiv',           value: String(summary.activeProjects),   color: 'text-[var(--color-accent-primary)]' },
+          { label: 'Muddati o\'tgan', value: String(summary.overdueProjects),  color: summary.overdueProjects > 0 ? 'text-[var(--color-danger)]' : '' },
+          { label: 'Tugallangan',     value: String(summary.completedProjects), color: 'text-[var(--color-success)]' },
+        ].map(c => (
+          <Card key={c.label} padding="sm">
+            <p className="text-xs text-[var(--color-text-muted)] mb-1">{c.label}</p>
+            <p className={`text-xl font-bold tabular-nums ${c.color}`}>{c.value}</p>
+          </Card>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <Card padding="sm">
+          <p className="text-xs text-[var(--color-text-muted)] mb-1">Umumiy byudjet</p>
+          <p className="text-xl font-bold tabular-nums text-[var(--color-accent-primary)]">{fmt(summary.totalBudget)} so'm</p>
+        </Card>
+        <Card padding="sm">
+          <p className="text-xs text-[var(--color-text-muted)] mb-1">Xarajatlar</p>
+          <p className={`text-xl font-bold tabular-nums ${summary.totalExpense > summary.totalBudget ? 'text-[var(--color-danger)]' : ''}`}>
+            {fmt(summary.totalExpense)} so'm
+          </p>
+        </Card>
+      </div>
+
+      {data.projects.length > 0 && (
+        <Card padding="none">
+          <div className="px-4 py-3 border-b border-[var(--color-border-primary)]">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Loyihalar</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-[var(--color-bg-tertiary)]">
+              <tr>
+                {['Loyiha', 'Holat', 'Byudjet', 'Vazifalar', 'Jurnallar'].map(h => (
+                  <th key={h} className="px-4 py-2 text-left text-xs font-medium text-[var(--color-text-muted)]">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.projects.map((p: any) => (
+                <tr key={p.id} className={`border-t border-[var(--color-border-primary)] ${p.isOverdue ? 'bg-[var(--color-danger)]/5' : ''}`}>
+                  <td className="px-4 py-3 font-medium">{p.name}</td>
+                  <td className="px-4 py-3">
+                    <Badge variant={p.status === 'COMPLETED' ? 'success' : p.isOverdue ? 'danger' : 'info'} size="sm">{p.status}</Badge>
+                  </td>
+                  <td className="px-4 py-3 tabular-nums">{fmt(p.budget)}</td>
+                  <td className="px-4 py-3">{p.tasks}</td>
+                  <td className="px-4 py-3">{p.workLogs}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+// ============================================
+// ISHLAB CHIQARISH HISOBOTI
+// ============================================
+function ProductionReport({ filters }: { filters: any }) {
+  const { data, isLoading } = useProductionReport(filters)
+  const fmt = (n: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(n))
+
+  if (isLoading) return <div className="text-center py-8 text-[var(--color-text-muted)]">Yuklanmoqda...</div>
+  if (!data) return null
+
+  const { summary } = data
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Jami partiyalar',    value: String(summary.totalBatches), color: '' },
+          { label: 'Jarayonda',          value: String(summary.inProgress),   color: 'text-[var(--color-accent-primary)]' },
+          { label: 'Yakunlangan',        value: String(summary.completed),    color: 'text-[var(--color-success)]' },
+          { label: 'Muvaffaqiyat daraj.', value: `${summary.successRate}%`,   color: summary.successRate >= 80 ? 'text-[var(--color-success)]' : 'text-[var(--color-warning)]' },
+        ].map(c => (
+          <Card key={c.label} padding="sm">
+            <p className="text-xs text-[var(--color-text-muted)] mb-1">{c.label}</p>
+            <p className={`text-xl font-bold tabular-nums ${c.color}`}>{c.value}</p>
+          </Card>
+        ))}
+      </div>
+
+      {data.outputByProduct.length > 0 && (
+        <Card padding="none">
+          <div className="px-4 py-3 border-b border-[var(--color-border-primary)]">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Mahsulot chiqimi</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-[var(--color-bg-tertiary)]">
+              <tr>
+                {['Mahsulot', 'Miqdor'].map(h => (
+                  <th key={h} className="px-4 py-2 text-left text-xs font-medium text-[var(--color-text-muted)]">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.outputByProduct.map((p: any, i: number) => (
+                <tr key={i} className="border-t border-[var(--color-border-primary)]">
+                  <td className="px-4 py-3 font-medium">{p.name}</td>
+                  <td className="px-4 py-3 tabular-nums">{p.qty.toFixed(2)} {p.unit}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      {data.batches.length > 0 && (
+        <Card padding="none">
+          <div className="px-4 py-3 border-b border-[var(--color-border-primary)]">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-text-muted)]">Partiyalar</h3>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-[var(--color-bg-tertiary)]">
+              <tr>
+                {['#', 'Retsept', 'Holat', 'Qo\'shimcha xarajat'].map(h => (
+                  <th key={h} className="px-4 py-2 text-left text-xs font-medium text-[var(--color-text-muted)]">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.batches.map((b: any) => (
+                <tr key={b.id} className="border-t border-[var(--color-border-primary)]">
+                  <td className="px-4 py-3 text-[var(--color-text-muted)]">#{b.batchNumber}</td>
+                  <td className="px-4 py-3 font-medium">{b.formula}</td>
+                  <td className="px-4 py-3">
+                    <Badge variant={b.status === 'COMPLETED' ? 'success' : b.status === 'CANCELLED' ? 'danger' : 'info'} size="sm">{b.status}</Badge>
+                  </td>
+                  <td className="px-4 py-3 tabular-nums">{fmt(b.overhead)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+// ============================================
 // ASOSIY SAHIFA
 // ============================================
-type TabId = 'financial' | 'warehouse' | 'sales' | 'employees' | 'waste'
+type TabId = 'financial' | 'warehouse' | 'sales' | 'employees' | 'waste' | 'construction' | 'production'
 
 const TABS: { id: TabId; label: string; Icon: typeof TrendingUp }[] = [
-  { id: 'financial', label: 'Moliyaviy', Icon: TrendingUp },
-  { id: 'warehouse', label: 'Ombor',     Icon: Package    },
-  { id: 'sales',     label: 'Savdo',     Icon: TrendingUp },
-  { id: 'employees', label: 'Xodimlar',  Icon: Users      },
-  { id: 'waste',     label: 'Chiqindi',  Icon: Recycle    },
+  { id: 'financial',    label: 'Moliyaviy',      Icon: TrendingUp },
+  { id: 'warehouse',    label: 'Ombor',          Icon: Package    },
+  { id: 'sales',        label: 'Savdo',          Icon: TrendingUp },
+  { id: 'employees',    label: 'Xodimlar',       Icon: Users      },
+  { id: 'waste',        label: 'Chiqindi',       Icon: Recycle    },
+  { id: 'construction', label: 'Qurilish',       Icon: HardHat    },
+  { id: 'production',   label: 'Ishlab chiqarish', Icon: Factory  },
 ]
 
 export default function ReportsPage() {
@@ -941,11 +1100,13 @@ export default function ReportsPage() {
       </div>
 
       <div>
-        {activeTab === 'financial' && <FinancialReport filters={filters} />}
-        {activeTab === 'warehouse' && <WarehouseReport filters={filters} />}
-        {activeTab === 'sales'     && <SalesReport     filters={filters} />}
-        {activeTab === 'employees' && <EmployeesReport filters={filters} />}
-        {activeTab === 'waste'     && <WasteReport     filters={filters} />}
+        {activeTab === 'financial'    && <FinancialReport    filters={filters} />}
+        {activeTab === 'warehouse'    && <WarehouseReport    filters={filters} />}
+        {activeTab === 'sales'        && <SalesReport        filters={filters} />}
+        {activeTab === 'employees'    && <EmployeesReport    filters={filters} />}
+        {activeTab === 'waste'        && <WasteReport        filters={filters} />}
+        {activeTab === 'construction' && <ConstructionReport filters={filters} />}
+        {activeTab === 'production'   && <ProductionReport   filters={filters} />}
       </div>
     </div>
   )

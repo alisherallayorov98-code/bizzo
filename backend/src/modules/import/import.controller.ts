@@ -56,6 +56,13 @@ export class ImportController {
     return this.svc.getMigrationProgress(user.companyId)
   }
 
+  // ── 1C XML PARSER ──────────────────────────────
+  @Post('parse-1c')
+  @ApiOperation({ summary: '1C CommerceML XML ni tahlil qilish' })
+  parse1C(@Body() dto: { xml: string }) {
+    return this.svc.parse1CXml(dto.xml)
+  }
+
   // ── COLUMN DETECTION ───────────────────────────
   @Post('detect-columns')
   @ApiOperation({ summary: 'Ustunlarni avtomatik aniqlash' })

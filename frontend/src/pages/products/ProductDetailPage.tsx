@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Edit2, Package, BarChart2,
   Tag, Hash, AlertTriangle, CheckCircle,
-  Layers, Info,
+  Layers, Info, TrendingUp, TrendingDown, Warehouse,
 } from 'lucide-react'
+import { AttachmentList } from '@components/shared/AttachmentList/AttachmentList'
 import { PageHeader }       from '@components/layout/PageHeader/PageHeader'
 import { Card }             from '@components/ui/Card/Card'
 import { Badge }            from '@components/ui/Badge/Badge'
@@ -56,6 +57,7 @@ export default function ProductDetailPage() {
   const navigate  = useNavigate()
   const t         = useT()
   const [editOpen, setEditOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState<'movements' | 'deals' | 'warehouses'>('movements')
 
   const { data: product, isLoading, isError } = useProduct(id!)
 
@@ -146,8 +148,10 @@ export default function ProductDetailPage() {
           {/* Asosiy ma'lumotlar */}
           <Card padding="md">
             <div className="flex items-center gap-4 mb-5">
-              <div className="w-12 h-12 rounded-xl bg-bg-elevated border border-border-primary flex items-center justify-center shrink-0">
-                {product.isService
+              <div className="w-12 h-12 rounded-xl bg-bg-elevated border border-border-primary flex items-center justify-center shrink-0 overflow-hidden">
+                {product.image ? (
+                  <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                ) : product.isService
                   ? <BarChart2 size={20} className="text-accent-primary" />
                   : <Package   size={20} className="text-text-muted" />
                 }
@@ -216,9 +220,15 @@ export default function ProductDetailPage() {
               {t('products.pricingSection')}
             </h3>
             <PriceRow label={t('products.purchasePrice')} value={product.buyPrice}  muted />
-            <PriceRow label={t('products.salePrice')}     value={product.sellPrice} highlight="success" />
+            <PriceRow label="Chakana narx"                value={product.sellPrice} highlight="success" />
+            {(product as any).wholesalePrice && (
+              <PriceRow label="Ulgurji narx" value={(product as any).wholesalePrice} highlight="warning" />
+            )}
+            {(product as any).vipPrice && (
+              <PriceRow label="VIP narx" value={(product as any).vipPrice} highlight="danger" />
+            )}
             {product.minPrice > 0 && (
-              <PriceRow label={t('products.minPrice')} value={product.minPrice} highlight="warning" />
+              <PriceRow label={t('products.minPrice')} value={product.minPrice} muted />
             )}
 
             {/* Marja */}
@@ -310,6 +320,146 @@ export default function ProductDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Tabs */}
+      <div className="mt-6">
+        <div className="flex gap-1 mb-4">
+          {([
+            ['movements', 'Harakatlar', TrendingUp],
+            ['deals',     'Bitimlar',   Tag],
+            ['warehouses', 'Omborlar',  Warehouse],
+          ] as const).map(([id, label, Icon]) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={cn(
+                'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+                activeTab === id
+                  ? 'bg-accent-primary text-white shadow-sm'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary border border-border-primary',
+              )}
+            >
+              <Icon size={14} />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Harakatlar tab */}
+        {activeTab === 'movements' && (
+          <Card padding="none">
+            {!(product.movements?.length) ? (
+              <div className="py-8 text-center text-text-muted text-sm">Harakat yozuvlari yo'q</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-bg-tertiary text-text-muted">
+                  <tr>
+                    {['Sana', 'Turi', 'Miqdor', 'Narx', 'Ombor', 'Sabab'].map(h => (
+                      <th key={h} className="px-4 py-2 text-left font-medium text-xs">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(product.movements as any[]).map((m: any) => (
+                    <tr key={m.id} className="border-t border-border-primary hover:bg-bg-tertiary">
+                      <td className="px-4 py-2.5 text-text-muted text-xs">{new Date(m.createdAt).toLocaleDateString('uz-UZ')}</td>
+                      <td className="px-4 py-2.5">
+                        <span className={cn(
+                          'flex items-center gap-1 text-xs font-medium',
+                          m.type === 'IN' ? 'text-success' : 'text-danger',
+                        )}>
+                          {m.type === 'IN' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                          {m.type}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 tabular-nums font-medium">{Number(m.quantity).toFixed(2)} {product.unit}</td>
+                      <td className="px-4 py-2.5 tabular-nums text-text-secondary">{formatCurrency(m.unitPrice ?? 0)}</td>
+                      <td className="px-4 py-2.5 text-text-secondary">{m.warehouse?.name ?? '—'}</td>
+                      <td className="px-4 py-2.5 text-text-muted text-xs max-w-xs truncate">{m.reason ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
+        )}
+
+        {/* Bitimlar tab */}
+        {activeTab === 'deals' && (
+          <Card padding="none">
+            {!(product.dealItems?.length) ? (
+              <div className="py-8 text-center text-text-muted text-sm">Bu mahsulot bitimlar tarkibida yo'q</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-bg-tertiary text-text-muted">
+                  <tr>
+                    {['Bitim', 'Mijoz', 'Miqdor', 'Narx', 'Holat', 'Sana'].map(h => (
+                      <th key={h} className="px-4 py-2 text-left font-medium text-xs">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(product.dealItems as any[]).map((di: any) => (
+                    <tr key={di.id} className="border-t border-border-primary hover:bg-bg-tertiary">
+                      <td className="px-4 py-2.5">
+                        <span className="text-xs text-text-muted">#{di.deal?.dealNumber}</span>
+                        <p className="text-sm font-medium truncate max-w-xs">{di.deal?.title}</p>
+                      </td>
+                      <td className="px-4 py-2.5 text-text-secondary">{di.deal?.contact?.name ?? '—'}</td>
+                      <td className="px-4 py-2.5 tabular-nums">{Number(di.quantity).toFixed(2)} {di.unit}</td>
+                      <td className="px-4 py-2.5 tabular-nums">{formatCurrency(Number(di.price))}</td>
+                      <td className="px-4 py-2.5">
+                        <Badge variant={di.deal?.stage === 'WON' ? 'success' : di.deal?.stage === 'LOST' ? 'danger' : 'info'} size="sm">
+                          {di.deal?.stage}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-text-muted">
+                        {di.deal?.createdAt ? new Date(di.deal.createdAt).toLocaleDateString('uz-UZ') : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
+        )}
+
+        {/* Omborlar tab */}
+        {activeTab === 'warehouses' && (
+          <Card padding="none">
+            {!(product.stockItems?.length) ? (
+              <div className="py-8 text-center text-text-muted text-sm">Hech qaysi omborda yo'q</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-bg-tertiary text-text-muted">
+                  <tr>
+                    {['Ombor', 'Miqdor', "O'rtacha narx", 'Umumiy qiymat'].map(h => (
+                      <th key={h} className="px-4 py-2 text-left font-medium text-xs">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(product.stockItems as any[]).map((si: any) => (
+                    <tr key={si.id} className="border-t border-border-primary hover:bg-bg-tertiary">
+                      <td className="px-4 py-3 font-medium">{si.warehouse?.name ?? '—'}</td>
+                      <td className={cn('px-4 py-3 tabular-nums font-bold', Number(si.quantity) <= 0 ? 'text-danger' : 'text-success')}>
+                        {Number(si.quantity).toFixed(2)} {product.unit}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums text-text-secondary">{formatCurrency(Number(si.avgPrice ?? 0))}</td>
+                      <td className="px-4 py-3 tabular-nums font-medium">{formatCurrency(Number(si.quantity) * Number(si.avgPrice ?? 0))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </Card>
+        )}
+      </div>
+
+      {/* Biriktirilgan fayllar */}
+      <Card className="mt-4">
+        <AttachmentList entityType="Product" entityId={id!} />
+      </Card>
 
       {/* Edit modal */}
       <ProductFormModal

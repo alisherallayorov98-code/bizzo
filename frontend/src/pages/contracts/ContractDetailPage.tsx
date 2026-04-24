@@ -11,6 +11,7 @@ import { Badge }      from '@components/ui/Badge/Badge'
 import { Modal }      from '@components/ui/Modal/Modal'
 import { Input }      from '@components/ui/Input/Input'
 import { Skeleton }   from '@components/ui/Skeleton/Skeleton'
+import { AttachmentList } from '@components/shared/AttachmentList/AttachmentList'
 import {
   useContract, useSignContract, useCancelContract,
   useGeneratePdf, useUpdateContract,
@@ -298,6 +299,11 @@ export default function ContractDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Biriktirilgan fayllar */}
+      <Card className="mt-4">
+        <AttachmentList entityType="Contract" entityId={id!} />
+      </Card>
 
       {/* Edit Modal */}
       <EditContractModal contractId={id!} open={editModal} onClose={() => setEditModal(false)} />

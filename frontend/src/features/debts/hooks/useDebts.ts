@@ -54,3 +54,17 @@ export function useCreateDebt() {
     onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Xatolik'),
   })
 }
+
+export function useSendDebtReminder() {
+  return useMutation({
+    mutationFn: (debtId: string) => debtService.sendReminder(debtId),
+    onSuccess: (result) => {
+      if (result.success) {
+        toast.success('SMS eslatma yuborildi')
+      } else {
+        toast.error(result.error ?? 'SMS yuborib bo\'lmadi')
+      }
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message ?? 'Xatolik'),
+  })
+}

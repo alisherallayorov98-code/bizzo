@@ -545,6 +545,136 @@ export class WasteService {
   }
 
   // ============================================
+  // BITTA PARTIYA DETALI
+  // ============================================
+  async getBatchById(companyId: string, batchId: string) {
+    const batch = await this.prisma.wasteBatch.findFirst({
+      where:   { id: batchId, companyId },
+      include: {
+        qualityType:       true,
+        processingRecords: { orderBy: { processedAt: 'desc' } },
+        workerAssignments: { orderBy: { workDate: 'desc' } },
+      },
+    })
+    if (!batch) throw new NotFoundException('Partiya topilmadi')
+
+    const employeeIds = [...new Set(batch.workerAssignments.map(w => w.employeeId))]
+    const employees   = await this.prisma.employee.findMany({
+      where:  { id: { in: employeeIds } },
+      select: { id: true, firstName: true, lastName: true, position: true },
+    })
+    const empMap = Object.fromEntries(employees.map(e => [e.id, e]))
+
+    const totalProcessed = batch.processingRecords.reduce((s, r) => s + r.processedWeight, 0)
+    const totalOutput    = batch.processingRecords.reduce((s, r) => s + r.outputWeight,    0)
+    const totalLoss      = batch.processingRecords.reduce((s, r) => s + r.lossWeight,      0)
+
+    return {
+      ...batch,
+      workerAssignments: batch.workerAssignments.map(w => ({
+        ...w,
+        employee: empMap[w.employeeId] ?? null,
+      })),
+      summary: {
+        totalProcessed,
+        totalOutput,
+        totalLoss,
+        remaining: batch.inputWeight - totalProcessed,
+        isFullyProcessed: totalProcessed >= batch.inputWeight,
+      },
+    }
+  }
+
+  // ============================================
+  // PARTIYANI SOTISH
+  // ============================================
+  async sellBatch(
+    companyId: string,
+    batchId:   string,
+    dto: {
+      buyerId:        string;
+      sellPricePerKg: number;
+      weight:         number;
+      notes?:         string;
+    },
+  ) {
+    const batch = await this.prisma.wasteBatch.findFirst({ where: { id: batchId, companyId } })
+    if (!batch) throw new NotFoundException('Partiya topilmadi')
+    if (batch.status === 'SOLD') throw new BadRequestException('Partiya allaqachon sotilgan')
+
+    const saleAmount = dto.weight * dto.sellPricePerKg
+    const dueDate    = new Date(Date.now() + 14 * 86400000)
+
+    const [, debtRecord] = await this.prisma.$transaction([
+      this.prisma.wasteBatch.update({
+        where: { id: batchId },
+        data:  { status: 'SOLD' },
+      }),
+      this.prisma.debtRecord.create({
+        data: {
+          companyId,
+          contactId:    dto.buyerId,
+          type:         'RECEIVABLE',
+          amount:       saleAmount,
+          remainAmount: saleAmount,
+          description:  `Chiqindi partiyasi #${batch.batchNumber} (${dto.weight} kg × ${dto.sellPricePerKg} so'm)${dto.notes ? ': ' + dto.notes : ''}`,
+          dueDate,
+        },
+      }),
+    ])
+
+    return { batch: { id: batchId, status: 'SOLD' }, debtRecord }
+  }
+
+  // ============================================
+  // XODIMLAR HISOBOTI
+  // ============================================
+  async getWorkersReport(companyId: string, query: { dateFrom?: string; dateTo?: string }) {
+    const where: any = { batch: { companyId } }
+    if (query.dateFrom) where.workDate = { ...where.workDate, gte: new Date(query.dateFrom) }
+    if (query.dateTo)   where.workDate = { ...where.workDate, lte: new Date(query.dateTo)   }
+
+    const records = await this.prisma.wasteBatchWorker.findMany({
+      where,
+      include: { batch: { select: { batchNumber: true, qualityTypeId: true } } },
+      orderBy: { workDate: 'desc' },
+      take:    200,
+    })
+
+    const employeeIds = [...new Set(records.map(r => r.employeeId))]
+    const employees   = await this.prisma.employee.findMany({
+      where:  { id: { in: employeeIds }, companyId },
+      select: { id: true, firstName: true, lastName: true, position: true, dailyRate: true },
+    })
+    const empMap = Object.fromEntries(employees.map(e => [e.id, e]))
+
+    const byEmployee: Record<string, {
+      employee: any; totalHours: number; totalAmount: number; unpaidAmount: number; shifts: number;
+    }> = {}
+
+    for (const r of records) {
+      if (!byEmployee[r.employeeId]) {
+        byEmployee[r.employeeId] = {
+          employee:      empMap[r.employeeId] ?? null,
+          totalHours:    0,
+          totalAmount:   0,
+          unpaidAmount:  0,
+          shifts:        0,
+        }
+      }
+      byEmployee[r.employeeId].totalHours   += r.hoursWorked
+      byEmployee[r.employeeId].totalAmount  += r.amount
+      byEmployee[r.employeeId].shifts       += 1
+      if (!r.isPaid) byEmployee[r.employeeId].unpaidAmount += r.amount
+    }
+
+    return {
+      summary:   Object.values(byEmployee),
+      records:   records.map(r => ({ ...r, employee: empMap[r.employeeId] ?? null })),
+    }
+  }
+
+  // ============================================
   // DASHBOARD STATISTIKA
   // ============================================
   async getDashboardStats(companyId: string) {

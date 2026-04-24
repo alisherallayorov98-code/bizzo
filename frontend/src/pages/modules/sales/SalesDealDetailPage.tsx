@@ -291,6 +291,93 @@ function ConvertToInvoiceModal({
 }
 
 // ============================================
+// QUOTATION MODAL
+// ============================================
+function QuotationModal({ deal, open, onClose }: { deal: any; open: boolean; onClose: () => void }) {
+  if (!open) return null
+  const items: any[] = deal.items ?? []
+  const total = items.reduce((s: number, i: any) => s + i.quantity * i.price * (1 - (i.discount ?? 0) / 100), 0)
+  const fmt   = (n: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(n))
+
+  return (
+    <Modal open={open} onClose={onClose} title="Taklif xati (Quotation)" size="lg">
+      <div id="quotation-print-area" className="space-y-5">
+        {/* Header */}
+        <div className="flex justify-between items-start border-b border-border-primary pb-4">
+          <div>
+            <h2 className="text-xl font-bold text-text-primary">TAKLIF XATI</h2>
+            <p className="text-sm text-text-secondary">№ {deal.dealNumber}</p>
+            <p className="text-xs text-text-muted">{new Date().toLocaleDateString('uz-UZ', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-semibold text-text-primary">Mijoz:</p>
+            <p className="text-sm text-text-secondary">{deal.contact?.name ?? '—'}</p>
+            {deal.contact?.phone && <p className="text-xs text-text-muted">{deal.contact.phone}</p>}
+          </div>
+        </div>
+
+        {/* Deal info */}
+        <div className="bg-bg-tertiary rounded-lg p-3">
+          <p className="text-sm font-semibold text-text-primary mb-1">{deal.title}</p>
+          {deal.description && <p className="text-xs text-text-secondary">{deal.description}</p>}
+        </div>
+
+        {/* Items table */}
+        {items.length > 0 ? (
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="bg-bg-tertiary">
+                <th className="px-3 py-2 text-left text-xs font-semibold text-text-muted">#</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-text-muted">Mahsulot/Xizmat</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-text-muted">Miqdor</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-text-muted">Narx</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-text-muted">Chegirma</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-text-muted">Jami</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item: any, i: number) => {
+                const lineTotal = item.quantity * item.price * (1 - (item.discount ?? 0) / 100)
+                return (
+                  <tr key={i} className="border-b border-border-primary">
+                    <td className="px-3 py-2 text-text-muted">{i + 1}</td>
+                    <td className="px-3 py-2 text-text-primary font-medium">{item.name}</td>
+                    <td className="px-3 py-2 text-right text-text-secondary">{item.quantity} {item.unit}</td>
+                    <td className="px-3 py-2 text-right text-text-secondary tabular-nums">{fmt(item.price)}</td>
+                    <td className="px-3 py-2 text-right text-text-secondary">{item.discount ?? 0}%</td>
+                    <td className="px-3 py-2 text-right font-semibold tabular-nums">{fmt(lineTotal)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="bg-bg-tertiary">
+                <td colSpan={5} className="px-3 py-2 text-right text-sm font-bold text-text-primary">Jami:</td>
+                <td className="px-3 py-2 text-right text-sm font-bold text-accent-primary tabular-nums">{fmt(total)} so'm</td>
+              </tr>
+            </tfoot>
+          </table>
+        ) : (
+          <div className="text-center py-4 text-text-muted text-sm">
+            <p className="font-semibold text-xl tabular-nums">{fmt(Number(deal.finalAmount ?? deal.amount ?? 0))} so'm</p>
+          </div>
+        )}
+
+        <p className="text-xs text-text-muted">
+          Ushbu taklif {new Date(Date.now() + 14 * 86400000).toLocaleDateString('uz-UZ')} gacha amal qiladi.
+        </p>
+      </div>
+      <div className="flex justify-end gap-2 mt-4 border-t border-border-primary pt-4">
+        <Button variant="secondary" onClick={onClose}>Yopish</Button>
+        <Button variant="primary" leftIcon={<FileText size={14} />} onClick={() => window.print()}>
+          Chop etish
+        </Button>
+      </div>
+    </Modal>
+  )
+}
+
+// ============================================
 // ASOSIY SAHIFA
 // ============================================
 export default function SalesDealDetailPage() {
@@ -300,10 +387,11 @@ export default function SalesDealDetailPage() {
 
   const { data: deal, isLoading } = useGetDeal(id!)
   const updateStage  = useUpdateStage()
-  const [activityModal, setActivityModal] = useState(false)
-  const [lostModal,     setLostModal]     = useState(false)
-  const [invoiceModal,  setInvoiceModal]  = useState(false)
-  const [editModal,     setEditModal]     = useState(false)
+  const [activityModal,  setActivityModal]  = useState(false)
+  const [lostModal,      setLostModal]      = useState(false)
+  const [invoiceModal,   setInvoiceModal]   = useState(false)
+  const [editModal,      setEditModal]      = useState(false)
+  const [quotationModal, setQuotationModal] = useState(false)
 
   const STAGE_STEPS = ['LEAD', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON']
   const currentIdx = deal ? STAGE_STEPS.indexOf(deal.stage) : -1
@@ -367,6 +455,13 @@ export default function SalesDealDetailPage() {
               onClick={() => setEditModal(true)}
             >
               Tahrirlash
+            </Button>
+            <Button
+              variant="secondary"
+              leftIcon={<FileText size={15} />}
+              onClick={() => setQuotationModal(true)}
+            >
+              Taklif xati
             </Button>
             <Button
               variant="secondary"
@@ -687,6 +782,13 @@ export default function SalesDealDetailPage() {
           deal={deal}
           open={invoiceModal}
           onClose={() => setInvoiceModal(false)}
+        />
+      )}
+      {deal && (
+        <QuotationModal
+          deal={deal}
+          open={quotationModal}
+          onClose={() => setQuotationModal(false)}
         />
       )}
     </div>

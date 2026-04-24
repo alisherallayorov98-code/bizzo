@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, Suspense } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { RefreshCw, WifiOff, AlertTriangle } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -9,6 +9,8 @@ import { BottomNav } from '../BottomNav/BottomNav'
 import { useMobile, usePullToRefresh, usePWAInstall } from '@hooks/useMobile'
 import { OnboardingWizard } from '@components/onboarding/OnboardingWizard'
 import { HelpCenter } from '@components/shared/HelpCenter/HelpCenter'
+import { CommandPalette } from '@components/shared/CommandPalette/CommandPalette'
+import { PageSkeleton } from '@components/ui/Skeleton/PageSkeleton'
 import { useOnboardingStore } from '@store/onboarding.store'
 import { useAuthStore } from '@store/auth.store'
 import { useQuery } from '@tanstack/react-query'
@@ -171,7 +173,9 @@ export function AppLayout() {
           )}
         >
           <div className="max-w-[1600px] mx-auto animate-slide-up">
-            <Outlet />
+            <Suspense fallback={<PageSkeleton />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>
@@ -181,6 +185,7 @@ export function AppLayout() {
 
       <HelpCenter />
       <OnboardingWizard />
+      <CommandPalette />
     </div>
   )
 }

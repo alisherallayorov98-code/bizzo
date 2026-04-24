@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   TrendingUp, TrendingDown, AlertCircle,
-  DollarSign, Plus, CheckCircle, Search, Download,
+  DollarSign, Plus, CheckCircle, Search, Download, MessageSquare,
 } from 'lucide-react'
 import { exportToExcel } from '@utils/exporters'
 import { PageHeader }       from '@components/layout/PageHeader/PageHeader'
@@ -13,7 +13,7 @@ import { KPICard }          from '@components/charts/KPICard/KPICard'
 import { Modal }            from '@components/ui/Modal/Modal'
 import { TableRowSkeleton } from '@components/ui/Skeleton/Skeleton'
 import { EmptyState }       from '@components/ui/EmptyState/EmptyState'
-import { useDebts, useDebtStats, useAddDebtPayment, useCreateDebt } from '@features/debts/hooks/useDebts'
+import { useDebts, useDebtStats, useAddDebtPayment, useCreateDebt, useSendDebtReminder } from '@features/debts/hooks/useDebts'
 import { useContacts } from '@features/contacts/hooks/useContacts'
 import type { DebtRecord }  from '@services/debt.service'
 import { formatCurrency, formatDate, formatPhone } from '@utils/formatters'
@@ -238,8 +238,9 @@ export default function DebtsPage() {
   const [overdueOnly,  setOverdueOnly] = useState(false)
   const [newDebtOpen,  setNewDebtOpen] = useState(false)
 
-  const debouncedSearch = useDebounce(search, 400)
-  const { data: stats } = useDebtStats()
+  const debouncedSearch  = useDebounce(search, 400)
+  const sendReminder     = useSendDebtReminder()
+  const { data: stats }  = useDebtStats()
   const { data, isLoading } = useDebts({
     type:      activeTab,
     search:    debouncedSearch || undefined,
@@ -520,14 +521,28 @@ export default function DebtsPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           {activeTab === 'RECEIVABLE' && (
-                            <Button
-                              variant="success"
-                              size="xs"
-                              leftIcon={<CheckCircle size={12} />}
-                              onClick={() => setPaymentDebt(debt)}
-                            >
-                              {t('debts.paymentBtn')}
-                            </Button>
+                            <>
+                              <Button
+                                variant="success"
+                                size="xs"
+                                leftIcon={<CheckCircle size={12} />}
+                                onClick={() => setPaymentDebt(debt)}
+                              >
+                                {t('debts.paymentBtn')}
+                              </Button>
+                              {debt.contact?.phone && (
+                                <Button
+                                  variant="secondary"
+                                  size="xs"
+                                  leftIcon={<MessageSquare size={12} />}
+                                  loading={sendReminder.isPending && sendReminder.variables === debt.id}
+                                  onClick={() => sendReminder.mutate(debt.id)}
+                                  title="SMS eslatma yuborish"
+                                >
+                                  SMS
+                                </Button>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>

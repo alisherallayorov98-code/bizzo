@@ -76,7 +76,8 @@
     "production": "Ishlab chiqarish",
     "productionBatches": "Ishlab chiqarish",
     "service": "Xizmat ko'rsatish",
-    "serviceTickets": "Murojaatlar"
+    "serviceTickets": "Murojaatlar",
+    "pos": "POS Kassa"
   },
   "header": {
     "searchPlaceholder": "Qidirish...",

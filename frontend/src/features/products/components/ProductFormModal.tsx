@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { Modal } from '@components/ui/Modal/Modal'
 import { Button } from '@components/ui/Button/Button'
 import { Input, Textarea } from '@components/ui/Input/Input'
+import { ImageUpload } from '@components/ui/ImageUpload/ImageUpload'
 import { cn } from '@utils/cn'
 import type { Product } from '@services/product.service'
 import { useCreateProduct, useUpdateProduct, useCategories } from '../hooks/useProducts'
@@ -30,17 +31,20 @@ const UNITS = [
 // VALIDATSIYA
 // ============================================
 const schema = z.object({
-  name:        z.string().min(2, 'Kamida 2 ta belgi').max(200, 'Juda uzun'),
-  code:        z.string().max(50).optional().or(z.literal('')),
-  barcode:     z.string().max(50).optional().or(z.literal('')),
-  category:    z.string().max(100).optional().or(z.literal('')),
-  unit:        z.string().default('dona'),
-  description: z.string().max(500).optional().or(z.literal('')),
-  buyPrice:    z.coerce.number().min(0, 'Manfiy bo\'lmaydi'),
-  sellPrice:   z.coerce.number().min(0, 'Manfiy bo\'lmaydi'),
-  minPrice:    z.coerce.number().min(0).optional(),
-  minStock:    z.coerce.number().min(0).optional(),
-  isService:   z.boolean().default(false),
+  name:           z.string().min(2, 'Kamida 2 ta belgi').max(200, 'Juda uzun'),
+  code:           z.string().max(50).optional().or(z.literal('')),
+  barcode:        z.string().max(50).optional().or(z.literal('')),
+  category:       z.string().max(100).optional().or(z.literal('')),
+  unit:           z.string().default('dona'),
+  description:    z.string().max(500).optional().or(z.literal('')),
+  buyPrice:       z.coerce.number().min(0, 'Manfiy bo\'lmaydi'),
+  sellPrice:      z.coerce.number().min(0, 'Manfiy bo\'lmaydi'),
+  wholesalePrice: z.coerce.number().min(0).optional().nullable(),
+  vipPrice:       z.coerce.number().min(0).optional().nullable(),
+  minPrice:       z.coerce.number().min(0).optional(),
+  minStock:       z.coerce.number().min(0).optional(),
+  isService:      z.boolean().default(false),
+  image:          z.string().optional().nullable(),
 })
 
 type FormData = z.infer<typeof schema>
@@ -74,12 +78,15 @@ export function ProductFormModal({ open, onClose, product }: ProductFormModalPro
   } = useForm<FormData>({
     resolver:      zodResolver(schema),
     defaultValues: {
-      unit:      'dona',
-      buyPrice:  0,
-      sellPrice: 0,
-      minPrice:  0,
-      minStock:  0,
-      isService: false,
+      unit:           'dona',
+      buyPrice:       0,
+      sellPrice:      0,
+      wholesalePrice: null,
+      vipPrice:       null,
+      minPrice:       0,
+      minStock:       0,
+      isService:      false,
+      image:          null,
     },
   })
 
@@ -87,26 +94,32 @@ export function ProductFormModal({ open, onClose, product }: ProductFormModalPro
     if (open) {
       if (product) {
         reset({
-          name:        product.name,
-          code:        product.code        ?? '',
-          barcode:     product.barcode     ?? '',
-          category:    product.category    ?? '',
-          unit:        product.unit        ?? 'dona',
-          description: product.description ?? '',
-          buyPrice:    product.buyPrice    ?? 0,
-          sellPrice:   product.sellPrice   ?? 0,
-          minPrice:    product.minPrice    ?? 0,
-          minStock:    product.minStock    ?? 0,
-          isService:   product.isService   ?? false,
+          name:           product.name,
+          code:           product.code           ?? '',
+          barcode:        product.barcode        ?? '',
+          category:       product.category       ?? '',
+          unit:           product.unit           ?? 'dona',
+          description:    product.description    ?? '',
+          buyPrice:       product.buyPrice       ?? 0,
+          sellPrice:      product.sellPrice      ?? 0,
+          wholesalePrice: (product as any).wholesalePrice ?? null,
+          vipPrice:       (product as any).vipPrice       ?? null,
+          minPrice:       product.minPrice       ?? 0,
+          minStock:       product.minStock       ?? 0,
+          isService:      product.isService      ?? false,
+          image:          product.image          ?? null,
         })
       } else {
         reset({
-          unit:      'dona',
-          buyPrice:  0,
-          sellPrice: 0,
-          minPrice:  0,
-          minStock:  0,
-          isService: false,
+          unit:           'dona',
+          buyPrice:       0,
+          sellPrice:      0,
+          wholesalePrice: null,
+          vipPrice:       null,
+          minPrice:       0,
+          minStock:       0,
+          isService:      false,
+          image:          null,
         })
       }
     }
@@ -182,14 +195,23 @@ export function ProductFormModal({ open, onClose, product }: ProductFormModalPro
           </button>
         </div>
 
-        {/* Nom */}
-        <Input
-          label={t('products.productName')}
-          placeholder="Masalan: Toshmatov sement"
-          error={errors.name?.message}
-          required
-          {...register('name')}
-        />
+        {/* Rasm + Nom */}
+        <div className="grid grid-cols-[auto_1fr] gap-4 items-start">
+          <ImageUpload
+            value={watch('image')}
+            onChange={url => setValue('image', url)}
+            size="md"
+            label="Rasm"
+            hint="5 MB gacha"
+          />
+          <Input
+            label={t('products.productName')}
+            placeholder="Masalan: Toshmatov sement"
+            error={errors.name?.message}
+            required
+            {...register('name')}
+          />
+        </div>
 
         {/* Kod va Barcode */}
         <div className="grid grid-cols-2 gap-4">
@@ -251,30 +273,48 @@ export function ProductFormModal({ open, onClose, product }: ProductFormModalPro
         </div>
 
         {/* Narxlar */}
-        <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border-primary">
-          <Input
-            label={t('products.purchasePrice')}
-            type="number"
-            placeholder="0"
-            hint="so'm"
-            error={errors.buyPrice?.message}
-            {...register('buyPrice')}
-          />
-          <Input
-            label={t('products.salePrice')}
-            type="number"
-            placeholder="0"
-            hint="so'm"
-            error={errors.sellPrice?.message}
-            {...register('sellPrice')}
-          />
-          <Input
-            label={t('products.minPrice')}
-            type="number"
-            placeholder="0"
-            hint="chegirma chegarasi"
-            {...register('minPrice')}
-          />
+        <div className="pt-2 border-t border-border-primary space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <Input
+              label={t('products.purchasePrice')}
+              type="number"
+              placeholder="0"
+              hint="so'm"
+              error={errors.buyPrice?.message}
+              {...register('buyPrice')}
+            />
+            <Input
+              label={t('products.salePrice')}
+              type="number"
+              placeholder="0"
+              hint="chakana"
+              error={errors.sellPrice?.message}
+              {...register('sellPrice')}
+            />
+            <Input
+              label={t('products.minPrice')}
+              type="number"
+              placeholder="0"
+              hint="chegirma chegarasi"
+              {...register('minPrice')}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="Ulgurji narx"
+              type="number"
+              placeholder="0"
+              hint="Ulgurji mijozlar uchun"
+              {...register('wholesalePrice')}
+            />
+            <Input
+              label="VIP narx"
+              type="number"
+              placeholder="0"
+              hint="VIP mijozlar uchun"
+              {...register('vipPrice')}
+            />
+          </div>
         </div>
 
         {/* Minimal qoldiq (faqat mahsulot uchun) */}

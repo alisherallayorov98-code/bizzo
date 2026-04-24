@@ -44,6 +44,20 @@ export class ReportsController {
     return this.reportsService.getWasteReport(user.companyId, filters)
   }
 
+  @Get('construction')
+  @ApiQuery({ name: 'dateFrom', example: '2025-01-01' })
+  @ApiQuery({ name: 'dateTo',   example: '2025-12-31' })
+  getConstruction(@CurrentUser() user: any, @Query() filters: ReportFilters) {
+    return this.reportsService.getConstructionReport(user.companyId, filters)
+  }
+
+  @Get('production')
+  @ApiQuery({ name: 'dateFrom', example: '2025-01-01' })
+  @ApiQuery({ name: 'dateTo',   example: '2025-12-31' })
+  getProduction(@CurrentUser() user: any, @Query() filters: ReportFilters) {
+    return this.reportsService.getProductionReport(user.companyId, filters)
+  }
+
   @Get('charts')
   getCharts(@CurrentUser() user: any) {
     return this.reportsService.getChartsData(user.companyId)

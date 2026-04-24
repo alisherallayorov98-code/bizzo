@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle, Clock, DollarSign, Users, Plus } from 'lucide-react'
+import { CheckCircle, Clock, DollarSign, Users, Plus, Calendar } from 'lucide-react'
 import { PageHeader } from '@components/layout/PageHeader/PageHeader'
 import { Button } from '@components/ui/Button/Button'
 import { Card } from '@components/ui/Card/Card'
@@ -12,7 +12,7 @@ import { BulkActionBar } from '@components/ui/BulkActionBar/BulkActionBar'
 import {
   useSalaryHistory, useMarkSalaryPaid,
   useCreateSalaryRecord, useEmployeeStats,
-  useBulkMarkSalaryPaid,
+  useBulkMarkSalaryPaid, useEmployees,
 } from '@features/employees/hooks/useEmployees'
 import type { SalaryHistoryItem } from '@services/employee.service'
 import { formatCurrency } from '@utils/formatters'
@@ -139,9 +139,11 @@ export default function SalaryPage() {
   const [selectedYear,  setSelectedYear]  = useState(now.getFullYear())
   const [salaryModal,   setSalaryModal]   = useState<SalaryHistoryItem | null>(null)
   const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set())
+  const [activeTab,     setActiveTab]     = useState<'monthly' | 'weekly' | 'advances'>('monthly')
 
   const { data: stats }              = useEmployeeStats()
   const { data: history, isLoading } = useSalaryHistory(selectedMonth, selectedYear)
+  const { data: dailyEmployees }     = useEmployees({ employeeType: 'DAILY', isActive: true, limit: 100 })
   const markPaid                     = useMarkSalaryPaid()
   const bulkPay                      = useBulkMarkSalaryPaid()
 
@@ -225,7 +227,113 @@ export default function SalaryPage() {
         </div>
       </Card>
 
-      <Card padding="none">
+      {/* Tab selector */}
+      <div className="flex gap-1 mb-4">
+        {([
+          ['monthly',  'Oylik maosh',   DollarSign],
+          ['weekly',   'Haftalik (kunlik)', Calendar],
+          ['advances', 'Avans tarixi',  Clock],
+        ] as const).map(([id, label, Icon]) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={cn(
+              'flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all',
+              activeTab === id
+                ? 'bg-accent-primary text-white shadow-sm'
+                : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary border border-border-primary',
+            )}
+          >
+            <Icon size={14} />
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Weekly tab */}
+      {activeTab === 'weekly' && (
+        <Card padding="none">
+          <div className="px-4 py-3 border-b border-border-primary">
+            <h3 className="font-semibold text-text-primary">Kunlik xodimlar — {t(MONTH_KEYS[selectedMonth - 1])} {selectedYear}</h3>
+          </div>
+          {!dailyEmployees?.data?.length ? (
+            <div className="py-8 text-center text-text-muted text-sm">Kunlik xodimlar yo'q</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-bg-tertiary text-text-muted">
+                <tr>
+                  {['Xodim', 'Lavozim', 'Kunlik stavka', 'Bu oydagi holat'].map(h => (
+                    <th key={h} className="px-4 py-2 text-left text-xs font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(dailyEmployees?.data ?? []).map((emp: any) => {
+                  const record = history?.find((h: SalaryHistoryItem) => h.id === emp.id)
+                  return (
+                    <tr key={emp.id} className="border-t border-border-primary hover:bg-bg-tertiary">
+                      <td className="px-4 py-3 font-medium">{emp.firstName} {emp.lastName}</td>
+                      <td className="px-4 py-3 text-text-secondary">{emp.position ?? '—'}</td>
+                      <td className="px-4 py-3 tabular-nums text-accent-primary font-medium">{formatCurrency(emp.dailyRate)}</td>
+                      <td className="px-4 py-3">
+                        {record?.record ? (
+                          <Badge variant={record.record.isPaid ? 'success' : 'warning'} size="sm">
+                            {record.record.isPaid ? "To'langan" : `${formatCurrency(record.record.totalAmount)} — Kutilmoqda`}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-text-muted">Yozuv yo'q</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </Card>
+      )}
+
+      {/* Advances tab */}
+      {activeTab === 'advances' && (
+        <Card padding="none">
+          <div className="px-4 py-3 border-b border-border-primary">
+            <h3 className="font-semibold text-text-primary">Avans tarixi — {t(MONTH_KEYS[selectedMonth - 1])} {selectedYear}</h3>
+          </div>
+          {!history?.filter((e: SalaryHistoryItem) => (e.record?.advance ?? 0) > 0).length ? (
+            <div className="py-8 text-center text-text-muted text-sm">Bu oyda avans berilmagan</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-bg-tertiary text-text-muted">
+                <tr>
+                  {['Xodim', 'Lavozim', 'Avans summasi', 'Ish haqi', 'Sof'].map(h => (
+                    <th key={h} className="px-4 py-2 text-left text-xs font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(history ?? [])
+                  .filter((e: SalaryHistoryItem) => (e.record?.advance ?? 0) > 0)
+                  .map((emp: SalaryHistoryItem) => (
+                    <tr key={emp.id} className="border-t border-border-primary hover:bg-bg-tertiary">
+                      <td className="px-4 py-3 font-medium">{emp.name}</td>
+                      <td className="px-4 py-3 text-text-secondary">{emp.position ?? '—'}</td>
+                      <td className="px-4 py-3 tabular-nums text-warning font-medium">
+                        -{formatCurrency(emp.record?.advance ?? 0)}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums">{formatCurrency(emp.record?.baseSalary ?? emp.baseSalary)}</td>
+                      <td className="px-4 py-3 tabular-nums font-semibold">
+                        {formatCurrency((emp.record?.totalAmount ?? 0))}
+                      </td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+          )}
+        </Card>
+      )}
+
+      {activeTab === 'monthly' && <Card padding="none">
         <div className="flex items-center justify-between p-4 border-b border-border-primary">
           <div>
             <h3 className="font-semibold text-text-primary">
@@ -376,7 +484,7 @@ export default function SalaryPage() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </Card>}
 
       <SalaryModal open={!!salaryModal} onClose={() => setSalaryModal(null)}
         item={salaryModal} month={selectedMonth} year={selectedYear} />

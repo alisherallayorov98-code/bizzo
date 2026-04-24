@@ -56,4 +56,10 @@ export class SmartAnalyticsController {
   getAlerts(@CurrentUser() user: any) {
     return this.service.getSmartAlerts(user.companyId);
   }
+
+  @Get('ai-context')
+  @ApiOperation({ summary: 'AI uchun biznes kontekst matni' })
+  getAIContext(@CurrentUser() user: any) {
+    return this.service.getAIContext(user.companyId);
+  }
 }

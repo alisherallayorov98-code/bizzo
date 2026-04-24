@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Plus, Trash2, ArrowDownToLine, Search,
-  AlertTriangle, ChevronDown,
+  AlertTriangle, ChevronDown, Printer,
 } from 'lucide-react'
 import { PageHeader } from '@components/layout/PageHeader/PageHeader'
 import { Button } from '@components/ui/Button/Button'
@@ -14,6 +14,8 @@ import { useStockOverview } from '@features/warehouse/hooks/useWarehouse'
 import { formatCurrency } from '@utils/formatters'
 import { cn } from '@utils/cn'
 import type { Product } from '@services/product.service'
+import { printHTML, generateNakladnaya } from '@utils/printDocument'
+import { useAuthStore } from '@store/auth.store'
 
 // ============================================
 // TYPES
@@ -111,7 +113,8 @@ function ProductPicker({
 // ASOSIY SAHIFA
 // ============================================
 export default function IncomingPage() {
-  const navigate = useNavigate()
+  const navigate    = useNavigate()
+  const company     = useAuthStore(s => s.user?.company)
 
   const [warehouseId, setWarehouseId] = useState('')
   const [contactId, setContactId]     = useState('')
@@ -155,16 +158,45 @@ export default function IncomingPage() {
 
   const canSubmit = warehouseId && lines.every(l => l.productId && l.quantity > 0 && l.price >= 0)
 
+  const buildPayload = () => ({
+    warehouseId,
+    contactId:  contactId || undefined,
+    lines:      lines.map(l => ({ productId: l.productId, quantity: l.quantity, price: l.price })),
+    notes:      notes || undefined,
+    createDebt: createDebt && !!contactId,
+    dueDate:    dueDate || undefined,
+  })
+
   const handleSubmit = async () => {
     if (!canSubmit) return
-    await createIncoming.mutateAsync({
-      warehouseId,
-      contactId:  contactId || undefined,
-      lines:      lines.map(l => ({ productId: l.productId, quantity: l.quantity, price: l.price })),
-      notes:      notes || undefined,
-      createDebt: createDebt && !!contactId,
-      dueDate:    dueDate || undefined,
+    await createIncoming.mutateAsync(buildPayload())
+    navigate('/warehouse/movements')
+  }
+
+  const handleSubmitAndPrint = async () => {
+    if (!canSubmit) return
+    const result = await createIncoming.mutateAsync(buildPayload())
+    const docNumber = (result as any)?.id?.slice(-8)?.toUpperCase() ?? 'KIRIM'
+    const contact   = suppliers.find(s => s.id === contactId)
+    const html = generateNakladnaya({
+      type:      'IN',
+      docNumber,
+      date:      new Date().toLocaleString('uz-UZ'),
+      company:   { name: company?.name ?? 'BIZZO' },
+      contact:   contact ? { name: contact.name } : undefined,
+      items:     lines
+        .filter(l => l.product)
+        .map(l => ({
+          name:  l.product!.name,
+          unit:  l.product!.unit ?? 'dona',
+          qty:   l.quantity,
+          price: l.price,
+          total: l.quantity * l.price,
+        })),
+      total:     totalAmount,
+      notes:     notes || undefined,
     })
+    printHTML(html, `Kirim — ${docNumber}`)
     navigate('/warehouse/movements')
   }
 
@@ -353,7 +385,7 @@ export default function IncomingPage() {
       )}
 
       {/* Tugmalar */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button
           variant="primary"
           leftIcon={<ArrowDownToLine size={15} />}
@@ -362,6 +394,15 @@ export default function IncomingPage() {
           disabled={!canSubmit}
         >
           Kirimni saqlash
+        </Button>
+        <Button
+          variant="secondary"
+          leftIcon={<Printer size={15} />}
+          onClick={handleSubmitAndPrint}
+          loading={createIncoming.isPending}
+          disabled={!canSubmit}
+        >
+          Saqlash va chop etish
         </Button>
         <Button variant="secondary" onClick={() => navigate('/warehouse/movements')}>
           Bekor qilish

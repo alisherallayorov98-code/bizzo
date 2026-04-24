@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   Plus, AlertTriangle, Trash2, CheckCircle2, Circle, Clock, Play,
@@ -24,6 +25,7 @@ import { formatCurrency, formatDate } from '@utils/formatters'
 import { useT } from '@i18n/index'
 import { cn } from '@utils/cn'
 import type { ProjectTask } from '@services/construction.service'
+import { warehouseService } from '@services/warehouse.service'
 
 const BUDGET_CAT_KEYS = [
   { value: 'LABOR',       labelKey: 'construction.catLabor'       },
@@ -123,8 +125,20 @@ function AddExpenseModal({ projectId, open, onClose }: { projectId: string; open
   const [form, setForm] = useState({
     category: 'MATERIALS', description: '', amount: '', quantity: '1',
     expenseDate: new Date().toISOString().slice(0, 10), isPaid: false,
+    warehouseId: '', productId: '',
   })
   const addExpense = useAddExpense()
+
+  const { data: warehouses } = useQuery({
+    queryKey: ['warehouses-list'],
+    queryFn:  () => warehouseService.getWarehouses(),
+    enabled:  open && form.category === 'MATERIALS',
+  })
+  const { data: warehouseItems } = useQuery({
+    queryKey: ['warehouse-overview', form.warehouseId],
+    queryFn:  () => warehouseService.getOverview(form.warehouseId),
+    enabled:  open && !!form.warehouseId,
+  })
 
   const handleSubmit = async () => {
     if (!form.description || !form.amount) return
@@ -132,10 +146,13 @@ function AddExpenseModal({ projectId, open, onClose }: { projectId: string; open
       projectId, category: form.category, description: form.description,
       amount: parseFloat(form.amount), quantity: parseFloat(form.quantity) || 1,
       expenseDate: form.expenseDate, isPaid: form.isPaid,
+      warehouseId: form.warehouseId || undefined,
+      productId:   form.productId   || undefined,
     } as any)
     onClose()
     setForm({ category: 'MATERIALS', description: '', amount: '', quantity: '1',
-      expenseDate: new Date().toISOString().slice(0, 10), isPaid: false })
+      expenseDate: new Date().toISOString().slice(0, 10), isPaid: false,
+      warehouseId: '', productId: '' })
   }
 
   return (
@@ -173,6 +190,41 @@ function AddExpenseModal({ projectId, open, onClose }: { projectId: string; open
           <Input label={t('construction.dateLabel')} type="date" value={form.expenseDate}
             onChange={e => setForm(f => ({ ...f, expenseDate: e.target.value }))} />
         </div>
+        {form.category === 'MATERIALS' && (
+          <div className="space-y-3 p-3 rounded-lg border border-border-primary bg-bg-tertiary">
+            <p className="text-xs font-medium text-text-muted">Ombordan chiqarish (ixtiyoriy)</p>
+            <div>
+              <label className="block text-xs text-text-secondary mb-1">Ombor</label>
+              <select
+                className="w-full border border-border-primary rounded-lg px-3 py-2 text-sm bg-bg-primary text-text-primary"
+                value={form.warehouseId}
+                onChange={e => setForm(f => ({ ...f, warehouseId: e.target.value, productId: '' }))}
+              >
+                <option value="">Ombor tanlang</option>
+                {(warehouses ?? []).map((w: any) => (
+                  <option key={w.id} value={w.id}>{w.name}</option>
+                ))}
+              </select>
+            </div>
+            {form.warehouseId && (
+              <div>
+                <label className="block text-xs text-text-secondary mb-1">Mahsulot</label>
+                <select
+                  className="w-full border border-border-primary rounded-lg px-3 py-2 text-sm bg-bg-primary text-text-primary"
+                  value={form.productId}
+                  onChange={e => setForm(f => ({ ...f, productId: e.target.value }))}
+                >
+                  <option value="">Mahsulot tanlang</option>
+                  {(warehouseItems ?? []).map((si: any) => (
+                    <option key={si.productId} value={si.productId}>
+                      {si.productName} — {Number(si.quantity).toFixed(1)} {si.unit}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={form.isPaid}
             onChange={e => setForm(f => ({ ...f, isPaid: e.target.checked }))}
@@ -376,7 +428,11 @@ export default function ProjectDetailPage() {
     { id: 'expenses', label: t('construction.tabExpenses') },
     { id: 'tasks',    label: `${t('construction.tabTasks')} ${project.taskStats ? `(${project.taskStats.total})` : ''}` },
     { id: 'logs',     label: t('construction.tabLogs') },
+    { id: 'workers',  label: 'Xodimlar' },
   ]
+
+  // Workers tab: show employees, sum of worker-days from logs
+  const totalWorkerDays = (project.workLogs ?? []).reduce((s: number, l: any) => s + (l.workersCount ?? 0), 0)
 
   const pendingTasks = (project.tasks || []).filter((t: any) => t.status !== 'DONE').length
   const currentStatus = STATUS_FLOW.find(s => s.status === project.status)
@@ -718,6 +774,53 @@ export default function ProjectDetailPage() {
               ))}
             </div>
           </Card>
+        )}
+      </div>
+
+        {/* ── Workers tab ── */}
+        {activeTab === 'workers' && (
+          <div className="space-y-4">
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card padding="sm">
+                <p className="text-xs text-text-muted mb-1">Menejer</p>
+                <p className="text-sm font-semibold">{project.manager ? `${project.manager.firstName ?? ''} ${project.manager.lastName ?? ''}`.trim() : '—'}</p>
+              </Card>
+              <Card padding="sm">
+                <p className="text-xs text-text-muted mb-1">Jami ish-kuni</p>
+                <p className="text-sm font-semibold">{totalWorkerDays} kishi-kun</p>
+              </Card>
+              <Card padding="sm">
+                <p className="text-xs text-text-muted mb-1">Jurnallar</p>
+                <p className="text-sm font-semibold">{(project.workLogs ?? []).length} ta</p>
+              </Card>
+            </div>
+
+            {/* Work logs with worker counts */}
+            <Card padding="none">
+              <div className="px-4 py-3 border-b border-border-primary">
+                <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">Ish kuni yozuvlari (xodimlar soni)</p>
+              </div>
+              <div className="divide-y divide-border-primary">
+                {(project.workLogs ?? []).filter((l: any) => l.workersCount > 0).length === 0 ? (
+                  <p className="px-4 py-6 text-sm text-text-muted text-center">Xodim yozuvlari yo'q. Ish jurnaliga xodimlar sonini qo'shing.</p>
+                ) : (project.workLogs ?? [])
+                    .filter((l: any) => l.workersCount > 0)
+                    .map((log: any) => (
+                      <div key={log.id} className="flex items-center gap-4 px-4 py-3">
+                        <div className="w-10 h-10 rounded-xl bg-accent-subtle flex items-center justify-center text-accent-primary font-bold text-sm shrink-0">
+                          {log.workersCount}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-text-primary">{log.description || 'Ish bajarildi'}</p>
+                          <p className="text-xs text-text-muted">{log.workersCount} nafar xodim</p>
+                        </div>
+                        <span className="text-xs text-text-muted">{formatDate(log.workDate, 'short')}</span>
+                      </div>
+                    ))}
+              </div>
+            </Card>
+          </div>
         )}
       </div>
 

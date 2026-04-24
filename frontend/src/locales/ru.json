@@ -76,7 +76,8 @@
     "production": "Производство",
     "productionBatches": "Производство",
     "service": "Сервис",
-    "serviceTickets": "Обращения"
+    "serviceTickets": "Обращения",
+    "pos": "POS Касса"
   },
   "header": {
     "searchPlaceholder": "Поиск...",

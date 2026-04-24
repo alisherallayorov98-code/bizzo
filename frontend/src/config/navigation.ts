@@ -4,7 +4,7 @@ import {
   Settings, Trash2, ShoppingCart, HardHat,
   Factory, Wrench, FileText, Bell, Activity,
   Upload, ArrowDownToLine, ArrowUpFromLine,
-  ClipboardList, TrendingUp, DollarSign,
+  ClipboardList, TrendingUp, DollarSign, ScanLine,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -217,6 +217,14 @@ export const MODULE_NAV_ITEMS: NavItem[] = [
       { id: 'batches',  label: 'Partiyalar', path: '/production/batches',  icon: Factory       },
     ],
   },
+  {
+    id:     'service',
+    label:  'Xizmat',
+    tKey:   'nav.service',
+    path:   '/service',
+    icon:   Wrench,
+    module: 'SERVICE',
+  },
 ]
 
 // ============================================
@@ -241,5 +249,6 @@ export const MODULE_NAV: NavSection[] = MODULE_NAV_ITEMS.map(item => ({
 }))
 
 export const BOTTOM_NAV: NavItem[] = [
+  { id: 'pos',      label: 'POS Kassa',  tKey: 'nav.pos',      path: '/pos',      icon: ScanLine  },
   { id: 'settings', label: 'Sozlamalar', tKey: 'nav.settings', path: '/settings', icon: Settings },
 ]

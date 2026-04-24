@@ -87,4 +87,8 @@ export const importService = {
   // Rollback
   rollback:            (sessionId: string): Promise<any> =>
     api.delete(`/import/sessions/${sessionId}/rollback`).then(r => r.data.data),
+
+  // 1C XML parse
+  parse1C:             (xml: string): Promise<{ entity: string; rows: any[] }> =>
+    api.post('/import/parse-1c', { xml }).then(r => r.data.data),
 }

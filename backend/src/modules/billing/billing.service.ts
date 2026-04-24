@@ -37,6 +37,22 @@ export class BillingService {
     })
   }
 
+  // ============================================
+  // MODULLARNI FAOLLASHTIRISH
+  // ============================================
+  async activateModulesForPlan(companyId: string, planId: string) {
+    const plan = await this.prisma.billingPlan.findUnique({ where: { id: planId } })
+    if (!plan?.modules?.length) return
+
+    for (const moduleType of plan.modules) {
+      await this.prisma.companyModule.upsert({
+        where:  { companyId_moduleType: { companyId, moduleType: moduleType as any } },
+        update: { isActive: true, activatedAt: new Date() },
+        create: { companyId, moduleType: moduleType as any, isActive: true },
+      }).catch(() => {})
+    }
+  }
+
   async createSubscription(companyId: string, planId: string, billingCycle: 'MONTHLY' | 'YEARLY' = 'MONTHLY') {
     const plan = await this.prisma.billingPlan.findUnique({ where: { id: planId } })
     if (!plan) throw new NotFoundException('Tarif topilmadi')
@@ -48,7 +64,7 @@ export class BillingService {
     const trialEnd = new Date(now); trialEnd.setDate(trialEnd.getDate() + 14)
     const periodEnd = new Date(trialEnd)
 
-    return this.prisma.subscription.create({
+    const sub = await this.prisma.subscription.create({
       data: {
         companyId,
         planId,
@@ -61,6 +77,11 @@ export class BillingService {
       },
       include: { plan: true },
     })
+
+    // Trial boshlanganda modullar ochiladi
+    await this.activateModulesForPlan(companyId, planId)
+
+    return sub
   }
 
   async cancelSubscription(companyId: string) {
@@ -225,6 +246,8 @@ export class BillingService {
           },
         }),
       ])
+      const sub = await this.prisma.subscription.findUnique({ where: { id: payment.subscriptionId } })
+      if (sub) await this.activateModulesForPlan(sub.companyId, sub.planId)
     }
     return { perform_time: performTime, transaction: payment.id, state: 2 }
   }
@@ -326,6 +349,8 @@ export class BillingService {
         data: { status: 'ACTIVE', lastPaymentAt: now, lastPaymentAmount: payment.amount },
       }),
     ])
+    const sub = await this.prisma.subscription.findUnique({ where: { id: payment.subscriptionId } })
+    if (sub) await this.activateModulesForPlan(sub.companyId, sub.planId)
 
     return {
       click_trans_id: body.click_trans_id,

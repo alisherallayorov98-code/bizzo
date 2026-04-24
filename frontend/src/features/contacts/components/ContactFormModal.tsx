@@ -30,6 +30,7 @@ const schema = z.object({
   notes:       z.string().max(1000).optional().or(z.literal('')),
   creditLimit: z.coerce.number().min(0).optional(),
   paymentDays: z.coerce.number().min(0).max(365).optional(),
+  priceLevel:  z.enum(['RETAIL', 'WHOLESALE', 'VIP']).default('RETAIL'),
 })
 
 type FormData = z.infer<typeof schema>
@@ -71,7 +72,7 @@ export function ContactFormModal({ open, onClose, contact }: ContactFormModalPro
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver:      zodResolver(schema),
-    defaultValues: { type: 'CUSTOMER', creditLimit: 0, paymentDays: 0 },
+    defaultValues: { type: 'CUSTOMER', creditLimit: 0, paymentDays: 0, priceLevel: 'RETAIL' },
   })
 
   useEffect(() => {
@@ -90,9 +91,10 @@ export function ContactFormModal({ open, onClose, contact }: ContactFormModalPro
           notes:       contact.notes       ?? '',
           creditLimit: contact.creditLimit ?? 0,
           paymentDays: contact.paymentDays ?? 0,
+          priceLevel:  (contact as any).priceLevel ?? 'RETAIL',
         })
       } else {
-        reset({ type: 'CUSTOMER', creditLimit: 0, paymentDays: 0 })
+        reset({ type: 'CUSTOMER', creditLimit: 0, paymentDays: 0, priceLevel: 'RETAIL' })
       }
     }
   }, [open, contact, reset])
@@ -111,7 +113,8 @@ export function ContactFormModal({ open, onClose, contact }: ContactFormModalPro
     onClose()
   }
 
-  const selectedType = watch('type')
+  const selectedType  = watch('type')
+  const selectedLevel = watch('priceLevel')
   const isBusy = isSubmitting || create.isPending || update.isPending
 
   return (
@@ -247,6 +250,33 @@ export function ContactFormModal({ open, onClose, contact }: ContactFormModalPro
             hint="0 = muddatsiz"
             {...register('paymentDays')}
           />
+        </div>
+
+        {/* Narx darajasi */}
+        <div className="space-y-1.5 pt-2 border-t border-border-primary">
+          <label className="text-xs font-medium text-text-secondary">Narx darajasi</label>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { value: 'RETAIL',    label: 'Chakana',  desc: 'Oddiy narx',   color: 'border-blue-500 bg-blue-500/10 text-blue-500'       },
+              { value: 'WHOLESALE', label: 'Ulgurji',  desc: '~15-20% arzon', color: 'border-green-500 bg-green-500/10 text-green-500'   },
+              { value: 'VIP',       label: 'VIP',      desc: 'Eng past narx', color: 'border-violet-500 bg-violet-500/10 text-violet-500' },
+            ] as const).map(level => (
+              <button
+                key={level.value}
+                type="button"
+                onClick={() => setValue('priceLevel', level.value)}
+                className={cn(
+                  'py-2.5 px-3 rounded-xl border-2 text-xs transition-all',
+                  selectedLevel === level.value
+                    ? level.color
+                    : 'border-border-primary text-text-muted hover:border-border-secondary',
+                )}
+              >
+                <p className="font-bold">{level.label}</p>
+                <p className="text-[10px] opacity-70 mt-0.5">{level.desc}</p>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Izoh */}

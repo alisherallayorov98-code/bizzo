@@ -35,8 +35,11 @@ import { ContractsModule } from './modules/contracts/contracts.module';
 import { MonitoringModule } from './common/monitoring/monitoring.module';
 import { MinioModule }      from './common/minio/minio.module';
 import { SuperAdminModule } from './modules/super-admin/super-admin.module';
-import { SmartAnalyticsModule } from './modules/smart-analytics/smart-analytics.module';
-import { ImportModule }         from './modules/import/import.module';
+import { SmartAnalyticsModule }    from './modules/smart-analytics/smart-analytics.module';
+import { ImportModule }            from './modules/import/import.module';
+import { ServiceTicketsModule }    from './modules/addons/service/service-tickets.module'
+import { UploadModule }           from './modules/upload/upload.module'
+import { AttachmentsModule }      from './modules/attachments/attachments.module';
 
 // Xavfsizlik middleware
 import { SecurityMiddleware } from './common/middleware/security.middleware';
@@ -86,6 +89,9 @@ import { RateLimitMiddleware, RATE_LIMITS } from './common/middleware/rate-limit
     SuperAdminModule,
     SmartAnalyticsModule,
     ImportModule,
+    ServiceTicketsModule,
+    UploadModule,
+    AttachmentsModule,
   ],
   controllers: [AppController],
   providers: [
