@@ -322,11 +322,10 @@ export default function POSPage() {
         createDebt: paymentMethod === 'DEBT' && !!contactId,
         warehouseId,
         notes: `POS sotuv — ${paymentMethod}`,
-        items: items.map(i => ({
-          productId:   i.productId,
-          warehouseId,
-          quantity:    i.quantity,
-          price:       i.price,
+        lines: items.map(i => ({
+          productId: i.productId,
+          quantity:  i.quantity,
+          price:     i.price,
         })),
       })
 

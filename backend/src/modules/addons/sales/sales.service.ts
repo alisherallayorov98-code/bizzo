@@ -365,10 +365,10 @@ export class SalesService {
         // Warehouse: mahsulotli itemlar uchun stock kamaytirish
         const productItems = (deal.items as any[]).filter(i => i.productId)
         if (productItems.length > 0) {
-          // Kompaniyaning birinchi omborini topish
+          // Default yoki birinchi omborni topish
           const warehouse = await tx.warehouse.findFirst({
             where: { companyId, isActive: true },
-            orderBy: { createdAt: 'asc' },
+            orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
           })
           if (warehouse) {
             for (const item of productItems) {
@@ -629,14 +629,20 @@ export class SalesService {
         },
       })
 
-      if (newStatus === 'PAID' && invoice.dealId) {
-        await tx.debtRecord.updateMany({
+      if (invoice.dealId && (newStatus === 'PAID' || newStatus === 'PARTIAL')) {
+        const debt = await tx.debtRecord.findFirst({
           where: { companyId, referenceId: invoice.dealId, referenceType: 'DEAL' },
-          data: {
-            paidAmount:   { increment: amount },
-            remainAmount: { decrement: amount },
-          },
         })
+        if (debt) {
+          const newRemain = Math.max(0, Number(debt.remainAmount) - amount)
+          await tx.debtRecord.update({
+            where: { id: debt.id },
+            data: {
+              paidAmount:   Number(debt.paidAmount) + amount,
+              remainAmount: newRemain,
+            },
+          })
+        }
       }
 
       return { ...updated, totalAmount: Number(updated.totalAmount), paidAmount: Number(updated.paidAmount) }

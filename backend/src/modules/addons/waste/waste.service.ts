@@ -208,7 +208,7 @@ export class WasteService {
 
     const batchesWithStats = batches.map(batch => {
       const processedIn = batch.processingRecords.reduce(
-        (s, r) => s + r.outputWeight + r.lossWeight, 0,
+        (s, r) => s + r.processedWeight, 0,
       );
       const totalProcessed = batch.processingRecords.reduce(
         (s, r) => s + r.outputWeight, 0,
@@ -323,7 +323,7 @@ export class WasteService {
             data: {
               warehouseId:   warehouse.id,
               productId:     dto.outputProductId,
-              type:          'WASTE_OUT',
+              type:          'WASTE_IN',
               quantity:      dto.outputWeight,
               price:         0,
               totalAmount:   0,

@@ -48,7 +48,7 @@ export class DebtsService {
     // Muddati o'tganlarni avtomatik yangilash
     await this.prisma.debtRecord.updateMany({
       where: {
-        contact:      { companyId },
+        companyId,
         remainAmount: { gt: 0 },
         dueDate:      { lt: new Date() },
         isOverdue:    false,
@@ -57,18 +57,12 @@ export class DebtsService {
     })
 
     const where: Prisma.DebtRecordWhereInput = {
-      contact:      { companyId },
+      companyId,
       remainAmount: { gt: 0 },
       ...(type      && { type: type as any }),
       ...(isOverdue !== undefined && { isOverdue }),
       ...(contactId && { contactId }),
-    }
-
-    if (search) {
-      where.contact = {
-        companyId,
-        name: { contains: search, mode: 'insensitive' },
-      }
+      ...(search && { contact: { name: { contains: search, mode: 'insensitive' } } }),
     }
 
     const [total, debts] = await Promise.all([

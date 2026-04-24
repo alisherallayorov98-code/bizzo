@@ -303,7 +303,7 @@ export class EmployeesService {
     })
 
     const total = await this.prisma.salaryRecord.aggregate({
-      where: { id: { in: recordIds } },
+      where: { id: { in: recordIds }, employee: { companyId }, isPaid: true, paidAt: now },
       _sum:  { totalAmount: true },
     })
 
@@ -526,7 +526,8 @@ export class EmployeesService {
     );
 
     const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
+    const day = weekStart.getDay(); // 0=Sun..6=Sat
+    weekStart.setDate(weekStart.getDate() - (day === 0 ? 6 : day - 1));
     weekStart.setHours(0, 0, 0, 0);
 
     const weeklyUnpaid = await this.prisma.dailyWorkRecord.aggregate({

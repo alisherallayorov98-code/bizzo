@@ -74,7 +74,7 @@ export const usePOSStore = create<POSStore>((set, get) => ({
   setPayment:   (method)   => set({ paymentMethod: method }),
   setDiscount:  (pct)      => set({ discount: pct }),
   setWarehouse: (id)       => set({ warehouseId: id }),
-  clear: () => set({ items: [], contactId: '', contactName: '', discount: 0, paymentMethod: 'CASH' }),
+  clear: () => set({ items: [], contactId: '', contactName: '', discount: 0, paymentMethod: 'CASH', warehouseId: '' }),
 
   subtotal:    () => get().items.reduce((s, i) => s + i.total, 0),
   discountAmt: () => Math.round(get().subtotal() * get().discount / 100),

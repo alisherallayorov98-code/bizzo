@@ -609,11 +609,12 @@ export class ReportsService {
     const stockOut: Record<number, number> = {}
     for (const m of movementsRaw) {
       const mo = m.createdAt.getMonth()
-      if (m.type === 'IN') {
+      if (m.type === 'IN' || m.type === 'WASTE_IN') {
         stockIn[mo]  = (stockIn[mo]  ?? 0) + Number(m.totalAmount ?? 0)
-      } else {
+      } else if (m.type === 'OUT') {
         stockOut[mo] = (stockOut[mo] ?? 0) + Number(m.totalAmount ?? 0)
       }
+      // TRANSFER, ADJUSTMENT, WASTE_OUT are excluded from chart
     }
 
     // 3. Monthly debt balance (receivable - payable sum per month end — approximated by month of creation)

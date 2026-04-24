@@ -176,7 +176,7 @@ export default function IncomingPage() {
   const handleSubmitAndPrint = async () => {
     if (!canSubmit) return
     const result = await createIncoming.mutateAsync(buildPayload())
-    const docNumber = (result as any)?.id?.slice(-8)?.toUpperCase() ?? 'KIRIM'
+    const docNumber = ((result as any)?.movements?.[0]?.id ?? '').slice(-8).toUpperCase() || 'KIRIM'
     const contact   = suppliers.find(s => s.id === contactId)
     const html = generateNakladnaya({
       type:      'IN',

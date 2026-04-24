@@ -166,11 +166,12 @@ export class WarehouseService {
     }
 
     // Ko'chirish uchun maqsad ombor tekshiruvi
+    let toWarehouse: { id: string; name: string } | null = null;
     if (dto.type === 'TRANSFER') {
       if (!dto.toWarehouseId) {
         throw new BadRequestException("Ko'chirish uchun maqsad omborni ko'rsating");
       }
-      const toWarehouse = await this.prisma.warehouse.findFirst({
+      toWarehouse = await this.prisma.warehouse.findFirst({
         where: { id: dto.toWarehouseId, companyId, isActive: true },
       });
       if (!toWarehouse) throw new NotFoundException('Maqsad ombor topilmadi');
@@ -214,7 +215,7 @@ export class WarehouseService {
             quantity:      dto.quantity,
             price,
             totalAmount,
-            reason:        `Ko'chirildi: ${warehouse.name} → `,
+            reason:        `Ko'chirildi: ${warehouse.name} → ${toWarehouse!.name}`,
             referenceId:   movement.id,
             notes:         dto.notes,
             createdById:   userId,

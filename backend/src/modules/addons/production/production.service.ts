@@ -196,8 +196,11 @@ export class ProductionService {
       },
     })
     if (!batch) throw new NotFoundException('Partiya topilmadi')
-    if (!['PLANNED', 'IN_PROGRESS'].includes(batch.status)) {
-      throw new BadRequestException('Partiya allaqachon yakunlangan')
+    if (batch.status === 'COMPLETED' || batch.status === 'CANCELLED') {
+      throw new BadRequestException('Partiya allaqachon yakunlangan yoki bekor qilingan')
+    }
+    if (batch.status === 'PLANNED') {
+      throw new BadRequestException("Partiyani yakunlashdan oldin boshlang (status: PLANNED → IN_PROGRESS)")
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -268,7 +271,7 @@ export class ProductionService {
         }
       }
 
-      const unitCost = mainProductQty > 0 ? totalInputCost / mainProductQty : 0
+      const unitCost = totalOutputQty > 0 ? totalInputCost / totalOutputQty : 0
 
       for (const outputData of dto.outputs) {
         const batchOutput = batch.outputs.find(o => o.productId === outputData.productId)
@@ -310,8 +313,7 @@ export class ProductionService {
       }
 
       const totalInput = dto.inputs.reduce((s, i) => s + i.actualQty, 0)
-      const totalOutput = dto.outputs.reduce((s, o) => s + o.actualQty, 0)
-      const lossQty = totalInput - totalOutput
+      const lossQty = totalInput - totalOutputQty  // waste is excluded from totalOutputQty
       const lossPercent = totalInput > 0 ? (lossQty / totalInput) * 100 : 0
 
       const mainOutputFormula = batch.formula
