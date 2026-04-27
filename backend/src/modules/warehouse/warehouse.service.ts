@@ -432,15 +432,17 @@ export class WarehouseService {
         const product = productMap.get(line.productId)!;
         const movement = await tx.stockMovement.create({
           data: {
-            warehouseId:  dto.warehouseId,
-            productId:    line.productId,
-            type:         'IN' as any,
-            quantity:     line.quantity,
-            price:        line.price,
-            totalAmount:  line.quantity * line.price,
-            reason:       dto.contactId ? `Yetkazuvchi: ${dto.contactId}` : 'Kirim',
-            notes:        dto.notes,
-            createdById:  userId,
+            warehouseId:   dto.warehouseId,
+            productId:     line.productId,
+            contactId:     dto.contactId ?? null,
+            type:          'IN' as any,
+            quantity:      line.quantity,
+            price:         line.price,
+            totalAmount:   line.quantity * line.price,
+            reason:        'Kirim',
+            referenceType: 'INCOMING',
+            notes:         dto.notes,
+            createdById:   userId,
           },
         });
         movements.push(movement);
@@ -541,15 +543,17 @@ export class WarehouseService {
         const product = productMap.get(line.productId)!;
         const movement = await tx.stockMovement.create({
           data: {
-            warehouseId:  dto.warehouseId,
-            productId:    line.productId,
-            type:         'OUT' as any,
-            quantity:     line.quantity,
-            price:        line.price,
-            totalAmount:  line.quantity * line.price,
-            reason:       dto.contactId ? `Mijoz: ${dto.contactId}` : 'Chiqim',
-            notes:        dto.notes,
-            createdById:  userId,
+            warehouseId:   dto.warehouseId,
+            productId:     line.productId,
+            contactId:     dto.contactId ?? null,
+            type:          'OUT' as any,
+            quantity:      line.quantity,
+            price:         line.price,
+            totalAmount:   line.quantity * line.price,
+            reason:        'Chiqim',
+            referenceType: 'OUTGOING',
+            notes:         dto.notes,
+            createdById:   userId,
           },
         });
         movements.push(movement);

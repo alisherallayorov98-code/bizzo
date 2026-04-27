@@ -34,6 +34,7 @@ const DashboardPage       = lazy(() => import('@pages/dashboard/DashboardPage'))
 const ContactsListPage    = lazy(() => import('@pages/contacts/ContactsListPage'))
 const ContactDetailPage   = lazy(() => import('@pages/contacts/ContactDetailPage'))
 const ContactFormPage     = lazy(() => import('@pages/contacts/ContactFormPage'))
+const ContactReportPage   = lazy(() => import('@pages/contacts/ContactReportPage'))
 const ProductsListPage    = lazy(() => import('@pages/products/ProductsListPage'))
 const ProductDetailPage   = lazy(() => import('@pages/products/ProductDetailPage'))
 const ProductFormPage     = lazy(() => import('@pages/products/ProductFormPage'))
@@ -193,10 +194,11 @@ export default function App() {
                 <Route path="/dashboard" element={<DashboardPage />} />
 
                 {/* Kontragentlar */}
-                <Route path="/contacts"         element={<ContactsListPage />} />
-                <Route path="/contacts/new"     element={<ContactFormPage />} />
-                <Route path="/contacts/:id"     element={<ContactDetailPage />} />
-                <Route path="/contacts/:id/edit" element={<ContactFormPage />} />
+                <Route path="/contacts"             element={<ContactsListPage />} />
+                <Route path="/contacts/new"         element={<ContactFormPage />} />
+                <Route path="/contacts/:id"         element={<ContactDetailPage />} />
+                <Route path="/contacts/:id/edit"    element={<ContactFormPage />} />
+                <Route path="/contacts/:id/report"  element={<ContactReportPage />} />
 
                 {/* Mahsulotlar */}
                 <Route path="/products"         element={<ProductsListPage />} />

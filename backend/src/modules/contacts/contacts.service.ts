@@ -322,11 +322,7 @@ export class ContactsService {
           where: { contactId, companyId, remainAmount: { gt: 0 }, dueDate: { lt: new Date() } },
         }),
         this.prisma.stockMovement.findMany({
-          where: {
-            warehouse: { companyId },
-            referenceType: { in: ['INCOMING', 'OUTGOING'] },
-            reason: { contains: contactId },
-          },
+          where: { contactId, warehouse: { companyId } },
           take:    30,
           orderBy: { createdAt: 'desc' },
           include: {
@@ -384,6 +380,100 @@ export class ContactsService {
       stats: {
         totalDeals: deals.length,
         wonDeals:   deals.filter((d: any) => d.stage === 'WON').length,
+      },
+    };
+  }
+
+  // ============================================
+  // KONTAKT TRANZAKSIYALARI HISOBOTI
+  // (sana, mahsulot, miqdor, narx, summa)
+  // ============================================
+  async getContactTransactions(
+    companyId: string,
+    contactId: string,
+    query: {
+      type?:     'IN' | 'OUT'
+      from?:     string
+      to?:       string
+      page?:     number
+      limit?:    number
+    },
+  ) {
+    const contact = await this.prisma.contact.findFirst({
+      where:  { id: contactId, companyId, isActive: true },
+      select: { id: true, name: true, type: true, phone: true, legalName: true },
+    });
+    if (!contact) throw new NotFoundException('Kontakt topilmadi');
+
+    const page  = Math.max(1, Number(query.page  ?? 1));
+    const limit = Math.min(500, Math.max(1, Number(query.limit ?? 100)));
+
+    const where: any = { contactId, warehouse: { companyId } };
+    if (query.type) where.type = query.type;
+    if (query.from || query.to) {
+      where.createdAt = {};
+      if (query.from) where.createdAt.gte = new Date(query.from);
+      if (query.to) {
+        const to = new Date(query.to);
+        to.setHours(23, 59, 59, 999);
+        where.createdAt.lte = to;
+      }
+    }
+
+    const [movements, totalCount, agg] = await Promise.all([
+      this.prisma.stockMovement.findMany({
+        where,
+        skip:    (page - 1) * limit,
+        take:    limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          product:   { select: { id: true, name: true, unit: true, code: true } },
+          warehouse: { select: { id: true, name: true } },
+        },
+      }),
+      this.prisma.stockMovement.count({ where }),
+      this.prisma.stockMovement.groupBy({
+        by:    ['type'],
+        where,
+        _sum:  { quantity: true, totalAmount: true },
+        _count: true,
+      }).catch(() => [] as any[]),
+    ]);
+
+    const totals = {
+      incoming: { count: 0, quantity: 0, amount: 0 },
+      outgoing: { count: 0, quantity: 0, amount: 0 },
+    };
+    for (const row of agg as any[]) {
+      const t = row.type === 'IN' ? totals.incoming
+              : row.type === 'OUT' ? totals.outgoing
+              : null;
+      if (!t) continue;
+      t.count    = row._count;
+      t.quantity = Number(row._sum.quantity ?? 0);
+      t.amount   = Number(row._sum.totalAmount ?? 0);
+    }
+    const netAmount = totals.incoming.amount - totals.outgoing.amount;
+
+    return {
+      contact,
+      movements: movements.map(m => ({
+        id:           m.id,
+        date:         m.createdAt,
+        type:         m.type,
+        product:      m.product,
+        warehouse:    m.warehouse,
+        quantity:     Number(m.quantity),
+        price:        Number(m.price),
+        totalAmount:  Number(m.totalAmount),
+        notes:        m.notes,
+      })),
+      totals: { ...totals, netAmount },
+      meta: {
+        total: totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
       },
     };
   }

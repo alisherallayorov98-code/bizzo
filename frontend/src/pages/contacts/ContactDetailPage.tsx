@@ -5,7 +5,7 @@ import {
   Phone, Mail, MapPin, Hash, Edit2, ArrowLeft,
   TrendingUp, TrendingDown, Package, ShoppingCart,
   Plus, Clock, CheckCircle, AlertCircle, CreditCard,
-  FileText, Building2,
+  FileText, Building2, BarChart3,
 } from 'lucide-react'
 import { PageHeader }       from '@components/layout/PageHeader/PageHeader'
 import { Card }             from '@components/ui/Card/Card'
@@ -165,6 +165,11 @@ export default function ContactDetailPage() {
             <Button variant="secondary" size="sm" leftIcon={<ArrowLeft size={14} />} onClick={() => navigate('/contacts')}>
               Orqaga
             </Button>
+            <Link to={`/contacts/${id}/report`}>
+              <Button variant="secondary" size="sm" leftIcon={<BarChart3 size={14} />}>
+                Hisobot
+              </Button>
+            </Link>
             <Button variant="primary" size="sm" leftIcon={<Edit2 size={14} />} onClick={() => setEditOpen(true)}>
               Tahrirlash
             </Button>
@@ -315,6 +320,14 @@ export default function ContactDetailPage() {
         {/* ---- TAB: Ombor harakatlari ---- */}
         {tab === 'movements' && (
           <div className="overflow-x-auto">
+            <div className="flex items-center justify-between p-3 border-b border-border-primary">
+              <p className="text-xs text-text-muted">Oxirgi 30 ta harakat</p>
+              <Link to={`/contacts/${id}/report`}>
+                <Button variant="secondary" size="sm" leftIcon={<BarChart3 size={13} />}>
+                  To'liq hisobot
+                </Button>
+              </Link>
+            </div>
             {contact.movements.length === 0 ? (
               <div className="py-16 text-center">
                 <Package size={32} className="text-text-muted mx-auto mb-2 opacity-30" />

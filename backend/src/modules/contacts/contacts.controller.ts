@@ -75,6 +75,25 @@ export class ContactsController {
   }
 
   // ============================================
+  // TO'LIQ TRANZAKSIYALAR HISOBOTI
+  // ============================================
+  @Get(':id/transactions')
+  @ApiOperation({ summary: "Kontakt tranzaksiyalari (sana, mahsulot, narx, miqdor)" })
+  getContactTransactions(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Query() query: {
+      type?:  'IN' | 'OUT'
+      from?:  string
+      to?:    string
+      page?:  number
+      limit?: number
+    },
+  ) {
+    return this.contactsService.getContactTransactions(user.companyId, id, query);
+  }
+
+  // ============================================
   // BITTA — :id dan keyin bo'lishi kerak
   // ============================================
   @Get(':id')
