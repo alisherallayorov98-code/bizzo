@@ -4,7 +4,7 @@ import {
   Search, X, Plus, Minus, Trash2,
   CreditCard, Wallet, TrendingDown, ArrowLeft,
   CheckCircle, Printer, ShoppingCart, User,
-  Percent, Camera,
+  Percent, Camera, Mic, MicOff,
 } from 'lucide-react'
 import { useMutation }    from '@tanstack/react-query'
 import toast              from 'react-hot-toast'
@@ -27,8 +27,10 @@ function ProductSearch({ warehouseId, priceLevel }: { warehouseId: string; price
   const [query,       setQuery]       = useState('')
   const [open,        setOpen]        = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
+  const [listening,   setListening]   = useState(false)
   const { addItem }  = usePOSStore()
   const inputRef     = useRef<HTMLInputElement>(null)
+  const recognitionRef = useRef<any>(null)
 
   const { data } = useProducts({
     search: query.length >= 1 ? query : undefined,
@@ -54,6 +56,95 @@ function ProductSearch({ warehouseId, priceLevel }: { warehouseId: string; price
     setOpen(false)
     inputRef.current?.focus()
     toast.success(`${product.name} qo'shildi`, { duration: 1200 })
+  }
+
+  // ===== Ovoz buyrug'i =====
+  // Foydalanuvchi: "ikki ta laptop, uch dona printer"
+  // Tizim: oddiy raqamlarni va mahsulot nomlarini ajratadi, savatga qo'shadi
+  const UZ_NUMBERS: Record<string, number> = {
+    bir: 1, ikki: 2, uch: 3, "to'rt": 4, tort: 4, besh: 5,
+    olti: 6, yetti: 7, sakkiz: 8, toqqiz: 9, on: 10,
+    "o'n": 10, yigirma: 20, ottiz: 30, qirq: 40, ellik: 50,
+  }
+  const parseQty = (word: string): number => {
+    const lower = word.toLowerCase().trim()
+    if (UZ_NUMBERS[lower] !== undefined) return UZ_NUMBERS[lower]
+    const n = parseInt(lower, 10)
+    return isNaN(n) ? 1 : n
+  }
+
+  const processVoiceCommand = async (text: string) => {
+    // "5 ta laptop, 3 dona printer" → [{ qty: 5, name: 'laptop' }, { qty: 3, name: 'printer' }]
+    const segments = text.split(/[,;]|\bva\b|\bham\b/i).map(s => s.trim()).filter(Boolean)
+
+    let added = 0
+    let notFound = 0
+
+    for (const segment of segments) {
+      // Raqam + "ta/dona/kg" + mahsulot nomi
+      const match = segment.match(/^([\wʼ'`]+|\d+)\s*(?:ta|dona|kg|litr)?\s*(.+)$/i)
+      if (!match) continue
+      const [, qtyStr, nameRaw] = match
+      const qty  = parseQty(qtyStr)
+      const name = nameRaw.replace(/^(ta|dona|kg|litr)\s+/i, '').trim()
+      if (!name) continue
+
+      try {
+        const r = await api.get(`/products?search=${encodeURIComponent(name)}&limit=1`)
+        const product = r.data.data?.data?.[0]
+        if (product) {
+          let price = Number(product.sellPrice) || 0
+          if (priceLevel === 'VIP'       && product.vipPrice)       price = Number(product.vipPrice)
+          if (priceLevel === 'WHOLESALE' && product.wholesalePrice) price = Number(product.wholesalePrice)
+          addItem({
+            productId:   product.id,
+            productName: product.name,
+            productUnit: product.unit || 'dona',
+            barcode:     product.barcode,
+            quantity:    qty,
+            price,
+          })
+          added++
+        } else {
+          notFound++
+        }
+      } catch { notFound++ }
+    }
+
+    if (added > 0) {
+      toast.success(`${added} ta mahsulot qo'shildi${notFound > 0 ? ` · ${notFound} topilmadi` : ''}`)
+    } else {
+      toast.error(`Hech narsa topilmadi: "${text.slice(0, 40)}..."`)
+    }
+  }
+
+  const startVoice = () => {
+    const SpeechRecognition: any =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      toast.error("Brauzeringiz ovoz tanishni qo'llab-quvvatlamaydi (Chrome ishlatishni tavsiya qilamiz)")
+      return
+    }
+    const rec = new SpeechRecognition()
+    rec.lang           = 'uz-UZ'
+    rec.continuous     = false
+    rec.interimResults = false
+
+    rec.onstart  = () => { setListening(true); toast('🎤 Tinglayapman...', { duration: 2000 }) }
+    rec.onresult = (e: any) => {
+      const text = e.results[0]?.[0]?.transcript ?? ''
+      if (text) processVoiceCommand(text)
+    }
+    rec.onerror  = (e: any) => toast.error(`Ovoz xatolik: ${e.error}`)
+    rec.onend    = () => { setListening(false); recognitionRef.current = null }
+
+    recognitionRef.current = rec
+    try { rec.start() } catch {}
+  }
+
+  const stopVoice = () => {
+    recognitionRef.current?.stop()
+    setListening(false)
   }
 
   const handleBarcodeScan = async (barcode: string) => {
@@ -95,6 +186,20 @@ function ProductSearch({ warehouseId, priceLevel }: { warehouseId: string; price
             </button>
           )}
         </div>
+
+        {/* Mikrofon tugmasi */}
+        <button
+          onClick={listening ? stopVoice : startVoice}
+          className={cn(
+            "h-12 px-3.5 rounded-xl border-2 transition-all",
+            listening
+              ? "bg-danger/10 border-danger text-danger animate-pulse"
+              : "bg-bg-secondary border-border-primary text-text-muted hover:text-accent-primary hover:border-accent-primary/40",
+          )}
+          title={listening ? "Tinglashni to'xtatish" : "Ovoz buyrug'i (masalan: 'ikki ta laptop')"}
+        >
+          {listening ? <MicOff size={18} /> : <Mic size={18} />}
+        </button>
 
         {/* Kamera tugmasi */}
         <button
