@@ -72,6 +72,9 @@ const POSPage             = lazy(() => import('@pages/pos/POSPage'))
 // Import Markazi
 const ImportCenterPage    = lazy(() => import('@pages/import/ImportCenterPage'))
 
+// Recurring
+const RecurringPage       = lazy(() => import('@pages/recurring/RecurringPage'))
+
 // Landing
 const LandingLayout       = lazy(() => import('@pages/landing/LandingLayout').then(m => ({ default: m.LandingLayout })))
 const LandingPage         = lazy(() => import('@pages/landing/LandingPage'))
@@ -233,6 +236,9 @@ export default function App() {
 
                 {/* Import Markazi */}
                 <Route path="/import" element={<PermissionGate><ImportCenterPage /></PermissionGate>} />
+
+                {/* Takroriy operatsiyalar */}
+                <Route path="/recurring" element={<RecurringPage />} />
 
                 {/* Sozlamalar */}
                 <Route path="/settings/*" element={<PermissionGate><CompanySettingsPage /></PermissionGate>} />

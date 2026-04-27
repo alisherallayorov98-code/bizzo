@@ -40,6 +40,7 @@ import { ImportModule }            from './modules/import/import.module';
 import { ServiceTicketsModule }    from './modules/addons/service/service-tickets.module'
 import { UploadModule }           from './modules/upload/upload.module'
 import { AttachmentsModule }      from './modules/attachments/attachments.module';
+import { RecurringModule }        from './modules/recurring/recurring.module';
 
 // Xavfsizlik middleware
 import { SecurityMiddleware } from './common/middleware/security.middleware';
@@ -92,6 +93,7 @@ import { RateLimitMiddleware, RATE_LIMITS } from './common/middleware/rate-limit
     ServiceTicketsModule,
     UploadModule,
     AttachmentsModule,
+    RecurringModule,
   ],
   controllers: [AppController],
   providers: [

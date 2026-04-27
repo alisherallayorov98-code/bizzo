@@ -1473,3 +1473,43 @@ model Attachment {
   @@index([companyId, entityType, entityId])
   @@map("attachments")
 }
+
+// ============================================================
+// TAKRORIY OPERATSIYALAR (RECURRING TRANSACTIONS)
+// ============================================================
+
+model RecurringRule {
+  id          String   @id @default(cuid())
+  companyId   String
+
+  type        String   // EXPENSE | INCOME | DEBT_PAYMENT
+  title       String
+  amount      Decimal  @db.Decimal(18, 2)
+  currency    String   @default("UZS")
+  notes       String?
+  category    String?
+
+  // Optional links
+  contactId   String?
+
+  // Cron pattern
+  frequency   String   // DAILY | WEEKLY | MONTHLY
+  dayOfMonth  Int?     // 1..31 (MONTHLY uchun)
+  dayOfWeek   Int?     // 0..6 (WEEKLY uchun, 0=Yakshanba)
+
+  // Hayot davri
+  startsAt    DateTime
+  endsAt      DateTime?
+  lastRunAt   DateTime?
+  nextRunAt   DateTime
+  runCount    Int      @default(0)
+
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+
+  @@index([companyId, isActive])
+  @@index([nextRunAt, isActive])
+  @@map("recurring_rules")
+}

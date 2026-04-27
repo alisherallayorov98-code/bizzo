@@ -5,6 +5,7 @@ import {
   Factory, Wrench, FileText, Bell, Activity,
   Upload, ArrowDownToLine, ArrowUpFromLine,
   ClipboardList, TrendingUp, DollarSign, ScanLine,
+  Repeat,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -161,6 +162,13 @@ export const CORE_NAV_ITEMS: NavItem[] = [
     tKey:  'nav.import',
     path:  '/import',
     icon:  Upload,
+  },
+  {
+    id:    'recurring',
+    label: 'Takroriy',
+    tKey:  'nav.recurring',
+    path:  '/recurring',
+    icon:  Repeat,
   },
 ]
 
