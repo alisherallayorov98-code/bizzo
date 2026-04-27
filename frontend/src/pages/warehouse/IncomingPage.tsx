@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import {
   Plus, Trash2, ArrowDownToLine, Search,
   AlertTriangle, ChevronDown, Printer, RotateCcw, Sparkles,
+  Camera, Loader,
 } from 'lucide-react'
 import { PageHeader } from '@components/layout/PageHeader/PageHeader'
 import { Button } from '@components/ui/Button/Button'
@@ -272,6 +273,62 @@ export default function IncomingPage() {
     }
   }
 
+  // ===== AI: rasm/PDF dan invoys o'qish =====
+  const [aiLoading, setAiLoading] = useState(false)
+  const handleAiUpload = async (file: File) => {
+    setAiLoading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await api.post('/ai/parse-invoice', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      const data = res.data.data
+      if (!data?.lines?.length) {
+        toast.error(data?.raw?.slice(0, 100) ?? 'Mahsulotlar ajratib olib bo\'lmadi')
+        return
+      }
+
+      // Har bir AI qatorga mos mahsulot topib, qatorlar yaratamiz
+      const newLines: DocLine[] = []
+      let notFound = 0
+      for (const aiLine of data.lines) {
+        try {
+          const r = await api.get('/products', { params: { search: aiLine.name, limit: 1 } })
+          const product = r.data.data?.data?.[0]
+          if (product) {
+            newLines.push({
+              id:        crypto.randomUUID(),
+              productId: product.id,
+              product,
+              quantity:  aiLine.quantity || 1,
+              price:     aiLine.price || product.buyPrice || 0,
+            })
+          } else {
+            notFound++
+          }
+        } catch { notFound++ }
+      }
+
+      if (newLines.length > 0) {
+        setLines(prev => {
+          if (prev.length === 1 && !prev[0].productId) return newLines
+          return [...prev, ...newLines]
+        })
+        if (data.docNumber) setNotes(`Hujjat: ${data.docNumber}${data.docDate ? ' · ' + data.docDate : ''}`)
+        toast.success(
+          `${newLines.length} ta qator qo'shildi${notFound > 0 ? ` · ${notFound} ta topilmadi` : ''}`,
+        )
+      } else {
+        toast.error('Bazada mos mahsulotlar topilmadi')
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'AI xatolik')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
   // ===== Excel/Tabdan paste =====
   // Format: "Mahsulot nomi<TAB>Miqdor<TAB>Narx" har bir qator
   const handlePaste: React.ClipboardEventHandler<HTMLDivElement> = async (e) => {
@@ -384,9 +441,26 @@ export default function IncomingPage() {
           { label: 'Kirim' },
         ]}
         actions={
-          <Button variant="secondary" size="sm" leftIcon={<RotateCcw size={13} />} onClick={repeatLast}>
-            Oxirgi kirimni takrorlash
-          </Button>
+          <>
+            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-primary bg-bg-secondary text-text-secondary hover:border-accent-primary hover:text-text-primary transition-colors cursor-pointer text-xs font-medium">
+              {aiLoading ? <Loader size={13} className="animate-spin" /> : <Camera size={13} />}
+              AI rasmdan o'qish
+              <input
+                type="file"
+                accept="image/*"
+                disabled={aiLoading}
+                className="hidden"
+                onChange={e => {
+                  const f = e.target.files?.[0]
+                  if (f) handleAiUpload(f)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+            <Button variant="secondary" size="sm" leftIcon={<RotateCcw size={13} />} onClick={repeatLast}>
+              Oxirgi kirimni takrorlash
+            </Button>
+          </>
         }
       />
 

@@ -270,4 +270,116 @@ Qoidalar:
     ])
     return { data, recommendations }
   }
+
+  // ============================================
+  // INVOYS RASMINI O'QISH (Claude Vision)
+  // — yetkazib beruvchi qog'oz/PDF hisob-fakturasini fotoga olib jo'natadi
+  // — Claude qatorlarni JSON ga o'giradi
+  // ============================================
+  async parseInvoiceImage(
+    companyId: string,
+    imageBase64: string,
+    mimeType: string,
+  ): Promise<{
+    supplier:    string | null
+    docNumber:   string | null
+    docDate:     string | null
+    currency:    string
+    lines: Array<{
+      name:     string
+      quantity: number
+      unit:     string
+      price:    number
+      total:    number
+    }>
+    grandTotal:  number | null
+    raw?:        string
+  }> {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return {
+        supplier: null, docNumber: null, docDate: null, currency: 'UZS',
+        lines: [], grandTotal: null,
+        raw: 'AI sozlanmagan (ANTHROPIC_API_KEY yo\'q)',
+      }
+    }
+
+    // Mavjud mahsulot nomlari bilan AI'ni yo'nlatamiz
+    const products = await this.prisma.product.findMany({
+      where:  { companyId, isActive: true },
+      select: { name: true, code: true, unit: true },
+      take:   200,
+    })
+    const productHint = products.map(p => `${p.code ? p.code + ' — ' : ''}${p.name} (${p.unit})`).join('\n')
+
+    const prompt = `Sen yetkazib beruvchi invoyslarini o'qiy oladigan yordamchisan.
+Berilgan invoys rasmidan QUYIDAGI JSON formatida ma'lumot ajratib ber:
+
+{
+  "supplier":    "yetkazib beruvchi nomi yoki null",
+  "docNumber":   "hujjat raqami yoki null",
+  "docDate":     "YYYY-MM-DD yoki null",
+  "currency":    "UZS / USD / EUR",
+  "lines": [
+    { "name": "mahsulot nomi", "quantity": 12.5, "unit": "kg|dona|...", "price": 15000, "total": 187500 }
+  ],
+  "grandTotal":  123456 yoki null
+}
+
+Bizning bazadagi mavjud mahsulotlar (mos kelishi uchun):
+${productHint || '(bazada mahsulotlar yo\'q)'}
+
+Faqat JSON qaytar, izoh qo'shma. Agar rasm noaniq bo'lsa, lines bo'sh massiv qaytar.`
+
+    try {
+      const response = await this.client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2048,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type:       'base64',
+                  media_type: mimeType as any,
+                  data:       imageBase64,
+                },
+              },
+              { type: 'text', text: prompt },
+            ],
+          },
+        ],
+      })
+
+      const text = (response.content[0] as any)?.text ?? ''
+      // Claude javobida JSON code-block bo'lishi mumkin — tozalaymiz
+      const jsonMatch = text.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        return { supplier: null, docNumber: null, docDate: null, currency: 'UZS', lines: [], grandTotal: null, raw: text }
+      }
+
+      const parsed = JSON.parse(jsonMatch[0])
+      return {
+        supplier:    parsed.supplier  ?? null,
+        docNumber:   parsed.docNumber ?? null,
+        docDate:     parsed.docDate   ?? null,
+        currency:    parsed.currency  ?? 'UZS',
+        lines:       Array.isArray(parsed.lines) ? parsed.lines.map((l: any) => ({
+          name:     String(l.name ?? ''),
+          quantity: Number(l.quantity ?? 0),
+          unit:     String(l.unit ?? ''),
+          price:    Number(l.price ?? 0),
+          total:    Number(l.total ?? 0),
+        })) : [],
+        grandTotal:  parsed.grandTotal ?? null,
+      }
+    } catch (e: any) {
+      return {
+        supplier: null, docNumber: null, docDate: null, currency: 'UZS',
+        lines: [], grandTotal: null,
+        raw: `AI xatolik: ${e?.message ?? e}`,
+      }
+    }
+  }
 }
