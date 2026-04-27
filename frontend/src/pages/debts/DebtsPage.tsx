@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   TrendingUp, TrendingDown, AlertCircle,
   DollarSign, Plus, CheckCircle, Search, Download, MessageSquare,
@@ -232,10 +233,26 @@ function NewDebtModal({ open, onClose }: { open: boolean; onClose: () => void })
 // ============================================
 export default function DebtsPage() {
   const t = useT()
-  const [activeTab,    setActiveTab]   = useState<'RECEIVABLE' | 'PAYABLE'>('RECEIVABLE')
+
+  // URL — source of truth for type tab + overdueOnly
+  const [searchParams, setSearchParams] = useSearchParams()
+  const typeFromUrl = searchParams.get('type')?.toUpperCase()
+  const activeTab: 'RECEIVABLE' | 'PAYABLE' = typeFromUrl === 'PAYABLE' ? 'PAYABLE' : 'RECEIVABLE'
+  const overdueOnly = searchParams.get('overdue') === 'true'
+
+  const setActiveTab = (v: 'RECEIVABLE' | 'PAYABLE') => {
+    const next = new URLSearchParams(searchParams)
+    next.set('type', v)
+    setSearchParams(next, { replace: true })
+  }
+  const setOverdueOnly = (v: boolean) => {
+    const next = new URLSearchParams(searchParams)
+    if (v) next.set('overdue', 'true'); else next.delete('overdue')
+    setSearchParams(next, { replace: true })
+  }
+
   const [search,       setSearch]      = useState('')
   const [paymentDebt,  setPaymentDebt] = useState<DebtRecord | null>(null)
-  const [overdueOnly,  setOverdueOnly] = useState(false)
   const [newDebtOpen,  setNewDebtOpen] = useState(false)
 
   const debouncedSearch  = useDebounce(search, 400)

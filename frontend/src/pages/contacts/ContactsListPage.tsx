@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
 import {
@@ -214,8 +214,14 @@ export default function ContactsListPage() {
   const navigate = useNavigate()
   const t = useT()
 
+  // URL search params — source of truth for type filter
+  // (so sidebar sub-tabs and in-page tabs stay in sync)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const typeFromUrl = searchParams.get('type')?.toUpperCase() ?? 'ALL'
+  const validTypes = ['ALL', 'CUSTOMER', 'SUPPLIER', 'BOTH']
+  const typeTab = validTypes.includes(typeFromUrl) ? typeFromUrl : 'ALL'
+
   const [search,       setSearch]       = useState('')
-  const [typeTab,      setTypeTab]      = useState('ALL')
   const [page,         setPage]         = useState(1)
   const [formOpen,     setFormOpen]     = useState(false)
   const [editContact,  setEditContact]  = useState<Contact | null>(null)
@@ -225,7 +231,13 @@ export default function ContactsListPage() {
   const debouncedSearch  = useDebounce(search, 400)
   // search yoki filter o'zgarganda birinchi sahifaga qaytish
   const handleSearch = (v: string) => { setSearch(v); setPage(1) }
-  const handleTab    = (v: string) => { setTypeTab(v); setPage(1) }
+  const handleTab    = (v: string) => {
+    const next = new URLSearchParams(searchParams)
+    if (v === 'ALL') next.delete('type')
+    else next.set('type', v)
+    setSearchParams(next, { replace: true })
+    setPage(1)
+  }
   const deleteMutation   = useDeleteContact()
   const bulkDeleteMut    = useBulkDeleteContacts()
 

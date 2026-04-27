@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
 import {
@@ -183,8 +183,18 @@ export default function ProductsListPage() {
   const navigate = useNavigate()
   const t = useT()
 
+  // URL — source of truth for tab (so sidebar links work)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabFromUrl = (() => {
+    if (searchParams.get('service') === '1') return 'services'
+    if (searchParams.get('low') === '1')     return 'low'
+    const t = searchParams.get('tab')
+    if (t && ['ALL', 'goods', 'services', 'low'].includes(t)) return t
+    return 'ALL'
+  })()
+  const activeTab = tabFromUrl
+
   const [search,       setSearch]       = useState('')
-  const [activeTab,    setActiveTab]    = useState('ALL')
   const [page,         setPage]         = useState(1)
   const [formOpen,     setFormOpen]     = useState(false)
   const [editProduct,  setEditProduct]  = useState<Product | null>(null)
@@ -192,7 +202,13 @@ export default function ProductsListPage() {
 
   const debouncedSearch   = useDebounce(search, 400)
   const handleSearch      = (v: string) => { setSearch(v); setPage(1) }
-  const handleTab         = (v: string) => { setActiveTab(v); setPage(1) }
+  const handleTab         = (v: string) => {
+    const next = new URLSearchParams(searchParams)
+    next.delete('service'); next.delete('low'); next.delete('tab')
+    if (v !== 'ALL') next.set('tab', v)
+    setSearchParams(next, { replace: true })
+    setPage(1)
+  }
   const deleteMutation    = useDeleteProduct()
   const bulkDeleteMut     = useBulkDeleteProducts()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
