@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   Users, Package, DollarSign,
   TrendingUp, AlertCircle,
   ArrowRight, Sparkles, CheckCircle,
-  BarChart3, ScanLine,
+  BarChart3, ScanLine, Wallet, Repeat, Calendar,
   Settings2, Eye, EyeOff, ChevronUp, ChevronDown, RotateCcw, X,
 } from 'lucide-react'
 import { HealthScoreWidget }  from '@components/smart/HealthScoreWidget'
@@ -16,6 +17,7 @@ import { Badge }            from '@components/ui/Badge/Badge'
 import { Button }           from '@components/ui/Button/Button'
 import { Skeleton }         from '@components/ui/Skeleton/Skeleton'
 import { useAuth }          from '@hooks/useAuth'
+import api                  from '@config/api'
 import { useContactStats }  from '@features/contacts/hooks/useContacts'
 import { useProductStats }  from '@features/products/hooks/useProducts'
 import { useEmployeeStats } from '@features/employees/hooks/useEmployees'
@@ -23,7 +25,7 @@ import { useDebtStats }     from '@features/debts/hooks/useDebts'
 import { useSalesStats }    from '@features/sales-module/hooks/useSales'
 import { useAIRecommendations } from '@features/ai/hooks/useAI'
 import type { AIRecommendation } from '@services/ai.service'
-import { formatCurrency }   from '@utils/formatters'
+import { formatCurrency, formatDate } from '@utils/formatters'
 import { cn }               from '@utils/cn'
 import { useT }             from '@i18n/index'
 import { useDashboardStore } from '@store/dashboard.store'
@@ -84,6 +86,145 @@ function WidgetWrapper({
       )}
       {children}
     </div>
+  )
+}
+
+// ============================================
+// BUGUNGI KASSA XARAJATLARI
+// ============================================
+interface CashSummary {
+  today:  { amount: number; count: number }
+  month:  { amount: number; count: number }
+  recent: Array<{ id: string; payeeName: string; amount: number; notes: string; expenseDate: string; category: string }>
+}
+
+function CashTodayWidget() {
+  const { data, isLoading } = useQuery<CashSummary>({
+    queryKey: ['cash-expenses', 'today-summary'],
+    queryFn:  async () => (await api.get('/cash-expenses/today-summary')).data.data,
+  })
+
+  return (
+    <Card padding="md">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-md bg-warning/10 flex items-center justify-center">
+            <Wallet size={14} className="text-warning" />
+          </div>
+          <h3 className="font-semibold text-text-primary text-sm">Kassa xarajatlari</h3>
+        </div>
+        <Link to="/cash-expenses">
+          <Button variant="ghost" size="xs" rightIcon={<ArrowRight size={12} />}>
+            Hammasi
+          </Button>
+        </Link>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="h-24 rounded" />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-bg-tertiary">
+              <p className="text-[10px] text-text-muted uppercase tracking-wider">Bugun</p>
+              <p className="text-base font-bold tabular-nums text-text-primary">
+                {formatCurrency(data?.today.amount ?? 0)}
+              </p>
+              <p className="text-[10px] text-text-muted">{data?.today.count ?? 0} ta hujjat</p>
+            </div>
+            <div className="p-2 rounded-lg bg-bg-tertiary">
+              <p className="text-[10px] text-text-muted uppercase tracking-wider">30 kunda</p>
+              <p className="text-base font-bold tabular-nums text-text-primary">
+                {formatCurrency(data?.month.amount ?? 0)}
+              </p>
+              <p className="text-[10px] text-text-muted">{data?.month.count ?? 0} ta hujjat</p>
+            </div>
+          </div>
+
+          {data?.recent && data.recent.length > 0 ? (
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold text-text-muted uppercase tracking-wider">Oxirgi 3 ta</p>
+              {data.recent.slice(0, 3).map(r => (
+                <div key={r.id} className="flex items-center justify-between py-1 border-b border-border-primary/40 last:border-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-text-primary truncate">{r.payeeName}</p>
+                    <p className="text-[10px] text-text-muted truncate">{r.notes}</p>
+                  </div>
+                  <span className="text-xs tabular-nums font-semibold text-warning shrink-0 ml-2">
+                    −{formatCurrency(r.amount)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-text-muted text-center py-3">Hozircha xarajatlar yo'q</p>
+          )}
+        </>
+      )}
+    </Card>
+  )
+}
+
+// ============================================
+// YAQIN KUNLARDAGI TAKRORIY OPERATSIYALAR
+// ============================================
+interface UpcomingRule {
+  id: string; type: string; title: string; amount: number | string
+  frequency: string; nextRunAt: string
+}
+
+function UpcomingRecurringWidget() {
+  const { data, isLoading } = useQuery<UpcomingRule[]>({
+    queryKey: ['recurring', 'upcoming'],
+    queryFn:  async () => (await api.get('/recurring/upcoming')).data.data,
+  })
+
+  const TYPE_DOTS: Record<string, string> = {
+    EXPENSE:      'bg-warning',
+    INCOME:       'bg-success',
+    DEBT_PAYMENT: 'bg-info',
+  }
+
+  return (
+    <Card padding="md">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-md bg-accent-primary/10 flex items-center justify-center">
+            <Repeat size={14} className="text-accent-primary" />
+          </div>
+          <h3 className="font-semibold text-text-primary text-sm">Yaqin takroriy to'lovlar</h3>
+        </div>
+        <Link to="/recurring">
+          <Button variant="ghost" size="xs" rightIcon={<ArrowRight size={12} />}>
+            Hammasi
+          </Button>
+        </Link>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="h-24 rounded" />
+      ) : !data?.length ? (
+        <div className="text-center py-6">
+          <Calendar size={24} className="mx-auto text-text-muted opacity-30 mb-2" />
+          <p className="text-xs text-text-muted">Yaqin 7 kunda takroriy to'lov yo'q</p>
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {data.map(r => (
+            <div key={r.id} className="flex items-center gap-2 py-1.5 border-b border-border-primary/40 last:border-0">
+              <span className={cn('w-2 h-2 rounded-full shrink-0', TYPE_DOTS[r.type] ?? 'bg-text-muted')} />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-text-primary truncate">{r.title}</p>
+                <p className="text-[10px] text-text-muted">{formatDate(r.nextRunAt)}</p>
+              </div>
+              <span className="text-xs tabular-nums font-semibold text-text-primary shrink-0">
+                {formatCurrency(Number(r.amount))}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
   )
 }
 
@@ -278,6 +419,15 @@ export default function DashboardPage() {
                   iconBg={debtStats?.receivable.overdueCount ? 'bg-danger/10' : 'bg-warning/10'}
                   loading={!debtStats}
                 />
+              </div>
+            </WidgetWrapper>
+          )
+
+          if (widget.id === 'cashRec') return (
+            <WidgetWrapper key="cashRec" id="cashRec">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <CashTodayWidget />
+                <UpcomingRecurringWidget />
               </div>
             </WidgetWrapper>
           )

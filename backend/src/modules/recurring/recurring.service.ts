@@ -55,6 +55,23 @@ export class RecurringService {
     })
   }
 
+  // Yaqin 7 kun ichida ishga tushadigan qoidalar (Dashboard widget uchun)
+  async getUpcoming(companyId: string, days = 7) {
+    const now = new Date()
+    const until = new Date(now)
+    until.setDate(until.getDate() + days)
+
+    return this.prisma.recurringRule.findMany({
+      where: { companyId, isActive: true, nextRunAt: { lte: until } },
+      orderBy: { nextRunAt: 'asc' },
+      take: 5,
+      select: {
+        id: true, type: true, title: true, amount: true,
+        frequency: true, nextRunAt: true,
+      },
+    })
+  }
+
   async findOne(companyId: string, id: string) {
     const rule = await this.prisma.recurringRule.findFirst({
       where: { id, companyId },

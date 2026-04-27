@@ -37,6 +37,12 @@ export class CashExpensesController {
     return this.service.getStats(user.companyId, { from, to })
   }
 
+  @Get('today-summary')
+  @ApiOperation({ summary: 'Bugungi xarajatlar (Dashboard widget uchun)' })
+  getTodaySummary(@CurrentUser() user: any) {
+    return this.service.getTodaySummary(user.companyId)
+  }
+
   @Post()
   @ApiOperation({ summary: 'Kassadan chiqim yozish' })
   create(@CurrentUser() user: any, @Body() dto: CreateCashExpenseDto) {

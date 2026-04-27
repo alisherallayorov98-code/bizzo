@@ -315,6 +315,40 @@ export class CashExpensesService {
     }
   }
 
+  // ============================================
+  // BUGUNGI XULOSALAR — Dashboard widget uchun
+  // ============================================
+  async getTodaySummary(companyId: string) {
+    const today    = new Date(); today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
+    const monthAgo = new Date(today); monthAgo.setDate(monthAgo.getDate() - 30)
+
+    const [todayAgg, monthAgg, recent] = await Promise.all([
+      this.prisma.cashExpense.aggregate({
+        where: { companyId, expenseDate: { gte: today, lt: tomorrow } },
+        _sum:   { amount: true },
+        _count: true,
+      }),
+      this.prisma.cashExpense.aggregate({
+        where: { companyId, expenseDate: { gte: monthAgo } },
+        _sum:   { amount: true },
+        _count: true,
+      }),
+      this.prisma.cashExpense.findMany({
+        where: { companyId },
+        orderBy: { expenseDate: 'desc' },
+        take: 3,
+        select: { id: true, payeeName: true, amount: true, notes: true, expenseDate: true, category: true },
+      }),
+    ])
+
+    return {
+      today: { amount: Number(todayAgg._sum.amount ?? 0), count: todayAgg._count },
+      month: { amount: Number(monthAgg._sum.amount ?? 0), count: monthAgg._count },
+      recent: recent.map(r => ({ ...r, amount: Number(r.amount) })),
+    }
+  }
+
   private async computeDailyAverage(companyId: string, query: { from?: string; to?: string }) {
     const from = query.from ? new Date(query.from) : (() => {
       const d = new Date(); d.setDate(d.getDate() - 30); return d

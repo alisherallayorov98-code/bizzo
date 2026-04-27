@@ -9,11 +9,12 @@ export interface DashboardWidget {
 }
 
 const DEFAULT_WIDGETS: DashboardWidget[] = [
-  { id: 'kpi',    label: 'KPI kartalar',       visible: true, order: 0 },
-  { id: 'smart',  label: 'Smart tahlil',        visible: true, order: 1 },
-  { id: 'charts', label: 'Grafiklar va AI',     visible: true, order: 2 },
-  { id: 'stats',  label: 'Statistika bloki',    visible: true, order: 3 },
-  { id: 'quick',  label: 'Tezkor havolalar',    visible: true, order: 4 },
+  { id: 'kpi',     label: 'KPI kartalar',        visible: true, order: 0 },
+  { id: 'cashRec', label: 'Kassa va takroriy',   visible: true, order: 1 },
+  { id: 'smart',   label: 'Smart tahlil',         visible: true, order: 2 },
+  { id: 'charts',  label: 'Grafiklar va AI',      visible: true, order: 3 },
+  { id: 'stats',   label: 'Statistika bloki',     visible: true, order: 4 },
+  { id: 'quick',   label: 'Tezkor havolalar',     visible: true, order: 5 },
 ]
 
 interface DashboardState {

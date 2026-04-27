@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { Sparkles, X, Mic, MicOff, Send, Loader, User, Bot } from 'lucide-react'
+import { Sparkles, X, Mic, MicOff, Send, Loader, User, Bot, Trash2 } from 'lucide-react'
 import api from '@config/api'
 import { useAssistantActions, type AssistantAction, type ActionResult } from './useAssistantActions'
 import { cn } from '@utils/cn'
@@ -12,11 +12,32 @@ interface ChatMessage {
   result?: ActionResult
 }
 
+const HISTORY_KEY  = 'bizzo-assistant-history'
+const MAX_HISTORY  = 50
+
+function loadHistory(): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.slice(-MAX_HISTORY) : []
+  } catch { return [] }
+}
+
+function saveHistory(messages: ChatMessage[]) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(messages.slice(-MAX_HISTORY)))
+  } catch {}
+}
+
 export function AssistantWidget() {
   const [open,      setOpen]      = useState(false)
-  const [messages,  setMessages]  = useState<ChatMessage[]>([])
+  const [messages,  setMessages]  = useState<ChatMessage[]>(() => loadHistory())
   const [input,     setInput]     = useState('')
   const [recording, setRecording] = useState(false)
+
+  // Tarixni avtomatik saqlab borish
+  useEffect(() => { saveHistory(messages) }, [messages])
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef   = useRef<Blob[]>([])
@@ -29,7 +50,7 @@ export function AssistantWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Initial welcome
+  // Initial welcome (faqat tarix umuman bo'sh bo'lsa)
   useEffect(() => {
     if (open && messages.length === 0) {
       setMessages([{
@@ -38,7 +59,13 @@ export function AssistantWidget() {
         text: 'Assalomu alaykum! 👋 Men sizning AI yordamchingizman.\n\n**Misollar:**\n• "Akmalga 200 ming chiqim qil yetkazib berish uchun"\n• "Bugun qancha sotdim?"\n• "Ombor sahifasini och"\n• "Bobur Karimovni topib ber"\n\nYozing yoki mikrofonni bosib gapiring.',
       }])
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  const clearHistory = () => {
+    setMessages([])
+    try { localStorage.removeItem(HISTORY_KEY) } catch {}
+  }
 
   // ============================================
   // YOZMA BUYRUQ
@@ -175,12 +202,24 @@ export function AssistantWidget() {
                 <p className="text-[10px] text-text-muted">Yozing yoki mikrofon bilan gapiring</p>
               </div>
             </div>
-            <button
-              onClick={() => setOpen(false)}
-              className="text-text-muted hover:text-text-primary p-1 rounded hover:bg-bg-tertiary"
-            >
-              <X size={16} />
-            </button>
+            <div className="flex items-center gap-1">
+              {messages.length > 1 && (
+                <button
+                  onClick={clearHistory}
+                  className="text-text-muted hover:text-danger p-1 rounded hover:bg-danger/10"
+                  title="Tarixni tozalash"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+              <button
+                onClick={() => setOpen(false)}
+                className="text-text-muted hover:text-text-primary p-1 rounded hover:bg-bg-tertiary"
+                title="Yopish"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}

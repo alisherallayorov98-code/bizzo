@@ -18,6 +18,12 @@ export class RecurringController {
     return this.service.findAll(user.companyId)
   }
 
+  @Get('upcoming')
+  @ApiOperation({ summary: 'Yaqin kunlardagi takroriy operatsiyalar (Dashboard uchun)' })
+  getUpcoming(@CurrentUser() user: any) {
+    return this.service.getUpcoming(user.companyId, 7)
+  }
+
   @Post()
   @ApiOperation({ summary: 'Yangi takroriy operatsiya' })
   create(@CurrentUser() user: any, @Body() dto: CreateRecurringDto) {
