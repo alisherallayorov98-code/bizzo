@@ -75,6 +75,22 @@ export class ContactsController {
   }
 
   // ============================================
+  // KONTAKTNING ENG KO'P ISHLATILGAN MAHSULOTLARI
+  // ============================================
+  @Get(':id/frequent-products')
+  @ApiOperation({ summary: "Auto-fill uchun: oxirgi narx + miqdor" })
+  getFrequentProducts(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Query('type') type?: 'IN' | 'OUT',
+    @Query('limit') limit?: string,
+  ) {
+    return this.contactsService.getFrequentProducts(
+      user.companyId, id, type, limit ? Number(limit) : 20,
+    );
+  }
+
+  // ============================================
   // TO'LIQ TRANZAKSIYALAR HISOBOTI
   // ============================================
   @Get(':id/transactions')

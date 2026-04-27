@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 import {
   Plus, Trash2, ArrowDownToLine, Search,
-  AlertTriangle, ChevronDown, Printer,
+  AlertTriangle, ChevronDown, Printer, RotateCcw, Sparkles,
 } from 'lucide-react'
 import { PageHeader } from '@components/layout/PageHeader/PageHeader'
 import { Button } from '@components/ui/Button/Button'
@@ -16,6 +18,18 @@ import { cn } from '@utils/cn'
 import type { Product } from '@services/product.service'
 import { printHTML, generateNakladnaya } from '@utils/printDocument'
 import { useAuthStore } from '@store/auth.store'
+import api from '@config/api'
+
+interface FrequentProduct {
+  productId:   string
+  product:     { id: string; name: string; code?: string; unit: string; sellPrice: number; buyPrice: number }
+  useCount:    number
+  totalQty:    number
+  totalAmount: number
+  lastPrice:   number | null
+  lastQty:     number | null
+  lastDate:    string | null
+}
 
 // ============================================
 // TYPES
@@ -131,6 +145,18 @@ export default function IncomingPage() {
   const { data: stockItems = [] }           = useStockOverview(warehouseId || undefined)
   const createIncoming                      = useCreateIncoming()
 
+  // Tanlangan yetkazib beruvchining ko'p ishlatadigan mahsulotlari
+  const { data: frequentProducts = [] } = useQuery<FrequentProduct[]>({
+    queryKey: ['frequent-products', contactId, 'IN'],
+    queryFn: async () => {
+      const r = await api.get(`/contacts/${contactId}/frequent-products`, {
+        params: { type: 'IN', limit: 12 },
+      })
+      return r.data.data ?? []
+    },
+    enabled: !!contactId,
+  })
+
   const addLine = useCallback(() => {
     setLines(prev => [
       ...prev,
@@ -146,12 +172,49 @@ export default function IncomingPage() {
     setLines(prev => prev.map(l => l.id === id ? { ...l, ...patch } : l))
   }, [])
 
-  const handleProductChange = useCallback((id: string, product: Product) => {
+  const handleProductChange = useCallback(async (id: string, product: Product) => {
+    // Default narx — buyPrice
+    let price = product.buyPrice ?? 0
+    let lastInfo: { price: number; date: string } | null = null
+
+    // Backenddan oxirgi narxni so'rash (kontakt + mahsulot bo'yicha)
+    try {
+      const res = await api.get(`/products/${product.id}/last-price`, {
+        params: { contactId: contactId || undefined, type: 'IN' },
+      })
+      const data = res.data.data
+      if (data?.last?.price > 0) {
+        price = data.last.price
+        lastInfo = { price: data.last.price, date: data.last.date }
+      }
+    } catch {}
+
     setLines(prev => prev.map(l =>
-      l.id === id
-        ? { ...l, productId: product.id, product, price: product.buyPrice ?? 0 }
-        : l,
+      l.id === id ? { ...l, productId: product.id, product, price } : l,
     ))
+
+    if (lastInfo) {
+      toast.success(
+        `Oxirgi narx: ${formatCurrency(lastInfo.price)} (${new Date(lastInfo.date).toLocaleDateString('uz-UZ')})`,
+        { duration: 2500 },
+      )
+    }
+  }, [contactId])
+
+  // Frequent product'ni qator sifatida qo'shish (1 bosish bilan)
+  const addFromFrequent = useCallback((fp: FrequentProduct) => {
+    const newLine: DocLine = {
+      id:        crypto.randomUUID(),
+      productId: fp.product.id,
+      product:   fp.product as any,
+      quantity:  fp.lastQty ?? 1,
+      price:     fp.lastPrice ?? fp.product.buyPrice,
+    }
+    setLines(prev => {
+      // Agar bo'sh oxirgi qator bo'lsa, uni almashtir
+      if (prev.length === 1 && !prev[0].productId) return [newLine]
+      return [...prev, newLine]
+    })
   }, [])
 
   const totalAmount = lines.reduce((s, l) => s + l.quantity * l.price, 0)
@@ -258,6 +321,40 @@ export default function IncomingPage() {
           </div>
         </div>
       </Card>
+
+      {/* Tez-tez olib keladigan mahsulotlar */}
+      {contactId && frequentProducts.length > 0 && (
+        <Card>
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles size={14} className="text-accent-primary" />
+            <h3 className="text-sm font-semibold text-text-primary">Bu yetkazuvchidan ko'p olinadigan mahsulotlar</h3>
+            <span className="text-xs text-text-muted">— bir bosish bilan qo'shish</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+            {frequentProducts.map(fp => (
+              <button
+                key={fp.productId}
+                type="button"
+                onClick={() => addFromFrequent(fp)}
+                className="group flex flex-col items-start gap-1 p-3 rounded-lg border border-border-primary bg-bg-secondary hover:bg-accent-primary/5 hover:border-accent-primary/40 transition-all text-left"
+              >
+                <p className="text-sm font-medium text-text-primary truncate w-full">{fp.product.name}</p>
+                <div className="flex items-center justify-between w-full text-xs">
+                  <span className="text-text-muted">{fp.useCount} marta</span>
+                  {fp.lastPrice !== null && (
+                    <span className="font-semibold text-accent-primary tabular-nums">{formatCurrency(fp.lastPrice)}</span>
+                  )}
+                </div>
+                {fp.lastDate && (
+                  <span className="text-[10px] text-text-muted">
+                    Oxirgi: {new Date(fp.lastDate).toLocaleDateString('uz-UZ')}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Mahsulotlar jadvali */}
       <Card padding="none">

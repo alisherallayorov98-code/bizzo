@@ -316,6 +316,60 @@ export class ProductsService {
   }
 
   // ============================================
+  // OXIRGI NARX (auto-fill uchun)
+  // ============================================
+  async getLastPrice(
+    companyId: string,
+    productId: string,
+    contactId?: string,
+    type?: 'IN' | 'OUT',
+  ) {
+    const product = await this.prisma.product.findFirst({
+      where:  { id: productId, companyId, isActive: true },
+      select: { id: true, sellPrice: true, buyPrice: true },
+    });
+    if (!product) return null;
+
+    const where: any = { productId, warehouse: { companyId } };
+    if (contactId) where.contactId = contactId;
+    if (type)      where.type      = type;
+
+    const last = await this.prisma.stockMovement.findFirst({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select:  { price: true, quantity: true, createdAt: true, type: true, contactId: true },
+    }).catch(() => null);
+
+    // Stat: oxirgi 30 kunlik o'rtacha narx (anomaliya tekshirish uchun)
+    const monthAgo = new Date();
+    monthAgo.setDate(monthAgo.getDate() - 30);
+    const recent = await this.prisma.stockMovement.aggregate({
+      where: { productId, warehouse: { companyId }, ...(type && { type }), createdAt: { gte: monthAgo } },
+      _avg: { price: true },
+      _min: { price: true },
+      _max: { price: true },
+      _count: true,
+    }).catch(() => null);
+
+    return {
+      last: last ? {
+        price:    Number(last.price),
+        quantity: Number(last.quantity),
+        date:     last.createdAt,
+        type:     last.type,
+        contactId: last.contactId,
+      } : null,
+      recent: recent ? {
+        avg:   recent._avg.price ? Number(recent._avg.price) : null,
+        min:   recent._min.price ? Number(recent._min.price) : null,
+        max:   recent._max.price ? Number(recent._max.price) : null,
+        count: recent._count,
+      } : null,
+      defaultPrice: type === 'OUT' ? Number(product.sellPrice) : Number(product.buyPrice),
+    };
+  }
+
+  // ============================================
   // STATISTIKA
   // ============================================
   async getStats(companyId: string) {

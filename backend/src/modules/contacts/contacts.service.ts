@@ -385,6 +385,67 @@ export class ContactsService {
   }
 
   // ============================================
+  // KONTAKTNING ENG KO'P ISHLATILADIGAN MAHSULOTLARI
+  // (oxirgi narx, oxirgi sana, soni — auto-fill uchun)
+  // ============================================
+  async getFrequentProducts(
+    companyId: string,
+    contactId: string,
+    type?: 'IN' | 'OUT',
+    limit = 20,
+  ) {
+    const where: any = { contactId, warehouse: { companyId } };
+    if (type) where.type = type;
+
+    // Top product IDs — eng ko'p uchragan
+    const grouped = await this.prisma.stockMovement.groupBy({
+      by:    ['productId'],
+      where,
+      _count: true,
+      _sum:   { quantity: true, totalAmount: true },
+      orderBy: { _count: { productId: 'desc' } },
+      take:    limit,
+    }).catch(() => [] as any[]);
+
+    if (grouped.length === 0) return [];
+
+    const productIds = grouped.map(g => g.productId);
+    const products   = await this.prisma.product.findMany({
+      where:  { id: { in: productIds }, companyId, isActive: true },
+      select: { id: true, name: true, code: true, unit: true, sellPrice: true, buyPrice: true },
+    });
+    const productMap = new Map(products.map(p => [p.id, p]));
+
+    // Har bir mahsulot uchun OXIRGI tranzaksiya (sana + narx)
+    const lastByProduct = await Promise.all(
+      productIds.map(pid =>
+        this.prisma.stockMovement.findFirst({
+          where:   { contactId, productId: pid, warehouse: { companyId }, ...(type && { type }) },
+          orderBy: { createdAt: 'desc' },
+          select:  { createdAt: true, price: true, quantity: true, type: true },
+        })
+      )
+    );
+
+    return grouped.map((g, i) => {
+      const product = productMap.get(g.productId);
+      const last    = lastByProduct[i];
+      if (!product) return null;
+      return {
+        productId:   product.id,
+        product,
+        useCount:    g._count,
+        totalQty:    Number(g._sum.quantity ?? 0),
+        totalAmount: Number(g._sum.totalAmount ?? 0),
+        lastPrice:   last ? Number(last.price) : null,
+        lastQty:     last ? Number(last.quantity) : null,
+        lastDate:    last?.createdAt ?? null,
+        lastType:    last?.type ?? null,
+      };
+    }).filter(Boolean);
+  }
+
+  // ============================================
   // KONTAKT TRANZAKSIYALARI HISOBOTI
   // (sana, mahsulot, miqdor, narx, summa)
   // ============================================

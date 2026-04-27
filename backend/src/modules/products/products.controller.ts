@@ -47,6 +47,20 @@ export class ProductsController {
   }
 
   // ============================================
+  // OXIRGI NARX — auto-fill uchun
+  // ============================================
+  @Get(':id/last-price')
+  @ApiOperation({ summary: 'Mahsulotning oxirgi tranzaksiya narxi' })
+  getLastPrice(
+    @CurrentUser() user: any,
+    @Param('id') id: string,
+    @Query('contactId') contactId?: string,
+    @Query('type') type?: 'IN' | 'OUT',
+  ) {
+    return this.productsService.getLastPrice(user.companyId, id, contactId, type);
+  }
+
+  // ============================================
   // KATEGORIYALAR — :id dan oldin!
   // ============================================
   @Get('categories')
