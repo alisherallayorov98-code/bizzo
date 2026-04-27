@@ -42,6 +42,7 @@ import { UploadModule }           from './modules/upload/upload.module'
 import { AttachmentsModule }      from './modules/attachments/attachments.module';
 import { RecurringModule }        from './modules/recurring/recurring.module';
 import { CashExpensesModule }     from './modules/cash-expenses/cash-expenses.module';
+import { AssistantModule }        from './modules/assistant/assistant.module';
 
 // Xavfsizlik middleware
 import { SecurityMiddleware } from './common/middleware/security.middleware';
@@ -96,6 +97,7 @@ import { RateLimitMiddleware, RATE_LIMITS } from './common/middleware/rate-limit
     AttachmentsModule,
     RecurringModule,
     CashExpensesModule,
+    AssistantModule,
   ],
   controllers: [AppController],
   providers: [

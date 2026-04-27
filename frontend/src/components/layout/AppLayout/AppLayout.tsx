@@ -10,6 +10,7 @@ import { useMobile, usePullToRefresh, usePWAInstall } from '@hooks/useMobile'
 import { OnboardingWizard } from '@components/onboarding/OnboardingWizard'
 import { HelpCenter } from '@components/shared/HelpCenter/HelpCenter'
 import { CommandPalette } from '@components/shared/CommandPalette/CommandPalette'
+import { AssistantWidget } from '@components/shared/AssistantWidget/AssistantWidget'
 import { PageSkeleton } from '@components/ui/Skeleton/PageSkeleton'
 import { useOnboardingStore } from '@store/onboarding.store'
 import { useAuthStore } from '@store/auth.store'
@@ -186,6 +187,7 @@ export function AppLayout() {
       <HelpCenter />
       <OnboardingWizard />
       <CommandPalette />
+      <AssistantWidget />
     </div>
   )
 }
