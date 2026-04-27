@@ -12,12 +12,12 @@ export interface AIRecommendation {
 
 @Injectable()
 export class AiService {
-  private client: Anthropic
+  private client: Anthropic | null
 
   constructor(private prisma: PrismaService) {
-    this.client = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    })
+    this.client = process.env.ANTHROPIC_API_KEY
+      ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+      : null
   }
 
   // ============================================
@@ -150,6 +150,7 @@ export class AiService {
   // NATURAL TIL SO'ROVI
   // ============================================
   async query(companyId: string, userQuestion: string): Promise<string> {
+    if (!this.client) return 'AI sozlanmagan (ANTHROPIC_API_KEY yo\'q)'
     const data = await this.gatherCompanyData(companyId)
 
     const systemPrompt = `Sen BIZZO ERP platformasining aqlli yordamchisissan.
@@ -331,6 +332,7 @@ ${productHint || '(bazada mahsulotlar yo\'q)'}
 Faqat JSON qaytar, izoh qo'shma. Agar rasm noaniq bo'lsa, lines bo'sh massiv qaytar.`
 
     try {
+      if (!this.client) throw new Error('Claude not configured')
       const response = await this.client.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 2048,

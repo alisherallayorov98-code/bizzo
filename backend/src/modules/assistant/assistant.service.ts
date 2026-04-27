@@ -7,11 +7,13 @@ import { SYSTEM_PROMPT, AssistantAction } from './actions.schema'
 @Injectable()
 export class AssistantService {
   private readonly logger = new Logger(AssistantService.name)
-  private claude: Anthropic
+  private claude: Anthropic | null
   private gemini: GoogleGenerativeAI | null
 
   constructor(private readonly prisma: PrismaService) {
-    this.claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    this.claude = process.env.ANTHROPIC_API_KEY
+      ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+      : null
     this.gemini = process.env.GEMINI_API_KEY
       ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
       : null
@@ -21,7 +23,7 @@ export class AssistantService {
   // YOZMA BUYRUQ — Claude orqali
   // ============================================
   async processText(_companyId: string, text: string): Promise<AssistantAction> {
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!this.claude) {
       return { action: 'unknown', message: 'AI sozlanmagan (ANTHROPIC_API_KEY yo\'q)' }
     }
 
