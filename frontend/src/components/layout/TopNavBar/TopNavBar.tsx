@@ -223,17 +223,19 @@ function ModulesDropdown() {
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap',
+          'flex items-center gap-1.5 px-2.5 h-9 rounded-md text-[13px] font-medium transition-all whitespace-nowrap shrink-0',
           isModuleActive
             ? 'text-accent-primary bg-accent-primary/10'
             : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
         )}
       >
         <span>Modullar</span>
-        <ChevronDown size={13} className={cn('transition-transform', open && 'rotate-180')} />
         {activeModules.length > 0 && (
-          <span className="w-1.5 h-1.5 rounded-full bg-accent-primary" />
+          <span className="text-[10px] tabular-nums bg-accent-primary/15 text-accent-primary px-1.5 py-0.5 rounded-full">
+            {activeModules.length}
+          </span>
         )}
+        <ChevronDown size={12} className={cn('transition-transform', open && 'rotate-180')} />
       </button>
 
       {open && (
@@ -305,21 +307,23 @@ function NavButton({ item }: { item: NavItem }) {
       ? location.pathname === '/dashboard'
       : location.pathname.startsWith(item.path)
 
+  const Icon = item.icon
+  const label = t(item.tKey as any) || item.label
+
   return (
     <button
       onClick={() => navigate(item.path)}
+      title={label}
       className={cn(
-        'relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium',
+        'relative flex items-center gap-1.5 px-2.5 h-9 rounded-md text-[13px] font-medium',
         'transition-all duration-150 whitespace-nowrap shrink-0',
         isActive
           ? 'text-accent-primary bg-accent-primary/10'
           : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary',
       )}
     >
-      {isActive && (
-        <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-accent-primary rounded-full" />
-      )}
-      {t(item.tKey as any) || item.label}
+      {Icon && <Icon size={14} className="shrink-0" />}
+      <span>{label}</span>
       {item.badge !== undefined && (
         <Badge variant="danger" size="sm">{item.badge}</Badge>
       )}
@@ -470,15 +474,15 @@ export function TopNavBar() {
       <MorningDigest />
 
       <div className="fixed top-0 left-0 right-0 z-30 flex flex-col bg-bg-secondary/95 backdrop-blur-md border-b border-border-primary">
-        {/* === 1-QATOR: LOGO + O'NG TUGMALAR === */}
-        <header className="h-14 flex items-center gap-1 px-3">
+        {/* === 1-QATOR: LOGO + SEARCH + ACTIONS === */}
+        <header className="h-14 flex items-center gap-3 px-4">
 
           {/* Logo */}
-          <NavLink to="/dashboard" className="flex items-center gap-2 mr-2 shrink-0 group">
+          <NavLink to="/dashboard" className="flex items-center gap-2 shrink-0 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-primary to-purple-600 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
               <span className="text-white font-black text-base">B</span>
             </div>
-            <span className="font-display font-black text-text-primary text-base tracking-tight">
+            <span className="hidden sm:block font-display font-black text-text-primary text-base tracking-tight">
               BIZZO
             </span>
           </NavLink>
@@ -491,11 +495,13 @@ export function TopNavBar() {
             <Menu size={18} />
           </button>
 
+          {/* Search — markazda, kengaytirilgan */}
+          <div className="hidden md:flex flex-1 max-w-2xl">
+            <UniversalSearch />
+          </div>
+
           {/* O'ng tomon */}
           <div className="flex items-center gap-1 ml-auto shrink-0">
-            <div className="hidden md:block">
-              <UniversalSearch />
-            </div>
             <button
               title="Sahifalar ro'yxati (Ctrl+Shift+P)"
               onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'P', ctrlKey: true, shiftKey: true, bubbles: true }))}
@@ -518,8 +524,8 @@ export function TopNavBar() {
           </div>
         </header>
 
-        {/* === 2-QATOR: NAVIGATSIYA (wrap bilan, sig'masa pastga tushadi) === */}
-        <nav className="hidden lg:flex flex-wrap items-center gap-0.5 px-3 pb-2 pt-1 border-t border-border-primary/40">
+        {/* === 2-QATOR: NAVIGATSIYA (gorizontal scroll bilan) === */}
+        <nav className="hidden lg:flex items-center gap-0.5 px-3 h-12 border-t border-border-primary/40 overflow-x-auto scrollbar-none">
           {CORE_NAV_ITEMS.map(item => (
             <NavButton key={item.id} item={item} />
           ))}

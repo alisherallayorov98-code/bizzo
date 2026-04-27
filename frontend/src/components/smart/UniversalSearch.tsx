@@ -168,12 +168,13 @@ export function UniversalSearch() {
           border: '1px solid rgba(255,255,255,0.08)',
           color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: 13,
           transition: 'all 0.15s',
+          width: '100%',
         }}
         onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(59,130,246,0.4)'; e.currentTarget.style.color = 'var(--color-text-secondary)' }}
         onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = 'var(--color-text-muted)' }}
       >
         <Search size={14} />
-        <span>Qidirish...</span>
+        <span style={{ flex: 1, textAlign: 'left' }}>Qidirish... (mahsulot, mijoz, hujjat)</span>
         <span style={{
           padding: '1px 6px', borderRadius: 4, fontSize: 11,
           backgroundColor: 'rgba(255,255,255,0.06)', color: 'var(--color-text-muted)',

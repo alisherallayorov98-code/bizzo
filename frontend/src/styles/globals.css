@@ -128,7 +128,7 @@ body {
   /* === LAYOUT === */
   --sidebar-width:     260px;
   --sidebar-collapsed: 64px;
-  --header-height:     104px; /* 2 qator: 56px (logo+actions) + 48px (nav) */
+  --header-height:     105px; /* 2 qator: 56px (logo+search+actions) + 49px (nav + border) */
   --subtab-height:     36px;
   --page-padding:      24px;
 
