@@ -27,6 +27,8 @@ interface FrequentProduct {
   lastDate:    string | null
 }
 
+interface PriceStats { avg: number | null; min: number | null; max: number | null; count: number }
+
 // ============================================
 // TYPES
 // ============================================
@@ -36,6 +38,7 @@ interface DocLine {
   product:   Product | null
   quantity:  number
   price:     number
+  priceStats?: PriceStats
 }
 
 // ============================================
@@ -187,6 +190,7 @@ export default function OutgoingPage() {
   const handleProductChange = useCallback(async (id: string, product: Product) => {
     let price = product.sellPrice ?? 0
     let lastInfo: { price: number; date: string } | null = null
+    let priceStats: PriceStats | undefined = undefined
 
     try {
       const res = await api.get(`/products/${product.id}/last-price`, {
@@ -197,10 +201,11 @@ export default function OutgoingPage() {
         price = data.last.price
         lastInfo = { price: data.last.price, date: data.last.date }
       }
+      if (data?.recent) priceStats = data.recent
     } catch {}
 
     setLines(prev => prev.map(l =>
-      l.id === id ? { ...l, productId: product.id, product, price } : l,
+      l.id === id ? { ...l, productId: product.id, product, price, priceStats } : l,
     ))
 
     if (lastInfo) {
@@ -510,14 +515,35 @@ export default function OutgoingPage() {
                       )}
                     </td>
                     <td className="px-4 py-2 text-right">
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={line.price}
-                        onChange={e => updateLine(line.id, { price: parseFloat(e.target.value) || 0 })}
-                        className="w-32 px-2 py-1.5 rounded-lg border border-border-primary bg-bg-secondary text-sm text-right text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-primary tabular-nums"
-                      />
+                      {(() => {
+                        const stats = line.priceStats
+                        let warning: string | null = null
+                        if (stats?.avg && stats.count >= 2 && line.price > 0) {
+                          const deviation = ((line.price - stats.avg) / stats.avg) * 100
+                          if (deviation > 30)        warning = `O'rtachadan ${Math.round(deviation)}% yuqori`
+                          else if (deviation < -30)  warning = `O'rtachadan ${Math.round(Math.abs(deviation))}% past`
+                        }
+                        return (
+                          <div className="flex flex-col items-end">
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={line.price}
+                              onChange={e => updateLine(line.id, { price: parseFloat(e.target.value) || 0 })}
+                              className={cn(
+                                'w-32 px-2 py-1.5 rounded-lg border bg-bg-secondary text-sm text-right text-text-primary focus:outline-none focus:ring-1 focus:ring-accent-primary tabular-nums',
+                                warning ? 'border-warning' : 'border-border-primary',
+                              )}
+                            />
+                            {warning && (
+                              <span className="text-[10px] text-warning mt-0.5" title={warning}>
+                                ⚠ {warning}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-2 text-right">
                       <span className="text-sm font-medium tabular-nums text-text-primary">
