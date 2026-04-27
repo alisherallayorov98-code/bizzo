@@ -77,7 +77,9 @@
     "productionBatches": "Производство",
     "service": "Сервис",
     "serviceTickets": "Обращения",
-    "pos": "POS Касса"
+    "pos": "POS Касса",
+    "cashExpenses": "Расходы из кассы",
+    "recurring": "Повторяющиеся"
   },
   "header": {
     "searchPlaceholder": "Поиск...",

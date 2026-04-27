@@ -77,7 +77,9 @@
     "productionBatches": "Ishlab chiqarish",
     "service": "Xizmat ko'rsatish",
     "serviceTickets": "Murojaatlar",
-    "pos": "POS Kassa"
+    "pos": "POS Kassa",
+    "cashExpenses": "Kassa xarajatlari",
+    "recurring": "Takroriy"
   },
   "header": {
     "searchPlaceholder": "Qidirish...",

@@ -469,16 +469,16 @@ export function TopNavBar() {
     <>
       <MorningDigest />
 
-      <div className="fixed top-0 left-0 right-0 z-30 flex flex-col">
-        {/* === 1-QATOR: ASOSIY NAV === */}
-        <header className="h-[var(--header-height)] bg-bg-secondary/95 backdrop-blur-md border-b border-border-primary flex items-center gap-1 px-3">
+      <div className="fixed top-0 left-0 right-0 z-30 flex flex-col bg-bg-secondary/95 backdrop-blur-md border-b border-border-primary">
+        {/* === 1-QATOR: LOGO + O'NG TUGMALAR === */}
+        <header className="h-14 flex items-center gap-1 px-3">
 
           {/* Logo */}
           <NavLink to="/dashboard" className="flex items-center gap-2 mr-2 shrink-0 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-primary to-purple-600 flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
               <span className="text-white font-black text-base">B</span>
             </div>
-            <span className="hidden lg:block font-display font-black text-text-primary text-base tracking-tight">
+            <span className="font-display font-black text-text-primary text-base tracking-tight">
               BIZZO
             </span>
           </NavLink>
@@ -490,15 +490,6 @@ export function TopNavBar() {
           >
             <Menu size={18} />
           </button>
-
-          {/* Desktop navigatsiya */}
-          <nav className="hidden lg:flex items-center gap-0.5 flex-1 overflow-x-auto scrollbar-none">
-            {CORE_NAV_ITEMS.map(item => (
-              <NavButton key={item.id} item={item} />
-            ))}
-            <div className="w-px h-4 bg-border-primary mx-1 shrink-0" />
-            <ModulesDropdown />
-          </nav>
 
           {/* O'ng tomon */}
           <div className="flex items-center gap-1 ml-auto shrink-0">
@@ -527,7 +518,16 @@ export function TopNavBar() {
           </div>
         </header>
 
-        {/* === 2-QATOR: SUB-TABS (kerak bo'lganda) === */}
+        {/* === 2-QATOR: NAVIGATSIYA (wrap bilan, sig'masa pastga tushadi) === */}
+        <nav className="hidden lg:flex flex-wrap items-center gap-0.5 px-3 pb-2 pt-1 border-t border-border-primary/40">
+          {CORE_NAV_ITEMS.map(item => (
+            <NavButton key={item.id} item={item} />
+          ))}
+          <div className="w-px h-4 bg-border-primary mx-1 shrink-0" />
+          <ModulesDropdown />
+        </nav>
+
+        {/* === 3-QATOR: SUB-TABS (kerak bo'lganda) === */}
         <SubTabBar />
       </div>
 
