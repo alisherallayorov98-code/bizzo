@@ -38,7 +38,6 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
   '/settings/users':      ['ADMIN'],
   '/billing':             ['ADMIN'],
   '/contracts':           ['ADMIN', 'MANAGER', 'ACCOUNTANT'],
-  '/service':             ['ADMIN', 'MANAGER', 'SALESPERSON'],
   '/pos':                 ['ADMIN', 'MANAGER', 'SALESPERSON'],
 }
 

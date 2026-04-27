@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { wasteService } from '@services/waste.service'
-import { contactsService } from '@services/contacts.service'
+import { contactService } from '@services/contact.service'
 
 const fmt   = (n: number) => new Intl.NumberFormat('uz-UZ').format(Math.round(n))
 const fmtKg = (n: number) => `${n.toFixed(2)} kg`
@@ -23,7 +23,7 @@ export default function WasteBatchDetailPage() {
 
   const { data: contacts } = useQuery({
     queryKey: ['contacts-list'],
-    queryFn:  () => contactsService.getAll({ limit: 200 }),
+    queryFn:  () => contactService.getAll({ limit: 200 }),
   })
 
   const sellMutation = useMutation({

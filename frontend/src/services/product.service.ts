@@ -4,26 +4,32 @@ import api from '@config/api'
 // TYPES
 // ============================================
 export interface Product {
-  id:           string
-  companyId:    string
-  code?:        string
-  barcode?:     string
-  name:         string
-  description?: string
-  category?:    string
-  unit:         string
-  buyPrice:     number
-  sellPrice:    number
-  minPrice:     number
-  minStock:     number
-  isService:    boolean
-  isActive:     boolean
-  createdAt:    string
-  updatedAt:    string
-  // Computed
-  totalStock?:  number
-  avgPrice?:    number
-  isLow?:       boolean
+  id:              string
+  companyId:       string
+  code?:           string
+  barcode?:        string
+  name:            string
+  description?:    string
+  category?:       string
+  unit:            string
+  buyPrice:        number
+  sellPrice:       number
+  wholesalePrice?: number
+  vipPrice?:       number
+  minPrice:        number
+  minStock:        number
+  isService:       boolean
+  isActive:        boolean
+  image?:          string
+  createdAt:       string
+  updatedAt:       string
+  // Computed / relational (varies per endpoint)
+  totalStock?:     number
+  avgPrice?:       number
+  isLow?:          boolean
+  movements?:      any[]
+  dealItems?:      any[]
+  stockItems?:     any[]
 }
 
 export interface ProductStats {

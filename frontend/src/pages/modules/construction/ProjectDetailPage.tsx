@@ -438,6 +438,7 @@ export default function ProjectDetailPage() {
   const currentStatus = STATUS_FLOW.find(s => s.status === project.status)
 
   return (
+    <>
     <div>
       <PageHeader
         title={project.name}
@@ -827,6 +828,6 @@ export default function ProjectDetailPage() {
       <AddBudgetModal  projectId={id!} open={budgetModal}  onClose={() => setBudgetModal(false)} />
       <AddExpenseModal projectId={id!} open={expenseModal} onClose={() => setExpenseModal(false)} />
       <AddTaskModal    projectId={id!} open={taskModal}    onClose={() => setTaskModal(false)} />
-    </div>
+    </>
   )
 }
