@@ -75,6 +75,9 @@ const ImportCenterPage    = lazy(() => import('@pages/import/ImportCenterPage'))
 // Recurring
 const RecurringPage       = lazy(() => import('@pages/recurring/RecurringPage'))
 
+// Cash Expenses
+const CashExpensesPage    = lazy(() => import('@pages/cash-expenses/CashExpensesPage'))
+
 // Landing
 const LandingLayout       = lazy(() => import('@pages/landing/LandingLayout').then(m => ({ default: m.LandingLayout })))
 const LandingPage         = lazy(() => import('@pages/landing/LandingPage'))
@@ -239,6 +242,9 @@ export default function App() {
 
                 {/* Takroriy operatsiyalar */}
                 <Route path="/recurring" element={<RecurringPage />} />
+
+                {/* Kassa xarajatlari */}
+                <Route path="/cash-expenses" element={<CashExpensesPage />} />
 
                 {/* Sozlamalar */}
                 <Route path="/settings/*" element={<PermissionGate><CompanySettingsPage /></PermissionGate>} />

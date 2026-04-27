@@ -1475,6 +1475,71 @@ model Attachment {
 }
 
 // ============================================================
+// HAYDOVCHILAR (DRIVERS) — yetkazib berish uchun
+// (korxona xodimi emas, alohida kontakt sifatida saqlanadi)
+// ============================================================
+
+model Driver {
+  id          String   @id @default(cuid())
+  companyId   String
+
+  name        String
+  phone       String?
+  carPlate    String?
+  isPermanent Boolean  @default(false)
+  notes       String?
+  isActive    Boolean  @default(true)
+
+  totalPaid   Decimal  @default(0) @db.Decimal(18, 2)
+  payCount    Int      @default(0)
+  lastPaidAt  DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  expenses    CashExpense[]
+
+  @@index([companyId, isActive])
+  @@index([companyId, isPermanent])
+  @@map("drivers")
+}
+
+// ============================================================
+// KASSA XARAJATLARI (CASH EXPENSES)
+// ============================================================
+
+model CashExpense {
+  id          String   @id @default(cuid())
+  companyId   String
+
+  category    String   // DELIVERY | TRANSPORT | UTILITY | SUPPLIES | SALARY_ADVANCE | OTHER
+  amount      Decimal  @db.Decimal(18, 2)
+  currency    String   @default("UZS")
+
+  // Kim oldi (driver yoki istalgan shaxs)
+  driverId    String?
+  driver      Driver?  @relation(fields: [driverId], references: [id])
+  payeeName   String   // Majburiy: haydovchi/qabul qiluvchi ismi
+  payeePhone  String?
+
+  notes       String   // Majburiy: nima uchun chiqim
+  receiptUrl  String?
+
+  // Optional links
+  contactId   String?
+  warehouseId String?
+
+  expenseDate DateTime @default(now())
+  createdAt   DateTime @default(now())
+  createdById String?
+
+  @@index([companyId, expenseDate])
+  @@index([companyId, category])
+  @@index([driverId])
+  @@map("cash_expenses")
+}
+
+// ============================================================
 // TAKRORIY OPERATSIYALAR (RECURRING TRANSACTIONS)
 // ============================================================
 

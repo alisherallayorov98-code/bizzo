@@ -5,7 +5,7 @@ import {
   Factory, Wrench, FileText, Bell, Activity,
   Upload, ArrowDownToLine, ArrowUpFromLine,
   ClipboardList, TrendingUp, DollarSign, ScanLine,
-  Repeat,
+  Repeat, Banknote,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -162,6 +162,13 @@ export const CORE_NAV_ITEMS: NavItem[] = [
     tKey:  'nav.import',
     path:  '/import',
     icon:  Upload,
+  },
+  {
+    id:    'cash-expenses',
+    label: 'Kassa xarajatlari',
+    tKey:  'nav.cashExpenses',
+    path:  '/cash-expenses',
+    icon:  Banknote,
   },
   {
     id:    'recurring',
