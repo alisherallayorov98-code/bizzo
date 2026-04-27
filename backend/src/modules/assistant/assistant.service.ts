@@ -17,6 +17,11 @@ export class AssistantService {
     this.gemini = process.env.GEMINI_API_KEY
       ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
       : null
+
+    this.logger.log(
+      `AssistantService init — Claude: ${this.claude ? 'YES (' + (process.env.ANTHROPIC_API_KEY?.length ?? 0) + ' chars)' : 'NO'}, ` +
+      `Gemini: ${this.gemini ? 'YES (' + (process.env.GEMINI_API_KEY?.length ?? 0) + ' chars)' : 'NO'}`,
+    )
   }
 
   // ============================================
