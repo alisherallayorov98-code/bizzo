@@ -194,11 +194,12 @@ export class WasteService {
           qualityType: { select: { name: true, color: true } },
           processingRecords: {
             select: {
-              id:             true,
-              outputWeight:   true,
-              lossWeight:     true,
-              lossPercent:    true,
-              processedAt:    true,
+              id:              true,
+              processedWeight: true,
+              outputWeight:    true,
+              lossWeight:      true,
+              lossPercent:     true,
+              processedAt:     true,
             },
           },
           _count: { select: { processingRecords: true } },
