@@ -67,6 +67,15 @@ export const CORE_NAV_ITEMS: NavItem[] = [
       { id: 'suppliers', label: 'Yetkazuvchilar',   path: '/contacts?type=SUPPLIER', icon: ArrowDownToLine },
     ],
   },
+  // NOTE: Shartnomalar moduli vaqtincha yashirildi. Kod va backend saqlangan,
+  // qaytadan yoqish uchun quyidagi blokni izohdan chiqaring.
+  // {
+  //   id:         'contracts',
+  //   label:      'Shartnomalar',
+  //   tKey:       'nav.contracts',
+  //   path:       '/contracts',
+  //   icon:       FileText,
+  // },
   {
     id:         'products',
     label:      'Mahsulotlar',
@@ -118,13 +127,6 @@ export const CORE_NAV_ITEMS: NavItem[] = [
       { id: 'payable',    label: 'Kreditorlar',      path: '/debts?type=PAYABLE',    icon: TrendingDown },
       { id: 'overdue',    label: "Muddati o'tgan",   path: '/debts?overdue=true',    icon: Bell         },
     ],
-  },
-  {
-    id:         'contracts',
-    label:      'Shartnomalar',
-    tKey:       'nav.contracts',
-    path:       '/contracts',
-    icon:       FileText,
   },
   {
     id:         'reports',

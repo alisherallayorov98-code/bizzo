@@ -21,37 +21,54 @@ export class SeedService implements OnApplicationBootstrap {
     const existing = await this.prisma.user.findFirst({
       where: { email: 'admin@demo.uz' },
     })
-    if (existing) return
 
-    this.logger.log('Creating admin user...')
+    let companyId = 'demo-company-001'
 
-    const company = await this.prisma.company.upsert({
-      where:  { id: 'demo-company-001' },
-      update: {},
-      create: {
-        id:        'demo-company-001',
-        name:      'Demo Kompaniya',
-        currency:  'UZS',
-        taxRegime: 'GENERAL',
-      },
-    })
+    if (!existing) {
+      this.logger.log('Creating admin user...')
 
-    const hash = await bcrypt.hash('Admin@123', 12)
-    await this.prisma.user.upsert({
-      where:  { id: 'demo-user-admin' },
-      update: {},
-      create: {
-        id:            'demo-user-admin',
-        companyId:     company.id,
-        email:         'admin@demo.uz',
-        passwordHash:  hash,
-        firstName:     'Admin',
-        lastName:      'Demo',
-        role:          'ADMIN',
-        emailVerified: true,
-      },
-    })
-    this.logger.log('Admin created — admin@demo.uz / Admin@123')
+      const company = await this.prisma.company.upsert({
+        where:  { id: 'demo-company-001' },
+        update: {},
+        create: {
+          id:        'demo-company-001',
+          name:      'Demo Kompaniya',
+          currency:  'UZS',
+          taxRegime: 'GENERAL',
+        },
+      })
+      companyId = company.id
+
+      const hash = await bcrypt.hash('Admin@123', 12)
+      await this.prisma.user.upsert({
+        where:  { id: 'demo-user-admin' },
+        update: {},
+        create: {
+          id:            'demo-user-admin',
+          companyId:     company.id,
+          email:         'admin@demo.uz',
+          passwordHash:  hash,
+          firstName:     'Admin',
+          lastName:      'Demo',
+          role:          'ADMIN',
+          emailVerified: true,
+        },
+      })
+      this.logger.log('Admin created — admin@demo.uz / Admin@123')
+    }
+
+    // ---- BARCHA MODULLARNI YOQISH (har safar tekshiriladi) ----
+    const allModules = [
+      'WASTE_MANAGEMENT', 'SALES_CRM', 'CONSTRUCTION', 'PRODUCTION',
+      'SERVICE', 'ADVANCED_REPORTS', 'AI_ANALYTICS', 'INTEGRATIONS',
+    ] as const
+    for (const moduleType of allModules) {
+      await this.prisma.companyModule.upsert({
+        where:  { companyId_moduleType: { companyId, moduleType: moduleType as any } },
+        update: { isActive: true, expiresAt: null },
+        create: { companyId, moduleType: moduleType as any, isActive: true },
+      })
+    }
   }
 
   private async seedDemoData() {
