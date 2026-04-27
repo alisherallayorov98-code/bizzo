@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
@@ -199,6 +199,17 @@ export default function ProductsListPage() {
   const [formOpen,     setFormOpen]     = useState(false)
   const [editProduct,  setEditProduct]  = useState<Product | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null)
+
+  // /products?new=1 — yangi mahsulot modal'ini avto ochish
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setEditProduct(null)
+      setFormOpen(true)
+      const next = new URLSearchParams(searchParams)
+      next.delete('new')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const debouncedSearch   = useDebounce(search, 400)
   const handleSearch      = (v: string) => { setSearch(v); setPage(1) }

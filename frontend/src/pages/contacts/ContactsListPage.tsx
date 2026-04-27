@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
@@ -227,6 +227,17 @@ export default function ContactsListPage() {
   const [editContact,  setEditContact]  = useState<Contact | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null)
   const [selectedIds,  setSelectedIds]  = useState<Set<string>>(new Set())
+
+  // /contacts?new=1 — yangi kontakt modal'ini avto ochish
+  useEffect(() => {
+    if (searchParams.get('new') === '1') {
+      setEditContact(null)
+      setFormOpen(true)
+      const next = new URLSearchParams(searchParams)
+      next.delete('new')
+      setSearchParams(next, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const debouncedSearch  = useDebounce(search, 400)
   // search yoki filter o'zgarganda birinchi sahifaga qaytish

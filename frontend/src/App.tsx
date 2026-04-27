@@ -33,11 +33,9 @@ const VerifyEmailPage     = lazy(() => import('@pages/auth/VerifyEmailPage'))
 const DashboardPage       = lazy(() => import('@pages/dashboard/DashboardPage'))
 const ContactsListPage    = lazy(() => import('@pages/contacts/ContactsListPage'))
 const ContactDetailPage   = lazy(() => import('@pages/contacts/ContactDetailPage'))
-const ContactFormPage     = lazy(() => import('@pages/contacts/ContactFormPage'))
 const ContactReportPage   = lazy(() => import('@pages/contacts/ContactReportPage'))
 const ProductsListPage    = lazy(() => import('@pages/products/ProductsListPage'))
 const ProductDetailPage   = lazy(() => import('@pages/products/ProductDetailPage'))
-const ProductFormPage     = lazy(() => import('@pages/products/ProductFormPage'))
 const WarehousePage       = lazy(() => import('@pages/warehouse/WarehouseOverviewPage'))
 const StockMovementsPage  = lazy(() => import('@pages/warehouse/StockMovementsPage'))
 const InventoryPage       = lazy(() => import('@pages/warehouse/InventoryPage'))
@@ -199,18 +197,16 @@ export default function App() {
                 {/* Asosiy */}
                 <Route path="/dashboard" element={<DashboardPage />} />
 
-                {/* Kontragentlar */}
+                {/* Kontragentlar (yaratish/tahrirlash modal orqali) */}
                 <Route path="/contacts"             element={<ContactsListPage />} />
-                <Route path="/contacts/new"         element={<ContactFormPage />} />
+                <Route path="/contacts/new"         element={<Navigate to="/contacts?new=1" replace />} />
                 <Route path="/contacts/:id"         element={<ContactDetailPage />} />
-                <Route path="/contacts/:id/edit"    element={<ContactFormPage />} />
                 <Route path="/contacts/:id/report"  element={<ContactReportPage />} />
 
-                {/* Mahsulotlar */}
+                {/* Mahsulotlar (yaratish/tahrirlash modal orqali) */}
                 <Route path="/products"         element={<ProductsListPage />} />
-                <Route path="/products/new"     element={<ProductFormPage />} />
+                <Route path="/products/new"     element={<Navigate to="/products?new=1" replace />} />
                 <Route path="/products/:id"     element={<ProductDetailPage />} />
-                <Route path="/products/:id/edit" element={<ProductFormPage />} />
 
                 {/* Ombor */}
                 <Route path="/warehouse"            element={<WarehousePage />} />
