@@ -96,6 +96,15 @@ export class WarehouseController {
   }
 
   // ============================================
+  // QAYTA TO'LDIRISH TAVSIYALARI
+  // ============================================
+  @Get('restock-suggestions')
+  @ApiOperation({ summary: 'Qoldiq kam mahsulotlar + tavsiya etilgan yetkazuvchi/miqdor' })
+  getRestockSuggestions(@CurrentUser() user: any) {
+    return this.warehouseService.getRestockSuggestions(user.companyId);
+  }
+
+  // ============================================
   // OXIRGI HUJJAT — "Kechagi kirimni takrorlash" uchun
   // ============================================
   @Get('last-document')

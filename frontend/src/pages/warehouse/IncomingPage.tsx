@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
@@ -128,16 +128,37 @@ function ProductPicker({
 // ============================================
 export default function IncomingPage() {
   const navigate    = useNavigate()
+  const location    = useLocation()
   const company     = useAuthStore(s => s.user?.company)
 
-  const [warehouseId, setWarehouseId] = useState('')
-  const [contactId, setContactId]     = useState('')
+  // /warehouse/restock dan keladigan prefill
+  const prefill = (location.state as any)?.prefill as
+    | { contactId?: string; warehouseId?: string; lines?: any[] }
+    | undefined
+
+  const [warehouseId, setWarehouseId] = useState(prefill?.warehouseId ?? '')
+  const [contactId, setContactId]     = useState(prefill?.contactId ?? '')
   const [notes, setNotes]             = useState('')
   const [createDebt, setCreateDebt]   = useState(false)
   const [dueDate, setDueDate]         = useState('')
-  const [lines, setLines]             = useState<DocLine[]>([
-    { id: crypto.randomUUID(), productId: '', product: null, quantity: 1, price: 0 },
-  ])
+  const [lines, setLines]             = useState<DocLine[]>(
+    prefill?.lines && prefill.lines.length > 0
+      ? prefill.lines.map(l => ({
+          id:        crypto.randomUUID(),
+          productId: l.productId,
+          product:   l.product ?? null,
+          quantity:  l.quantity ?? 1,
+          price:     l.price ?? 0,
+        }))
+      : [{ id: crypto.randomUUID(), productId: '', product: null, quantity: 1, price: 0 }]
+  )
+
+  // Prefill ni state'dan tozalash (sahifani qaytadan ochganda takrorlanmasligi uchun)
+  useEffect(() => {
+    if (prefill) {
+      window.history.replaceState({}, '')
+    }
+  }, [])
 
   const { data: warehouses = [] }           = useWarehouses()
   const { data: suppliersResult }           = useContacts({ type: 'SUPPLIER', limit: 100 })

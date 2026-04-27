@@ -491,6 +491,90 @@ export class WarehouseService {
   }
 
   // ============================================
+  // QAYTA TO'LDIRISH TAVSIYALARI
+  // (qoldiq < min bo'lgan mahsulotlar + tavsiya etilgan yetkazib beruvchi)
+  // ============================================
+  async getRestockSuggestions(companyId: string) {
+    // Min stock'dan kam bo'lgan mahsulotlar
+    const products = await this.prisma.product.findMany({
+      where: {
+        companyId,
+        isActive:  true,
+        isService: false,
+        minStock:  { gt: 0 },
+      },
+      include: {
+        stockItems: {
+          where:  { warehouse: { companyId } },
+          select: { quantity: true, warehouseId: true },
+        },
+      },
+    });
+
+    const lowStock = products
+      .map(p => {
+        const totalQty = p.stockItems.reduce((s, si) => s + Number(si.quantity), 0);
+        return { product: p, totalQty };
+      })
+      .filter(x => x.totalQty < Number(x.product.minStock));
+
+    if (lowStock.length === 0) return [];
+
+    // Har bir mahsulot uchun: oxirgi yetkazib beruvchi + oxirgi narx + tavsiya etilayotgan miqdor
+    const suggestions = await Promise.all(
+      lowStock.map(async ({ product, totalQty }) => {
+        // Oxirgi IN harakat (yetkazib beruvchi va narx)
+        const lastIn = await this.prisma.stockMovement.findFirst({
+          where:   { productId: product.id, type: 'IN', warehouse: { companyId } },
+          orderBy: { createdAt: 'desc' },
+          include: {
+            contact: { select: { id: true, name: true, phone: true } },
+          },
+        });
+
+        // Oxirgi 90 kunlik o'rtacha kunlik sotuv (qaysi miqdor tavsiya etilishini hisoblash uchun)
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        const sales = await this.prisma.stockMovement.aggregate({
+          where: {
+            productId: product.id,
+            type:      'OUT',
+            warehouse: { companyId },
+            createdAt: { gte: ninetyDaysAgo },
+          },
+          _sum: { quantity: true },
+        });
+        const soldPerDay = Number(sales._sum.quantity ?? 0) / 90;
+        // 30 kun zaxira + minStock buffer
+        const suggestedQty = Math.max(
+          Number(product.minStock) - totalQty + Math.ceil(soldPerDay * 30),
+          Number(product.minStock),
+        );
+
+        return {
+          product: {
+            id:        product.id,
+            name:      product.name,
+            code:      product.code,
+            unit:      product.unit,
+            buyPrice:  Number(product.buyPrice),
+            minStock:  Number(product.minStock),
+          },
+          currentQty:    totalQty,
+          shortageQty:   Math.max(0, Number(product.minStock) - totalQty),
+          suggestedQty:  Math.ceil(suggestedQty),
+          suggestedPrice: lastIn ? Number(lastIn.price) : Number(product.buyPrice),
+          lastSupplier:  lastIn?.contact ?? null,
+          lastInDate:    lastIn?.createdAt ?? null,
+          soldPerDay:    Math.round(soldPerDay * 10) / 10,
+        };
+      })
+    );
+
+    return suggestions.sort((a, b) => b.shortageQty - a.shortageQty);
+  }
+
+  // ============================================
   // OXIRGI HUJJAT — qator-qator nusxa olish uchun
   // ============================================
   async getLastDocument(

@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import {
   Warehouse as WarehouseIcon, Search, AlertTriangle,
-  Package, DollarSign, Plus, RefreshCw,
+  Package, DollarSign, Plus, RefreshCw, Sparkles, ArrowRight,
 } from 'lucide-react'
 import { PageHeader } from '@components/layout/PageHeader/PageHeader'
 import { Button } from '@components/ui/Button/Button'
@@ -17,6 +19,20 @@ import {
 import { formatCurrency } from '@utils/formatters'
 import { cn } from '@utils/cn'
 import { useT } from '@i18n/index'
+import api from '@config/api'
+
+interface RestockSuggestion {
+  product: {
+    id: string; name: string; code?: string; unit: string; buyPrice: number; minStock: number
+  }
+  currentQty:     number
+  shortageQty:    number
+  suggestedQty:   number
+  suggestedPrice: number
+  lastSupplier:   { id: string; name: string; phone?: string } | null
+  lastInDate:     string | null
+  soldPerDay:     number
+}
 
 // ============================================
 // OMBOR YARATISH MODALI
@@ -159,9 +175,43 @@ function WarehouseCard({
 // ============================================
 export default function WarehouseOverviewPage() {
   const t = useT()
+  const navigate = useNavigate()
   const [selectedWarehouse, setSelectedWarehouse] = useState<string | undefined>(undefined)
   const [search, setSearch]       = useState('')
   const [createOpen, setCreateOpen] = useState(false)
+
+  // Qayta to'ldirish tavsiyalari
+  const { data: restock = [] } = useQuery<RestockSuggestion[]>({
+    queryKey: ['restock-suggestions'],
+    queryFn: async () => {
+      const r = await api.get('/warehouse/restock-suggestions')
+      return r.data.data ?? []
+    },
+  })
+
+  // Yetkazib beruvchi bo'yicha guruhlash
+  const groupedBySupplier = restock.reduce((acc, s) => {
+    const key = s.lastSupplier?.id ?? '_no-supplier'
+    if (!acc[key]) acc[key] = { supplier: s.lastSupplier, items: [] }
+    acc[key].items.push(s)
+    return acc
+  }, {} as Record<string, { supplier: RestockSuggestion['lastSupplier']; items: RestockSuggestion[] }>)
+
+  const createOrderForSupplier = (group: { supplier: RestockSuggestion['lastSupplier']; items: RestockSuggestion[] }) => {
+    navigate('/warehouse/incoming', {
+      state: {
+        prefill: {
+          contactId: group.supplier?.id,
+          lines: group.items.map(s => ({
+            productId: s.product.id,
+            product:   s.product,
+            quantity:  s.suggestedQty,
+            price:     s.suggestedPrice,
+          })),
+        },
+      },
+    })
+  }
 
   const {
     data: warehouses = [],
@@ -251,6 +301,83 @@ export default function WarehouseOverviewPage() {
           loading={stockLoading}
         />
       </div>
+
+      {/* QAYTA TO'LDIRISH TAVSIYALARI */}
+      {restock.length > 0 && (
+        <Card className="mb-6 border-2 border-warning/30 bg-warning/5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles size={16} className="text-warning" />
+              <h3 className="text-sm font-semibold text-text-primary">
+                Qayta to'ldirish tavsiyalari ({restock.length} ta mahsulot)
+              </h3>
+            </div>
+            <span className="text-xs text-text-muted">
+              Yetkazib beruvchi bo'yicha guruhlangan
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {Object.values(groupedBySupplier).map((group, gi) => {
+              const totalAmount = group.items.reduce((s, i) => s + i.suggestedQty * i.suggestedPrice, 0)
+              return (
+                <div key={gi} className="bg-bg-secondary border border-border-primary rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="text-sm font-semibold text-text-primary">
+                        {group.supplier?.name ?? 'Yetkazib beruvchi belgilanmagan'}
+                      </p>
+                      <p className="text-xs text-text-muted">
+                        {group.items.length} ta mahsulot · jami ~ {formatCurrency(totalAmount)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      rightIcon={<ArrowRight size={13} />}
+                      onClick={() => createOrderForSupplier(group)}
+                    >
+                      Buyurtma yaratish
+                    </Button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-text-muted">
+                          <th className="text-left py-1">Mahsulot</th>
+                          <th className="text-right py-1">Hozir</th>
+                          <th className="text-right py-1">Min</th>
+                          <th className="text-right py-1">Kunlik sotuv</th>
+                          <th className="text-right py-1">Tavsiya</th>
+                          <th className="text-right py-1">Narx</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.items.map(s => (
+                          <tr key={s.product.id} className="border-t border-border-primary/40">
+                            <td className="py-1.5 text-text-primary">{s.product.name}</td>
+                            <td className="text-right tabular-nums text-danger">
+                              {s.currentQty} {s.product.unit}
+                            </td>
+                            <td className="text-right tabular-nums text-text-muted">{s.product.minStock}</td>
+                            <td className="text-right tabular-nums text-text-muted">{s.soldPerDay}/kun</td>
+                            <td className="text-right tabular-nums font-semibold text-accent-primary">
+                              {s.suggestedQty} {s.product.unit}
+                            </td>
+                            <td className="text-right tabular-nums text-text-secondary">
+                              {formatCurrency(s.suggestedPrice)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </Card>
+      )}
 
       {/* Ombor yo'q — birinchi ombor yaratish */}
       {!warehousesLoading && !warehousesError && warehouses.length === 0 && (
