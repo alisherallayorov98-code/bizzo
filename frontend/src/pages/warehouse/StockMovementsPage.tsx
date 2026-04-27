@@ -18,24 +18,25 @@ import { useT } from '@i18n/index'
 // ============================================
 // HARAKAT TURI BADGE
 // ============================================
-const MOVEMENT_MAP: Record<MovementType, { label: string; variant: 'success' | 'danger' | 'info' | 'warning' | 'default'; icon: React.ReactNode }> = {
-  IN:             { label: 'Kirim',      variant: 'success', icon: <ArrowDownCircle size={13} /> },
-  OUT:            { label: 'Chiqim',     variant: 'danger',  icon: <ArrowUpCircle size={13} /> },
-  TRANSFER:       { label: "Ko'chirish", variant: 'info',    icon: <RefreshCw size={13} /> },
-  ADJUSTMENT:     { label: 'Sozlash',   variant: 'warning', icon: <Settings size={13} /> },
-  PRODUCTION_IN:  { label: 'Ishlab chiqarish kirim',  variant: 'success', icon: <ArrowDownCircle size={13} /> },
-  PRODUCTION_OUT: { label: 'Ishlab chiqarish chiqim', variant: 'danger',  icon: <ArrowUpCircle size={13} /> },
-  WASTE_IN:       { label: 'Chiqindi kirim',  variant: 'warning', icon: <ArrowDownCircle size={13} /> },
-  WASTE_OUT:      { label: 'Chiqindi chiqim', variant: 'danger',  icon: <ArrowUpCircle size={13} /> },
+const MOVEMENT_CONFIG: Record<MovementType, { tKey: string; variant: 'success' | 'danger' | 'info' | 'warning' | 'default'; icon: React.ReactNode }> = {
+  IN:             { tKey: 'warehouse.in',           variant: 'success', icon: <ArrowDownCircle size={13} /> },
+  OUT:            { tKey: 'warehouse.out',          variant: 'danger',  icon: <ArrowUpCircle size={13} /> },
+  TRANSFER:       { tKey: 'warehouse.transfer',     variant: 'info',    icon: <RefreshCw size={13} /> },
+  ADJUSTMENT:     { tKey: 'warehouse.adjustment',   variant: 'warning', icon: <Settings size={13} /> },
+  PRODUCTION_IN:  { tKey: 'warehouse.productionIn', variant: 'success', icon: <ArrowDownCircle size={13} /> },
+  PRODUCTION_OUT: { tKey: 'warehouse.productionOut',variant: 'danger',  icon: <ArrowUpCircle size={13} /> },
+  WASTE_IN:       { tKey: 'warehouse.wasteIn',      variant: 'warning', icon: <ArrowDownCircle size={13} /> },
+  WASTE_OUT:      { tKey: 'warehouse.wasteOut',     variant: 'danger',  icon: <ArrowUpCircle size={13} /> },
 }
 
 function MovementTypeBadge({ type }: { type: MovementType }) {
-  const m = MOVEMENT_MAP[type] ?? { label: type, variant: 'default' as const, icon: null }
+  const t = useT()
+  const m = MOVEMENT_CONFIG[type] ?? { tKey: '', variant: 'default' as const, icon: null }
   return (
     <Badge variant={m.variant} size="sm">
       <span className="flex items-center gap-1">
         {m.icon}
-        {m.label}
+        {m.tKey ? t(m.tKey as any) : type}
       </span>
     </Badge>
   )

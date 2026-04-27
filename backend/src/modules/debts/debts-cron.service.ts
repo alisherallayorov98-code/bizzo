@@ -64,14 +64,20 @@ export class DebtsCronService {
 
         if (allOverdue.length > 0) {
           const now = Date.now()
-          await this.telegram.notifyDebtOverdue(companyId, allOverdue.map(d => ({
-            contactName: d.contact?.name ?? 'Noma\'lum',
-            amount:      Number(d.remainAmount),
-            currency:    d.currency ?? 'UZS',
-            daysOverdue: d.dueDate
-              ? Math.max(0, Math.floor((now - d.dueDate.getTime()) / (1000 * 60 * 60 * 24)))
-              : 0,
-          }))).catch(() => {})
+          try {
+            await this.telegram.notifyDebtOverdue(companyId, allOverdue.map(d => ({
+              contactName: d.contact?.name ?? 'Noma\'lum',
+              amount:      Number(d.remainAmount),
+              currency:    d.currency ?? 'UZS',
+              daysOverdue: d.dueDate
+                ? Math.max(0, Math.floor((now - d.dueDate.getTime()) / (1000 * 60 * 60 * 24)))
+                : 0,
+            })))
+          } catch (e: any) {
+            this.logger.warn(
+              `Telegram debt notification failed for company ${companyId}: ${e?.message ?? e}`,
+            )
+          }
         }
       } catch (err) {
         this.logger.error(`Debt overdue check failed for company ${companyId}`, err)
@@ -119,7 +125,11 @@ export class DebtsCronService {
           `Summa: <b>${Number(overdue._sum.remainAmount ?? 0).toLocaleString('uz-UZ')}</b> so'm`,
         ].join('\n')
 
-        await this.telegram.sendMessage(companyId, notifyChannelId, text).catch(() => {})
+        try {
+          await this.telegram.sendMessage(companyId, notifyChannelId, text)
+        } catch (e: any) {
+          this.logger.warn(`Weekly debt summary send failed for ${companyId}: ${e?.message ?? e}`)
+        }
       } catch (err) {
         this.logger.error(`Weekly debt summary failed for ${companyId}`, err)
       }

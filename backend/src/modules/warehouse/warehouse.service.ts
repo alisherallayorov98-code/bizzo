@@ -516,34 +516,41 @@ export class WarehouseService {
         const totalQty = p.stockItems.reduce((s, si) => s + Number(si.quantity), 0);
         return { product: p, totalQty };
       })
-      .filter(x => x.totalQty < Number(x.product.minStock));
+      .filter(x => x.totalQty < Number(x.product.minStock))
+      // Performance: eng kritik 50 tasini olamiz (eng katta yetishmaslik birinchi)
+      .sort((a, b) =>
+        (Number(b.product.minStock) - b.totalQty) -
+        (Number(a.product.minStock) - a.totalQty)
+      )
+      .slice(0, 50);
 
     if (lowStock.length === 0) return [];
 
-    // Har bir mahsulot uchun: oxirgi yetkazib beruvchi + oxirgi narx + tavsiya etilayotgan miqdor
+    // 90 kunlik chegara
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    // Har bir mahsulot uchun: lastIn + sales — parallel (Promise.all 2 query)
     const suggestions = await Promise.all(
       lowStock.map(async ({ product, totalQty }) => {
-        // Oxirgi IN harakat (yetkazib beruvchi va narx)
-        const lastIn = await this.prisma.stockMovement.findFirst({
-          where:   { productId: product.id, type: 'IN', warehouse: { companyId } },
-          orderBy: { createdAt: 'desc' },
-          include: {
-            contact: { select: { id: true, name: true, phone: true } },
-          },
-        });
-
-        // Oxirgi 90 kunlik o'rtacha kunlik sotuv (qaysi miqdor tavsiya etilishini hisoblash uchun)
-        const ninetyDaysAgo = new Date();
-        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-        const sales = await this.prisma.stockMovement.aggregate({
-          where: {
-            productId: product.id,
-            type:      'OUT',
-            warehouse: { companyId },
-            createdAt: { gte: ninetyDaysAgo },
-          },
-          _sum: { quantity: true },
-        });
+        const [lastIn, sales] = await Promise.all([
+          this.prisma.stockMovement.findFirst({
+            where:   { productId: product.id, type: 'IN', warehouse: { companyId } },
+            orderBy: { createdAt: 'desc' },
+            include: {
+              contact: { select: { id: true, name: true, phone: true } },
+            },
+          }),
+          this.prisma.stockMovement.aggregate({
+            where: {
+              productId: product.id,
+              type:      'OUT',
+              warehouse: { companyId },
+              createdAt: { gte: ninetyDaysAgo },
+            },
+            _sum: { quantity: true },
+          }),
+        ]);
         const soldPerDay = Number(sales._sum.quantity ?? 0) / 90;
         // 30 kun zaxira + minStock buffer
         const suggestedQty = Math.max(
