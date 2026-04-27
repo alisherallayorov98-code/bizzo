@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import {
   Plus, Trash2, ArrowUpFromLine, Search,
-  AlertTriangle, ChevronDown, Sparkles,
+  AlertTriangle, ChevronDown, Sparkles, RotateCcw,
 } from 'lucide-react'
 import { PageHeader } from '@components/layout/PageHeader/PageHeader'
 import { Button } from '@components/ui/Button/Button'
@@ -225,6 +225,84 @@ export default function OutgoingPage() {
     })
   }, [])
 
+  // ===== "Oxirgi chiqimni takrorlash" =====
+  const repeatLast = async () => {
+    try {
+      const res = await api.get('/warehouse/last-document', {
+        params: { type: 'OUT', contactId: contactId || undefined },
+      })
+      const last = res.data.data
+      if (!last || !last.lines?.length) {
+        toast('Oxirgi chiqim topilmadi', { icon: 'ℹ️' })
+        return
+      }
+      if (!warehouseId && last.warehouseId) setWarehouseId(last.warehouseId)
+      if (!contactId && last.contactId)     setContactId(last.contactId)
+      setLines(last.lines.map((l: any) => ({
+        id:        crypto.randomUUID(),
+        productId: l.productId,
+        product:   l.product,
+        quantity:  l.quantity,
+        price:     l.price,
+      })))
+      toast.success(`${last.lines.length} ta qator yuklandi (${new Date(last.date).toLocaleDateString('uz-UZ')})`)
+    } catch {
+      toast.error('Yuklab bo\'lmadi')
+    }
+  }
+
+  // ===== Excel/Tabdan paste =====
+  const handlePaste: React.ClipboardEventHandler<HTMLDivElement> = async (e) => {
+    const text = e.clipboardData.getData('text')
+    if (!text.includes('\t') && !text.includes('\n')) return
+
+    const rows = text.trim().split(/\r?\n/).filter(Boolean)
+    if (rows.length < 1) return
+    e.preventDefault()
+
+    const looksLikeHeader = /[a-z]/i.test(rows[0].split('\t')[1] ?? '')
+    const dataRows = looksLikeHeader ? rows.slice(1) : rows
+
+    const newLines: DocLine[] = []
+    let notFound = 0
+
+    for (const row of dataRows) {
+      const cols = row.split('\t').map(c => c.trim())
+      if (cols.length < 2) continue
+      const [name, qtyStr, priceStr] = cols
+      const qty   = parseFloat((qtyStr   ?? '1').replace(/[^\d.,-]/g, '').replace(',', '.')) || 1
+      const price = parseFloat((priceStr ?? '0').replace(/[^\d.,-]/g, '').replace(',', '.')) || 0
+
+      try {
+        const r = await api.get('/products', { params: { search: name, limit: 1 } })
+        const product = r.data.data?.data?.[0]
+        if (product) {
+          newLines.push({
+            id:        crypto.randomUUID(),
+            productId: product.id,
+            product,
+            quantity:  qty,
+            price:     price > 0 ? price : (product.sellPrice ?? 0),
+          })
+        } else {
+          notFound++
+        }
+      } catch { notFound++ }
+    }
+
+    if (newLines.length > 0) {
+      setLines(prev => {
+        if (prev.length === 1 && !prev[0].productId) return newLines
+        return [...prev, ...newLines]
+      })
+      toast.success(
+        `${newLines.length} ta qator qo'shildi${notFound > 0 ? ` · ${notFound} ta topilmadi` : ''}`,
+      )
+    } else {
+      toast.error('Hech qanday mahsulot topilmadi')
+    }
+  }
+
   const totalAmount = lines.reduce((s, l) => s + l.quantity * l.price, 0)
 
   const stockWarnings = lines.filter(l => {
@@ -253,7 +331,7 @@ export default function OutgoingPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-4">
+    <div className="max-w-4xl space-y-4" onPaste={handlePaste}>
       <PageHeader
         title="Chiqim hujjati"
         description="Ombordan mahsulot chiqarish"
@@ -262,6 +340,11 @@ export default function OutgoingPage() {
           { label: 'Ombor', path: '/warehouse' },
           { label: 'Chiqim' },
         ]}
+        actions={
+          <Button variant="secondary" size="sm" leftIcon={<RotateCcw size={13} />} onClick={repeatLast}>
+            Oxirgi chiqimni takrorlash
+          </Button>
+        }
       />
 
       {/* Asosiy ma'lumotlar */}
@@ -348,7 +431,12 @@ export default function OutgoingPage() {
       {/* Mahsulotlar jadvali */}
       <Card padding="none">
         <div className="flex items-center justify-between p-4 border-b border-border-primary">
-          <h3 className="text-sm font-semibold text-text-primary">Mahsulotlar</h3>
+          <div>
+            <h3 className="text-sm font-semibold text-text-primary">Mahsulotlar</h3>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              💡 Excel'dan jadval ko'chirib, Ctrl+V bossangiz qatorlar avtomatik qo'shiladi
+            </p>
+          </div>
           <Button variant="secondary" size="xs" leftIcon={<Plus size={13} />} onClick={addLine}>
             Qator qo'shish
           </Button>

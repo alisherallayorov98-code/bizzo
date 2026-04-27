@@ -96,6 +96,19 @@ export class WarehouseController {
   }
 
   // ============================================
+  // OXIRGI HUJJAT — "Kechagi kirimni takrorlash" uchun
+  // ============================================
+  @Get('last-document')
+  @ApiOperation({ summary: 'Oxirgi kirim/chiqim hujjati (qatorlar bilan)' })
+  getLastDocument(
+    @CurrentUser() user: any,
+    @Query('type') type: 'IN' | 'OUT',
+    @Query('contactId') contactId?: string,
+  ) {
+    return this.warehouseService.getLastDocument(user.companyId, type, contactId);
+  }
+
+  // ============================================
   // INVENTARIZATSIYA
   // ============================================
   @Post('adjust')

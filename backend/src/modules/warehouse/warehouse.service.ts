@@ -491,6 +491,59 @@ export class WarehouseService {
   }
 
   // ============================================
+  // OXIRGI HUJJAT — qator-qator nusxa olish uchun
+  // ============================================
+  async getLastDocument(
+    companyId: string,
+    type: 'IN' | 'OUT',
+    contactId?: string,
+  ) {
+    const where: any = {
+      type,
+      warehouse: { companyId },
+      ...(contactId && { contactId }),
+    };
+
+    // Eng oxirgi tranzaksiya sanasi
+    const lastMovement = await this.prisma.stockMovement.findFirst({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select:  { createdAt: true, warehouseId: true, contactId: true },
+    });
+    if (!lastMovement) return null;
+
+    // Shu daqiqada (5 sek ichida) yaratilgan barcha movements — bitta hujjat
+    const docTime = lastMovement.createdAt;
+    const windowStart = new Date(docTime.getTime() - 5_000);
+    const windowEnd   = new Date(docTime.getTime() + 5_000);
+
+    const lines = await this.prisma.stockMovement.findMany({
+      where: {
+        ...where,
+        warehouseId: lastMovement.warehouseId,
+        contactId:   lastMovement.contactId,
+        createdAt:   { gte: windowStart, lte: windowEnd },
+      },
+      include: {
+        product: { select: { id: true, name: true, code: true, unit: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return {
+      date:        lastMovement.createdAt,
+      warehouseId: lastMovement.warehouseId,
+      contactId:   lastMovement.contactId,
+      lines: lines.map(l => ({
+        productId: l.productId,
+        product:   l.product,
+        quantity:  Number(l.quantity),
+        price:     Number(l.price),
+      })),
+    };
+  }
+
+  // ============================================
   // CHIQIM HUJJATI (MULTI-LINE)
   // ============================================
   async createOutgoing(

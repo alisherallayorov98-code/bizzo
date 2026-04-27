@@ -217,6 +217,87 @@ export default function IncomingPage() {
     })
   }, [])
 
+  // ===== "Oxirgi kirimni takrorlash" =====
+  const repeatLast = async () => {
+    try {
+      const res = await api.get('/warehouse/last-document', {
+        params: { type: 'IN', contactId: contactId || undefined },
+      })
+      const last = res.data.data
+      if (!last || !last.lines?.length) {
+        toast('Oxirgi kirim topilmadi', { icon: 'ℹ️' })
+        return
+      }
+      if (!warehouseId && last.warehouseId) setWarehouseId(last.warehouseId)
+      if (!contactId && last.contactId)     setContactId(last.contactId)
+      setLines(last.lines.map((l: any) => ({
+        id:        crypto.randomUUID(),
+        productId: l.productId,
+        product:   l.product,
+        quantity:  l.quantity,
+        price:     l.price,
+      })))
+      toast.success(`${last.lines.length} ta qator yuklandi (${new Date(last.date).toLocaleDateString('uz-UZ')})`)
+    } catch {
+      toast.error('Yuklab bo\'lmadi')
+    }
+  }
+
+  // ===== Excel/Tabdan paste =====
+  // Format: "Mahsulot nomi<TAB>Miqdor<TAB>Narx" har bir qator
+  const handlePaste: React.ClipboardEventHandler<HTMLDivElement> = async (e) => {
+    const text = e.clipboardData.getData('text')
+    if (!text.includes('\t') && !text.includes('\n')) return // Oddiy text emas
+
+    const rows = text.trim().split(/\r?\n/).filter(Boolean)
+    if (rows.length < 1) return
+    e.preventDefault()
+
+    // Birinchi qator headerga o'xshasa — o'tkazib yuborish
+    const looksLikeHeader = /[a-z]/i.test(rows[0].split('\t')[1] ?? '')
+    const dataRows = looksLikeHeader ? rows.slice(1) : rows
+
+    // Mahsulot nomlari bo'yicha qidiruv
+    const newLines: DocLine[] = []
+    let notFound = 0
+
+    for (const row of dataRows) {
+      const cols = row.split('\t').map(c => c.trim())
+      if (cols.length < 2) continue
+      const [name, qtyStr, priceStr] = cols
+      const qty   = parseFloat((qtyStr   ?? '1').replace(/[^\d.,-]/g, '').replace(',', '.')) || 1
+      const price = parseFloat((priceStr ?? '0').replace(/[^\d.,-]/g, '').replace(',', '.')) || 0
+
+      try {
+        const r = await api.get('/products', { params: { search: name, limit: 1 } })
+        const product = r.data.data?.data?.[0]
+        if (product) {
+          newLines.push({
+            id:        crypto.randomUUID(),
+            productId: product.id,
+            product,
+            quantity:  qty,
+            price:     price > 0 ? price : (product.buyPrice ?? 0),
+          })
+        } else {
+          notFound++
+        }
+      } catch { notFound++ }
+    }
+
+    if (newLines.length > 0) {
+      setLines(prev => {
+        if (prev.length === 1 && !prev[0].productId) return newLines
+        return [...prev, ...newLines]
+      })
+      toast.success(
+        `${newLines.length} ta qator qo'shildi${notFound > 0 ? ` · ${notFound} ta topilmadi` : ''}`,
+      )
+    } else {
+      toast.error('Hech qanday mahsulot topilmadi')
+    }
+  }
+
   const totalAmount = lines.reduce((s, l) => s + l.quantity * l.price, 0)
 
   const canSubmit = warehouseId && lines.every(l => l.productId && l.quantity > 0 && l.price >= 0)
@@ -264,7 +345,7 @@ export default function IncomingPage() {
   }
 
   return (
-    <div className="max-w-4xl space-y-4">
+    <div className="max-w-4xl space-y-4" onPaste={handlePaste}>
       <PageHeader
         title="Kirim hujjati"
         description="Omborga mahsulot qabul qilish"
@@ -273,6 +354,11 @@ export default function IncomingPage() {
           { label: 'Ombor', path: '/warehouse' },
           { label: 'Kirim' },
         ]}
+        actions={
+          <Button variant="secondary" size="sm" leftIcon={<RotateCcw size={13} />} onClick={repeatLast}>
+            Oxirgi kirimni takrorlash
+          </Button>
+        }
       />
 
       {/* Asosiy ma'lumotlar */}
@@ -359,7 +445,12 @@ export default function IncomingPage() {
       {/* Mahsulotlar jadvali */}
       <Card padding="none">
         <div className="flex items-center justify-between p-4 border-b border-border-primary">
-          <h3 className="text-sm font-semibold text-text-primary">Mahsulotlar</h3>
+          <div>
+            <h3 className="text-sm font-semibold text-text-primary">Mahsulotlar</h3>
+            <p className="text-[11px] text-text-muted mt-0.5">
+              💡 Excel'dan jadval ko'chirib, Ctrl+V bossangiz qatorlar avtomatik qo'shiladi
+            </p>
+          </div>
           <Button variant="secondary" size="xs" leftIcon={<Plus size={13} />} onClick={addLine}>
             Qator qo'shish
           </Button>
