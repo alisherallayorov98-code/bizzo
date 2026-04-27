@@ -81,7 +81,7 @@ export default function SalesDealsPage() {
         description={t('sales.dealsDesc')}
         breadcrumbs={[
           { label: t('nav.dashboard'), path: '/dashboard' },
-          { label: t('nav.sales'),     path: '/modules/sales' },
+          { label: t('nav.sales'),     path: '/sales' },
           { label: t('sales.dealsTitle') },
         ]}
         actions={

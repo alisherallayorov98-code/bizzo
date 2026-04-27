@@ -188,7 +188,7 @@ export default function SalesPipelinePage() {
         description={t('sales.pipelineDesc')}
         breadcrumbs={[
           { label: t('nav.dashboard'), path: '/dashboard' },
-          { label: t('nav.sales'),     path: '/modules/sales' },
+          { label: t('nav.sales'),     path: '/sales' },
           { label: 'Pipeline' },
         ]}
         actions={

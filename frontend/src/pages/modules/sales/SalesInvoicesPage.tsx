@@ -320,7 +320,7 @@ export default function SalesInvoicesPage() {
         description={t('sales.invoicesDesc')}
         breadcrumbs={[
           { label: t('nav.dashboard'), path: '/dashboard' },
-          { label: t('nav.sales'),     path: '/modules/sales' },
+          { label: t('nav.sales'),     path: '/sales' },
           { label: t('sales.invoicesTitle') },
         ]}
         actions={

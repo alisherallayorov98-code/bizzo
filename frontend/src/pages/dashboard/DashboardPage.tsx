@@ -3,7 +3,7 @@ import {
   Users, Package, DollarSign,
   TrendingUp, AlertCircle,
   ArrowRight, Sparkles, CheckCircle,
-  Recycle, BarChart3, ScanLine,
+  BarChart3, ScanLine,
   Settings2, Eye, EyeOff, ChevronUp, ChevronDown, RotateCcw, X,
 } from 'lucide-react'
 import { HealthScoreWidget }  from '@components/smart/HealthScoreWidget'
@@ -15,7 +15,6 @@ import { KPICard }          from '@components/charts/KPICard/KPICard'
 import { Badge }            from '@components/ui/Badge/Badge'
 import { Button }           from '@components/ui/Button/Button'
 import { Skeleton }         from '@components/ui/Skeleton/Skeleton'
-import { AIAssistant }      from '@components/shared/AIAssistant/AIAssistant'
 import { useAuth }          from '@hooks/useAuth'
 import { useContactStats }  from '@features/contacts/hooks/useContacts'
 import { useProductStats }  from '@features/products/hooks/useProducts'
@@ -164,7 +163,7 @@ const QUICK_LINKS = [
   { to: '/contacts',     icon: Users,      labelKey: 'nav.contacts',    color: 'text-accent-primary',  bg: 'bg-accent-primary/10' },
   { to: '/products',     icon: Package,    labelKey: 'nav.products',    color: 'text-info',             bg: 'bg-info/10' },
   { to: '/debts',        icon: DollarSign, labelKey: 'nav.debts',       color: 'text-warning',          bg: 'bg-warning/10' },
-  { to: '/modules/sales',icon: TrendingUp, labelKey: 'dashboard.sales', color: 'text-success',          bg: 'bg-success/10' },
+  { to: '/sales',         icon: TrendingUp, labelKey: 'dashboard.sales', color: 'text-success',          bg: 'bg-success/10' },
   { to: '/salary',       icon: BarChart3,  labelKey: 'dashboard.salary',color: 'text-orange-400',       bg: 'bg-orange-400/10' },
 ]
 
@@ -312,7 +311,7 @@ export default function DashboardPage() {
                 <Card padding="md">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="font-semibold text-text-primary text-sm">{t('dashboard.salesPipeline')}</h3>
-                    <Link to="/modules/sales">
+                    <Link to="/sales">
                       <Button variant="ghost" size="xs" rightIcon={<ArrowRight size={12} />}>
                         {t('dashboard.view')}
                       </Button>
@@ -411,8 +410,7 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* AI Assistant floating button */}
-      <AIAssistant />
+      {/* AssistantWidget AppLayout'da global qo'yilgan, bu yerda alohida tugma kerak emas */}
     </div>
   )
 }
