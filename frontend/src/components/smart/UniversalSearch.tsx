@@ -36,11 +36,10 @@ const TYPE_COLORS: Record<SearchResult['type'], string> = {
 
 const QUICK_LINKS = [
   { label: 'Dashboard',       link: '/dashboard',         icon: BarChart2  },
-  { label: 'Kontragentlar',   link: '/contacts',          icon: Users      },
+  { label: 'Mijozlar',        link: '/contacts',          icon: Users      },
   { label: 'Mahsulotlar',     link: '/products',          icon: Package    },
   { label: 'Smart Tahlil',    link: '/smart',             icon: BarChart2  },
   { label: 'Xodimlar',        link: '/employees',         icon: Briefcase  },
-  { label: 'Shartnomalar',    link: '/contracts',         icon: FileText   },
 ]
 
 async function globalSearch(query: string): Promise<SearchResult[]> {
