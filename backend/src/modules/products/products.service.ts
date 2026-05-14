@@ -8,20 +8,22 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
 export interface CreateProductDto {
-  code?:           string;
-  barcode?:        string;
-  name:            string;
-  description?:    string;
-  category?:       string;
-  unit?:           string;
-  buyPrice?:       number;
-  sellPrice?:      number;
-  wholesalePrice?: number | null;
-  vipPrice?:       number | null;
-  minPrice?:       number;
-  minStock?:       number;
-  isService?:      boolean;
-  image?:          string;
+  code?:               string;
+  barcode?:            string;
+  name:                string;
+  description?:        string;
+  category?:           string;
+  unit?:               string;
+  buyPrice?:           number;
+  sellPrice?:          number;
+  wholesalePrice?:     number | null;
+  vipPrice?:           number | null;
+  minPrice?:           number;
+  minStock?:           number;
+  isService?:          boolean;
+  image?:              string;
+  openingStock?:       number;
+  openingWarehouseId?: string;
 }
 
 export interface QueryProductDto {
@@ -55,9 +57,11 @@ export class ProductsService {
       }
     }
 
-    return this.prisma.product.create({
+    const { openingStock, openingWarehouseId, ...productData } = dto;
+
+    const product = await this.prisma.product.create({
       data: {
-        ...dto,
+        ...productData,
         companyId,
         buyPrice:  dto.buyPrice  ?? 0,
         sellPrice: dto.sellPrice ?? 0,
@@ -67,6 +71,31 @@ export class ProductsService {
         isService: dto.isService ?? false,
       },
     });
+
+    if (openingStock && openingStock > 0 && openingWarehouseId) {
+      const price = dto.buyPrice ?? 0;
+      await this.prisma.$transaction([
+        this.prisma.stockItem.upsert({
+          where: { warehouseId_productId: { warehouseId: openingWarehouseId, productId: product.id } },
+          update: { quantity: { increment: openingStock }, avgPrice: price },
+          create: { warehouseId: openingWarehouseId, productId: product.id, quantity: openingStock, avgPrice: price },
+        }),
+        this.prisma.stockMovement.create({
+          data: {
+            warehouseId:  openingWarehouseId,
+            productId:    product.id,
+            type:         'IN',
+            quantity:     openingStock,
+            price,
+            totalAmount:  openingStock * price,
+            reason:       "Boshlang'ich qoldiq",
+            createdById:  userId,
+          },
+        }),
+      ]);
+    }
+
+    return product;
   }
 
   // ============================================

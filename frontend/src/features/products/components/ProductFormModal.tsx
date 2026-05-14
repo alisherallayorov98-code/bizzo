@@ -9,6 +9,7 @@ import { ImageUpload } from '@components/ui/ImageUpload/ImageUpload'
 import { cn } from '@utils/cn'
 import type { Product } from '@services/product.service'
 import { useCreateProduct, useUpdateProduct, useCategories } from '../hooks/useProducts'
+import { useWarehouses } from '@features/warehouse/hooks/useWarehouse'
 import { useT } from '@i18n/index'
 
 // ============================================
@@ -31,21 +32,26 @@ const UNITS = [
 // VALIDATSIYA
 // ============================================
 const schema = z.object({
-  name:           z.string().min(2, 'Kamida 2 ta belgi').max(200, 'Juda uzun'),
-  code:           z.string().max(50).optional().or(z.literal('')),
-  barcode:        z.string().max(50).optional().or(z.literal('')),
-  category:       z.string().max(100).optional().or(z.literal('')),
-  unit:           z.string().default('dona'),
-  description:    z.string().max(500).optional().or(z.literal('')),
-  buyPrice:       z.coerce.number().min(0, 'Manfiy bo\'lmaydi'),
-  sellPrice:      z.coerce.number().min(0, 'Manfiy bo\'lmaydi'),
-  wholesalePrice: z.coerce.number().min(0).optional().nullable(),
-  vipPrice:       z.coerce.number().min(0).optional().nullable(),
-  minPrice:       z.coerce.number().min(0).optional(),
-  minStock:       z.coerce.number().min(0).optional(),
-  isService:      z.boolean().default(false),
-  image:          z.string().optional().nullable(),
-})
+  name:               z.string().min(2, 'Kamida 2 ta belgi').max(200, 'Juda uzun'),
+  code:               z.string().max(50).optional().or(z.literal('')),
+  barcode:            z.string().max(50).optional().or(z.literal('')),
+  category:           z.string().max(100).optional().or(z.literal('')),
+  unit:               z.string().default('dona'),
+  description:        z.string().max(500).optional().or(z.literal('')),
+  buyPrice:           z.coerce.number().min(0, 'Manfiy bo\'lmaydi'),
+  sellPrice:          z.coerce.number().min(0, 'Manfiy bo\'lmaydi'),
+  wholesalePrice:     z.coerce.number().min(0).optional().nullable(),
+  vipPrice:           z.coerce.number().min(0).optional().nullable(),
+  minPrice:           z.coerce.number().min(0).optional(),
+  minStock:           z.coerce.number().min(0).optional(),
+  isService:          z.boolean().default(false),
+  image:              z.string().optional().nullable(),
+  openingStock:       z.coerce.number().min(0).optional(),
+  openingWarehouseId: z.string().optional(),
+}).refine(
+  data => !(Number(data.openingStock) > 0 && !data.openingWarehouseId),
+  { message: 'Ombor tanlanishi shart', path: ['openingWarehouseId'] },
+)
 
 type FormData = z.infer<typeof schema>
 
@@ -67,6 +73,7 @@ export function ProductFormModal({ open, onClose, product }: ProductFormModalPro
   const create  = useCreateProduct()
   const update  = useUpdateProduct()
   const { data: categories = [] } = useCategories()
+  const { data: warehouses = [] } = useWarehouses()
 
   const {
     register,
@@ -78,15 +85,17 @@ export function ProductFormModal({ open, onClose, product }: ProductFormModalPro
   } = useForm<FormData>({
     resolver:      zodResolver(schema),
     defaultValues: {
-      unit:           'dona',
-      buyPrice:       0,
-      sellPrice:      0,
-      wholesalePrice: null,
-      vipPrice:       null,
-      minPrice:       0,
-      minStock:       0,
-      isService:      false,
-      image:          null,
+      unit:               'dona',
+      buyPrice:           0,
+      sellPrice:          0,
+      wholesalePrice:     null,
+      vipPrice:           null,
+      minPrice:           0,
+      minStock:           0,
+      isService:          false,
+      image:              null,
+      openingStock:       0,
+      openingWarehouseId: '',
     },
   })
 
@@ -126,6 +135,11 @@ export function ProductFormModal({ open, onClose, product }: ProductFormModalPro
   }, [open, product, reset])
 
   const onSubmit = async (data: FormData) => {
+    if (!isEdit && Number(data.openingStock) > 0 && !data.openingWarehouseId) {
+      setValue('openingWarehouseId', '', { shouldValidate: true })
+      return
+    }
+
     const cleaned = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === '' ? undefined : v]),
     ) as any
@@ -138,9 +152,10 @@ export function ProductFormModal({ open, onClose, product }: ProductFormModalPro
     onClose()
   }
 
-  const isService  = watch('isService')
+  const isService    = watch('isService')
   const selectedUnit = watch('unit')
-  const isBusy     = isSubmitting || create.isPending || update.isPending
+  const openingStock = watch('openingStock')
+  const isBusy       = isSubmitting || create.isPending || update.isPending
 
   return (
     <Modal
@@ -326,6 +341,48 @@ export function ProductFormModal({ open, onClose, product }: ProductFormModalPro
             hint={`${selectedUnit || 'dona'}. Bu miqdordan kam bo'lsa ogohlantirish`}
             {...register('minStock')}
           />
+        )}
+
+        {/* Boshlang'ich qoldiq — faqat yangi mahsulot uchun */}
+        {!isEdit && !isService && (
+          <div className="pt-2 border-t border-border-primary space-y-3">
+            <p className="text-sm font-semibold text-text-primary">Boshlang'ich qoldiq</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label={`Miqdor (${selectedUnit || 'dona'})`}
+                type="number"
+                placeholder="0"
+                hint="0 bo'lsa kiritilmaydi"
+                {...register('openingStock')}
+              />
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-text-secondary">
+                  Ombor
+                  {Number(openingStock) > 0 && (
+                    <span className="text-danger ml-0.5">*</span>
+                  )}
+                </label>
+                <select
+                  className={cn(
+                    'w-full px-3 py-2 rounded-lg border bg-bg-secondary text-sm text-text-primary',
+                    'focus:outline-none focus:ring-1 focus:ring-accent-primary focus:border-accent-primary transition-colors',
+                    errors.openingWarehouseId
+                      ? 'border-danger'
+                      : 'border-border-primary',
+                  )}
+                  {...register('openingWarehouseId')}
+                >
+                  <option value="">— Tanlang —</option>
+                  {warehouses.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+                {errors.openingWarehouseId && (
+                  <p className="text-xs text-danger">{errors.openingWarehouseId.message}</p>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Tavsif */}
