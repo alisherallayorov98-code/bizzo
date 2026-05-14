@@ -125,6 +125,7 @@ export class AutomationService implements OnModuleInit {
   getTriggerList() {
     return [
       { value: AutomationTrigger.INVOICE_OVERDUE,    label: 'Hisob-faktura muddati o\'tdi',       icon: 'FileText',     category: 'finance' },
+      { value: AutomationTrigger.INVOICE_DUE_SOON,   label: 'Hisob-faktura muddati yaqinlashdi',  icon: 'Clock',        category: 'finance' },
       { value: AutomationTrigger.DEBT_OVERDUE,       label: 'Qarz muddati o\'tdi',                icon: 'AlertCircle',  category: 'finance' },
       { value: AutomationTrigger.PAYMENT_RECEIVED,   label: 'To\'lov qabul qilindi',              icon: 'CreditCard',   category: 'finance' },
       { value: AutomationTrigger.STOCK_LOW,          label: 'Ombor zaxirasi tugayapti',           icon: 'Package',      category: 'warehouse' },
@@ -132,14 +133,17 @@ export class AutomationService implements OnModuleInit {
       { value: AutomationTrigger.PURCHASE_RECEIVED,  label: 'Xarid buyurtmasi qabul qilindi',     icon: 'ShoppingCart', category: 'warehouse' },
       { value: AutomationTrigger.DEAL_WON,           label: 'Bitim yutildi',                      icon: 'TrendingUp',   category: 'sales' },
       { value: AutomationTrigger.DEAL_STAGE_CHANGED, label: 'Bitim bosqichi o\'zgardi',           icon: 'ArrowRight',   category: 'sales' },
+      { value: AutomationTrigger.DEAL_STALE,         label: 'Bitim 14 kun harakatsiz',            icon: 'AlertCircle',  category: 'sales' },
       { value: AutomationTrigger.QUOTATION_APPROVED, label: 'Taklifnoma tasdiqlandi',             icon: 'FileCheck',    category: 'sales' },
       { value: AutomationTrigger.QUOTATION_EXPIRED,  label: 'Taklifnoma muddati o\'tdi',          icon: 'FileClock',    category: 'sales' },
       { value: AutomationTrigger.CONTRACT_EXPIRING,  label: 'Shartnoma tugayapti (30 kun)',       icon: 'Calendar',     category: 'sales' },
       { value: AutomationTrigger.CONTACT_CREATED,    label: 'Yangi kontragent qo\'shildi',        icon: 'UserPlus',     category: 'sales' },
+      { value: AutomationTrigger.CUSTOMER_INACTIVE,  label: 'Mijoz 90 kun faol emas',             icon: 'UserX',        category: 'sales' },
       { value: AutomationTrigger.SALARY_DUE,         label: 'Ish haqi to\'lash vaqti keldi',      icon: 'DollarSign',   category: 'hr' },
       { value: AutomationTrigger.DAILY_MORNING,      label: 'Har kuni soat 09:00',                icon: 'Sun',          category: 'schedule' },
       { value: AutomationTrigger.WEEKLY_MONDAY,      label: 'Har dushanba 09:00',                 icon: 'CalendarDays', category: 'schedule' },
       { value: AutomationTrigger.MONTHLY_FIRST,      label: 'Har oyning 1-kuni 09:00',            icon: 'CalendarCheck',category: 'schedule' },
+      { value: AutomationTrigger.WEBHOOK_INBOUND,    label: 'Tashqi webhook keldi',               icon: 'Webhook',      category: 'other' },
       { value: AutomationTrigger.MANUAL,             label: 'Qo\'lda ishga tushirish',            icon: 'Play',         category: 'other' },
     ]
   }
@@ -266,6 +270,39 @@ export class AutomationService implements OnModuleInit {
         icon:        'Calendar',
         isPopular:   false,
       },
+      {
+        key:         'invoice_due_soon_sms',
+        name:        'Hisob-faktura muddati yaqin — SMS eslatma',
+        description: 'Hisob-faktura muddati 3 kun qolganida mijozga avtomatik SMS yuboradi',
+        category:    'finance',
+        trigger:     'INVOICE_DUE_SOON',
+        conditions:  [{ field: 'daysLeft', operator: 'lte', value: 3 }],
+        actions:     [{ type: 'SEND_SMS', config: { template: 'Hurmatli {{contact.name}}, {{invoiceNumber}} raqamli hisob-fakturangiz {{daysLeft}} kun ichida tugaydi. Summa: {{amount}} UZS.' } }],
+        icon:        'Clock',
+        isPopular:   true,
+      },
+      {
+        key:         'deal_stale_notify',
+        name:        'Harakatsiz bitim — Mas\'ulga eslatma',
+        description: '14 kun davomida yangilanmagan bitimlar haqida bildirishnoma yuboradi',
+        category:    'sales',
+        trigger:     'DEAL_STALE',
+        conditions:  [],
+        actions:     [{ type: 'CREATE_NOTIFICATION', config: { title: 'Bitim harakatsiz', message: '"{{title}}" bitimi {{daysSinceUpdate}} kun davomida yangilanmadi. Bosqich: {{stage}}' } }],
+        icon:        'AlertCircle',
+        isPopular:   true,
+      },
+      {
+        key:         'customer_inactive_sms',
+        name:        'Faol bo\'lmagan mijoz — SMS qaytarish',
+        description: '90 kun xarid qilmagan mijozlarga avtomatik taklifnoma SMS yuboradi',
+        category:    'sales',
+        trigger:     'CUSTOMER_INACTIVE',
+        conditions:  [],
+        actions:     [{ type: 'SEND_SMS', config: { template: 'Hurmatli {{contact.name}}, sizi sog\'indik! Yangi aksiyalar va chegirmalarimiz bor. Bugun xarid qiling!' } }],
+        icon:        'UserX',
+        isPopular:   true,
+      },
     ]
 
     for (const bp of blueprints) {
@@ -341,6 +378,120 @@ export class AutomationService implements OnModuleInit {
   async retryLog(logId: string, companyId: string) {
     await this.engine.retryLog(logId, companyId)
     return { success: true, message: 'Qayta ishga tushirildi' }
+  }
+
+  // ─── Analytics ────────────────────────────────────────────────────────────
+
+  async getAnalytics(companyId: string) {
+    const [totalRules, activeRules, totalLogs, successLogs, failedLogs, topRules, byTrigger, last7days] =
+      await Promise.all([
+        this.prisma.automationRule.count({ where: { companyId } }),
+        this.prisma.automationRule.count({ where: { companyId, isActive: true } }),
+        this.prisma.automationLog.count({ where: { companyId } }),
+        this.prisma.automationLog.count({ where: { companyId, status: 'SUCCESS' } }),
+        this.prisma.automationLog.count({ where: { companyId, status: 'FAILED' } }),
+        this.prisma.automationLog.groupBy({
+          by:      ['ruleId'],
+          where:   { companyId },
+          _count:  { id: true },
+          orderBy: { _count: { id: 'desc' } },
+          take:    5,
+        }),
+        this.prisma.automationLog.groupBy({
+          by:      ['trigger'],
+          where:   { companyId },
+          _count:  { id: true },
+          orderBy: { _count: { id: 'desc' } },
+        }),
+        this.prisma.$queryRaw<any[]>`
+          SELECT DATE("executedAt")::text as date, COUNT(*)::int as count,
+                 SUM(CASE WHEN status='SUCCESS' THEN 1 ELSE 0 END)::int as success,
+                 SUM(CASE WHEN status='FAILED' THEN 1 ELSE 0 END)::int as failed
+          FROM automation_logs
+          WHERE "companyId" = ${companyId}
+            AND "executedAt" >= NOW() - INTERVAL '7 days'
+          GROUP BY DATE("executedAt")
+          ORDER BY date
+        `.catch(() => []),
+      ])
+
+    const ruleIds = topRules.map(r => r.ruleId)
+    const rules   = await this.prisma.automationRule.findMany({
+      where:  { id: { in: ruleIds } },
+      select: { id: true, name: true },
+    })
+    const ruleMap = Object.fromEntries(rules.map(r => [r.id, r.name]))
+
+    return {
+      summary: {
+        totalRules,
+        activeRules,
+        totalLogs,
+        successLogs,
+        failedLogs,
+        successRate: totalLogs > 0 ? Math.round((successLogs / totalLogs) * 100) : 0,
+      },
+      topRules: topRules.map(r => ({
+        ruleId:    r.ruleId,
+        ruleName:  ruleMap[r.ruleId] ?? 'Noma\'lum',
+        count:     r._count.id,
+      })),
+      byTrigger: byTrigger.map(t => ({ trigger: t.trigger, count: t._count.id })),
+      last7days,
+    }
+  }
+
+  // ─── Inbound Webhooks ─────────────────────────────────────────────────────
+
+  async getWebhooks(companyId: string) {
+    return this.prisma.inboundWebhook.findMany({
+      where:   { companyId },
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { logs: true } } },
+    })
+  }
+
+  async createWebhook(companyId: string, dto: { name: string; description?: string; ruleId?: string }) {
+    const slug   = `${companyId.slice(-6)}-${Math.random().toString(36).slice(2, 8)}`
+    const secret = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2)
+    return this.prisma.inboundWebhook.create({
+      data: { companyId, name: dto.name, description: dto.description, ruleId: dto.ruleId, slug, secret },
+    })
+  }
+
+  async deleteWebhook(id: string, companyId: string) {
+    const wh = await this.prisma.inboundWebhook.findFirst({ where: { id, companyId } })
+    if (!wh) throw new Error('Webhook topilmadi')
+    await this.prisma.inboundWebhook.delete({ where: { id } })
+    return { success: true }
+  }
+
+  async receiveWebhook(slug: string, payload: any, headers: any) {
+    const wh = await this.prisma.inboundWebhook.findUnique({ where: { slug } })
+    if (!wh || !wh.isActive) return { ok: false, message: 'Webhook topilmadi yoki faol emas' }
+
+    const log = await this.prisma.inboundWebhookLog.create({
+      data: { webhookId: wh.id, companyId: wh.companyId, payload, headers, status: 'RECEIVED' },
+    })
+
+    // Bog'liq qoidani ishga tushirish
+    try {
+      await this.engine.fire({
+        companyId:  wh.companyId,
+        trigger:    'WEBHOOK_INBOUND' as any,
+        entityId:   log.id,
+        entityType: 'InboundWebhookLog',
+        data:       { webhookName: wh.name, slug: wh.slug, payload },
+      })
+      await this.prisma.inboundWebhookLog.update({ where: { id: log.id }, data: { status: 'PROCESSED' } })
+    } catch (err: any) {
+      await this.prisma.inboundWebhookLog.update({
+        where: { id: log.id },
+        data:  { status: 'FAILED', errorMsg: err.message },
+      })
+    }
+
+    return { ok: true, logId: log.id }
   }
 
   // ─── Yordamchi ────────────────────────────────────────────────────────────

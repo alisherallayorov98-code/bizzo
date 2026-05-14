@@ -116,4 +116,35 @@ export class AutomationController {
   retryLog(@Param('id') id: string, @CurrentUser() user: any) {
     return this.svc.retryLog(id, user.companyId)
   }
+
+  // ─── Analytics ───────────────────────────────────────────────────────────
+
+  @Get('analytics')
+  @ApiOperation({ summary: 'Avtomatlashtirish analitikasi' })
+  getAnalytics(@CurrentUser() user: any) {
+    return this.svc.getAnalytics(user.companyId)
+  }
+
+  // ─── Inbound Webhooks ────────────────────────────────────────────────────
+
+  @Get('webhooks')
+  @ApiOperation({ summary: 'Kiruvchi webhook endpointlar' })
+  getWebhooks(@CurrentUser() user: any) {
+    return this.svc.getWebhooks(user.companyId)
+  }
+
+  @Post('webhooks')
+  @Roles(Role.ADMIN, Role.MANAGER)
+  @ApiOperation({ summary: 'Yangi webhook endpoint yaratish' })
+  createWebhook(@CurrentUser() user: any, @Body() dto: { name: string; description?: string; ruleId?: string }) {
+    return this.svc.createWebhook(user.companyId, dto)
+  }
+
+  @Delete('webhooks/:id')
+  @Roles(Role.ADMIN)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Webhook endpointni o\'chirish' })
+  deleteWebhook(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.svc.deleteWebhook(id, user.companyId)
+  }
 }

@@ -1635,16 +1635,17 @@ model CashExpense {
 // ============================================================
 
 model AutomationRule {
-  id          String             @id @default(cuid())
-  companyId   String
+  id            String             @id @default(cuid())
+  companyId     String
 
-  name        String
-  description String?
-  isActive    Boolean            @default(true)
+  name          String
+  description   String?
+  isActive      Boolean            @default(true)
 
-  trigger     AutomationTrigger
-  conditions  Json               @default("[]")
-  actions     Json               @default("[]")
+  trigger       AutomationTrigger
+  triggerConfig Json?              // WEBHOOK_INBOUND: { secret, path } va boshqalar
+  conditions    Json               @default("[]")
+  actions       Json               @default("[]")
 
   // Statistika
   runCount    Int                @default(0)
@@ -1666,13 +1667,16 @@ model AutomationRule {
 
 enum AutomationTrigger {
   INVOICE_OVERDUE        // Hisob-faktura muddati o'tdi
+  INVOICE_DUE_SOON       // Hisob-faktura muddati yaqinlashdi
   STOCK_LOW              // Ombor zaxirasi kam
   DEAL_WON               // Bitim yutildi
   DEAL_STAGE_CHANGED     // Bitim bosqichi o'zgardi
+  DEAL_STALE             // Bitim uzoq vaqt harakatsiz
   CONTRACT_EXPIRING      // Shartnoma tugayapti
   PAYMENT_RECEIVED       // To'lov qabul qilindi
   DEBT_OVERDUE           // Qarz muddati o'tdi
   CONTACT_CREATED        // Yangi kontragent qo'shildi
+  CUSTOMER_INACTIVE      // Mijoz uzoq vaqt xarid qilmadi
   SALARY_DUE             // Ish haqi to'lash vaqti
   STOCK_MOVEMENT         // Ombor harakati sodir bo'ldi
   MANUAL                 // Qo'lda ishga tushirish
@@ -1682,6 +1686,7 @@ enum AutomationTrigger {
   DAILY_MORNING          // Har kuni 09:00
   WEEKLY_MONDAY          // Har dushanba 09:00
   MONTHLY_FIRST          // Har oyning 1-kuni
+  WEBHOOK_INBOUND        // Tashqi webhook keldi
 }
 
 model AutomationLog {
@@ -1726,6 +1731,40 @@ enum AutomationLogStatus {
   SUCCESS
   PARTIAL
   FAILED
+}
+
+model InboundWebhook {
+  id          String   @id @default(cuid())
+  companyId   String
+  name        String
+  slug        String   @unique
+  secret      String?
+  isActive    Boolean  @default(true)
+  description String?
+  ruleId      String?  // bog'liq avtomatik qoida
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  logs InboundWebhookLog[]
+
+  @@index([companyId])
+  @@map("inbound_webhooks")
+}
+
+model InboundWebhookLog {
+  id         String   @id @default(cuid())
+  webhookId  String
+  webhook    InboundWebhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+  companyId  String
+  payload    Json
+  headers    Json?
+  status     String   @default("RECEIVED") // RECEIVED | PROCESSED | FAILED
+  errorMsg   String?
+  receivedAt DateTime @default(now())
+
+  @@index([webhookId, receivedAt])
+  @@index([companyId, receivedAt])
+  @@map("inbound_webhook_logs")
 }
 
 // ============================================================

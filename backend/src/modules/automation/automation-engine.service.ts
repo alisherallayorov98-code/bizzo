@@ -42,11 +42,14 @@ export class AutomationEngineService {
   async runScheduledTriggers(): Promise<void> {
     await Promise.all([
       this.checkInvoiceOverdue(),
+      this.checkInvoiceDueSoon(),
       this.checkStockLow(),
       this.checkContractExpiring(),
       this.checkDebtOverdue(),
       this.checkSalaryDue(),
       this.checkExpiredQuotations(),
+      this.checkStaleDeals(),
+      this.checkInactiveCustomers(),
     ])
   }
 
@@ -245,6 +248,96 @@ export class AutomationEngineService {
           quoteNumber:  q.quoteNumber,
           totalAmount:  Number(q.totalAmount ?? 0),
           contact:      contact ?? {},
+        },
+      })
+    }
+  }
+
+  // ─── Invoice due soon ────────────────────────────────────────────────────
+
+  private async checkInvoiceDueSoon(): Promise<void> {
+    const now  = new Date()
+    const in3  = new Date(now.getTime() + 3 * 86400000)
+    const invoices = await this.prisma.invoice.findMany({
+      where:   { dueDate: { gte: now, lte: in3 }, status: { notIn: ['PAID', 'CANCELLED'] as any } },
+      include: { contact: true },
+      take: 200,
+    })
+    for (const inv of invoices) {
+      const daysLeft = Math.ceil((inv.dueDate!.getTime() - now.getTime()) / 86400000)
+      await this.fire({
+        companyId:  inv.companyId,
+        trigger:    AutomationTrigger.INVOICE_DUE_SOON,
+        entityId:   inv.id,
+        entityType: 'Invoice',
+        data: {
+          invoiceNumber: inv.invoiceNumber,
+          amount:        Number((inv as any).totalAmount ?? 0),
+          daysLeft,
+          contact: { name: inv.contact?.name, phone: inv.contact?.phone, email: inv.contact?.email },
+        },
+      })
+    }
+  }
+
+  // ─── Stale deals (14 kun harakatsiz) ─────────────────────────────────────
+
+  private async checkStaleDeals(): Promise<void> {
+    const cutoff = new Date(Date.now() - 14 * 86400000)
+    const deals = await this.prisma.deal.findMany({
+      where:   { updatedAt: { lt: cutoff }, stage: { notIn: ['WON', 'LOST'] as any } },
+      include: { contact: true },
+      take: 200,
+    }).catch(() => [])
+    for (const deal of deals) {
+      const daysSinceUpdate = Math.floor((Date.now() - deal.updatedAt.getTime()) / 86400000)
+      await this.fire({
+        companyId:  (deal as any).companyId,
+        trigger:    AutomationTrigger.DEAL_STALE,
+        entityId:   deal.id,
+        entityType: 'Deal',
+        data: {
+          title:           deal.title,
+          daysSinceUpdate,
+          stage:           deal.stage,
+          amount:          Number((deal as any).amount ?? 0),
+          contact: { name: (deal as any).contact?.name, phone: (deal as any).contact?.phone },
+        },
+      })
+    }
+  }
+
+  // ─── Inactive customers (90 kun xarid qilmagan) ──────────────────────────
+
+  private async checkInactiveCustomers(): Promise<void> {
+    const cutoff = new Date(Date.now() - 90 * 86400000)
+    const contacts = await this.prisma.$queryRaw<any[]>`
+      SELECT c.id, c."companyId", c.name, c.phone, c.email,
+             MAX(i."createdAt") as "lastPurchase"
+      FROM contacts c
+      LEFT JOIN invoices i ON i."contactId" = c.id AND i.status = 'PAID'
+      WHERE c.type IN ('CUSTOMER', 'BOTH')
+        AND c."isActive" = true
+      GROUP BY c.id, c."companyId", c.name, c.phone, c.email
+      HAVING MAX(i."createdAt") IS NULL OR MAX(i."createdAt") < ${cutoff}
+      LIMIT 200
+    `.catch(() => [])
+
+    for (const contact of contacts) {
+      const daysSincePurchase = contact.lastPurchase
+        ? Math.floor((Date.now() - new Date(contact.lastPurchase).getTime()) / 86400000)
+        : null
+      await this.fire({
+        companyId:  contact.companyId,
+        trigger:    AutomationTrigger.CUSTOMER_INACTIVE,
+        entityId:   contact.id,
+        entityType: 'Contact',
+        data: {
+          contactName:      contact.name,
+          contactPhone:     contact.phone,
+          contactEmail:     contact.email,
+          daysSincePurchase,
+          contact: { name: contact.name, phone: contact.phone, email: contact.email },
         },
       })
     }

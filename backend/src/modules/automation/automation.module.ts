@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { ScheduleModule } from '@nestjs/schedule'
 import { AutomationController } from './automation.controller'
+import { WebhookReceiverController } from './webhook-receiver.controller'
 import { AutomationService } from './automation.service'
 import { AutomationEngineService } from './automation-engine.service'
 import { PrismaModule } from '../../prisma/prisma.module'
@@ -14,7 +15,7 @@ import { NotificationsModule } from '../notifications/notifications.module'
     IntegrationsModule,
     NotificationsModule,
   ],
-  controllers: [AutomationController],
+  controllers: [AutomationController, WebhookReceiverController],
   providers:   [AutomationService, AutomationEngineService],
   exports:     [AutomationEngineService],
 })

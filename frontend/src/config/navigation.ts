@@ -6,7 +6,7 @@ import {
   Upload, ArrowDownToLine, ArrowUpFromLine,
   ClipboardList, TrendingUp, DollarSign, ScanLine,
   Repeat, Banknote, Zap, ArrowLeftRight,
-  FileCheck, Megaphone, Target,
+  FileCheck, Megaphone, Target, Webhook, PieChart,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -187,8 +187,10 @@ export const CORE_NAV_ITEMS: NavItem[] = [
     path:  '/automation',
     icon:  Zap,
     subTabs: [
-      { id: 'rules',      label: 'Qoidalar',   path: '/automation',       icon: Zap      },
-      { id: 'logs',       label: 'Jurnal',      path: '/automation/logs',  icon: Activity },
+      { id: 'rules',     label: 'Qoidalar',   path: '/automation',            icon: Zap      },
+      { id: 'logs',      label: 'Jurnal',     path: '/automation/logs',       icon: Activity },
+      { id: 'analytics', label: 'Analitika',  path: '/automation/analytics',  icon: PieChart },
+      { id: 'webhooks',  label: 'Webhooks',   path: '/automation/webhooks',   icon: Webhook  },
     ],
   },
   {

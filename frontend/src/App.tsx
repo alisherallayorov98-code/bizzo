@@ -78,8 +78,10 @@ const RecurringPage       = lazy(() => import('@pages/recurring/RecurringPage'))
 const CashExpensesPage    = lazy(() => import('@pages/cash-expenses/CashExpensesPage'))
 
 // Avtomatlashtirish
-const AutomationPage      = lazy(() => import('@pages/automation/AutomationPage'))
-const AutomationLogsPage  = lazy(() => import('@pages/automation/AutomationLogsPage'))
+const AutomationPage          = lazy(() => import('@pages/automation/AutomationPage'))
+const AutomationLogsPage      = lazy(() => import('@pages/automation/AutomationLogsPage'))
+const AutomationAnalyticsPage = lazy(() => import('@pages/automation/AutomationAnalyticsPage'))
+const WebhooksPage            = lazy(() => import('@pages/automation/WebhooksPage'))
 
 // Landing
 const LandingLayout       = lazy(() => import('@pages/landing/LandingLayout').then(m => ({ default: m.LandingLayout })))
@@ -282,8 +284,10 @@ export default function App() {
                 <Route path="/cash-expenses" element={<CashExpensesPage />} />
 
                 {/* Avtomatlashtirish */}
-                <Route path="/automation"      element={<PermissionGate><AutomationPage /></PermissionGate>} />
-                <Route path="/automation/logs" element={<PermissionGate><AutomationLogsPage /></PermissionGate>} />
+                <Route path="/automation"            element={<PermissionGate><AutomationPage /></PermissionGate>} />
+                <Route path="/automation/logs"       element={<PermissionGate><AutomationLogsPage /></PermissionGate>} />
+                <Route path="/automation/analytics"  element={<PermissionGate><AutomationAnalyticsPage /></PermissionGate>} />
+                <Route path="/automation/webhooks"   element={<PermissionGate><WebhooksPage /></PermissionGate>} />
 
                 {/* Sozlamalar */}
                 <Route path="/settings/*" element={<PermissionGate><CompanySettingsPage /></PermissionGate>} />

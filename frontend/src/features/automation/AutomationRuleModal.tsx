@@ -82,13 +82,17 @@ const CONDITION_FIELDS: Record<string, Array<{ value: string; label: string }>> 
   ],
   PURCHASE_RECEIVED:  [],
   DEAL_STAGE_CHANGED: [],
+  DEAL_STALE:         [{ value: 'daysSinceUpdate', label: 'Harakatsiz kunlar' }],
   CONTACT_CREATED:    [],
+  CUSTOMER_INACTIVE:  [{ value: 'daysSincePurchase', label: 'Xarid qilmagan kunlar' }],
   SALARY_DUE:         [],
   STOCK_MOVEMENT:     [],
   MANUAL:             [],
   DAILY_MORNING:      [],
   WEEKLY_MONDAY:      [],
   MONTHLY_FIRST:      [],
+  WEBHOOK_INBOUND:    [],
+  INVOICE_DUE_SOON:   [{ value: 'daysLeft', label: 'Muddatgacha kunlar' }],
 }
 
 const TRIGGER_VARS: Record<string, string[]> = {
@@ -107,6 +111,10 @@ const TRIGGER_VARS: Record<string, string[]> = {
   WEEKLY_MONDAY:      ['date', 'weekday'],
   MONTHLY_FIRST:      ['date', 'month'],
   MANUAL:             [],
+  INVOICE_DUE_SOON:   ['contact.name', 'contact.phone', 'contact.email', 'invoiceNumber', 'amount', 'daysLeft'],
+  DEAL_STALE:         ['title', 'stage', 'amount', 'daysSinceUpdate', 'contact.name'],
+  CUSTOMER_INACTIVE:  ['contact.name', 'contact.phone', 'contact.email', 'daysSincePurchase'],
+  WEBHOOK_INBOUND:    ['webhookName', 'slug', 'payload'],
 }
 
 const OPERATORS = [

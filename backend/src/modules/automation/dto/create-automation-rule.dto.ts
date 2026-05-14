@@ -6,13 +6,16 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 
 export enum AutomationTrigger {
   INVOICE_OVERDUE    = 'INVOICE_OVERDUE',
+  INVOICE_DUE_SOON   = 'INVOICE_DUE_SOON',
   STOCK_LOW          = 'STOCK_LOW',
   DEAL_WON           = 'DEAL_WON',
   DEAL_STAGE_CHANGED = 'DEAL_STAGE_CHANGED',
+  DEAL_STALE         = 'DEAL_STALE',
   CONTRACT_EXPIRING  = 'CONTRACT_EXPIRING',
   PAYMENT_RECEIVED   = 'PAYMENT_RECEIVED',
   DEBT_OVERDUE       = 'DEBT_OVERDUE',
   CONTACT_CREATED    = 'CONTACT_CREATED',
+  CUSTOMER_INACTIVE  = 'CUSTOMER_INACTIVE',
   SALARY_DUE         = 'SALARY_DUE',
   STOCK_MOVEMENT     = 'STOCK_MOVEMENT',
   MANUAL             = 'MANUAL',
@@ -22,6 +25,7 @@ export enum AutomationTrigger {
   DAILY_MORNING      = 'DAILY_MORNING',
   WEEKLY_MONDAY      = 'WEEKLY_MONDAY',
   MONTHLY_FIRST      = 'MONTHLY_FIRST',
+  WEBHOOK_INBOUND    = 'WEBHOOK_INBOUND',
 }
 
 export enum ConditionOperator {
