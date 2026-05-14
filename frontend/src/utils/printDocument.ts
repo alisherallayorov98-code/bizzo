@@ -54,15 +54,19 @@ export function printHTML(html: string, title = 'BIZZO') {
 }
 
 export function generateReceipt(params: {
-  companyName:   string
-  items:         { name: string; qty: number; unit: string; price: number; total: number }[]
-  subtotal:      number
-  discount?:     number
-  total:         number
-  paymentMethod: string
-  contactName?:  string
-  date:          string
-  cashier?:      string
+  companyName:    string
+  companyPhone?:  string
+  companyAddress?: string
+  items:          { name: string; qty: number; unit: string; price: number; total: number }[]
+  subtotal:       number
+  discount?:      number
+  total:          number
+  paymentMethod:  string
+  contactName?:   string
+  date:           string
+  cashier?:       string
+  receiptNumber?: string
+  saleType?:      'CHAKANA' | 'ULGURJI'
 }): string {
   const fmt = (n: number) => n.toLocaleString('uz-UZ') + " so'm"
   const payLabels: Record<string, string> = {
@@ -73,28 +77,41 @@ export function generateReceipt(params: {
     <div class="receipt">
       <div class="text-center" style="margin-bottom:6px;">
         <div class="bold large">${params.companyName}</div>
+        ${params.companyAddress ? `<div class="small">${params.companyAddress}</div>` : ''}
+        ${params.companyPhone   ? `<div class="small">Tel: ${params.companyPhone}</div>` : ''}
+        <div class="divider"></div>
+        ${params.receiptNumber ? `<div class="small bold">№ ${params.receiptNumber}</div>` : ''}
+        ${params.saleType ? `<div class="small">${params.saleType === 'ULGURJI' ? 'ULGURJI SOTUV' : 'CHAKANA SOTUV'}</div>` : ''}
         <div class="small">${params.date}</div>
         ${params.cashier ? `<div class="small">Kassir: ${params.cashier}</div>` : ''}
       </div>
       <div class="divider"></div>
-      ${params.items.map(item => `
-        <div>${item.name}</div>
+      ${params.items.map((item, i) => `
+        <div style="display:flex;justify-content:space-between;gap:4px;">
+          <span style="flex:1">${i + 1}. ${item.name}</span>
+        </div>
         <div style="display:flex;justify-content:space-between;">
           <span class="small">${item.qty} ${item.unit} × ${fmt(item.price)}</span>
           <span class="bold">${fmt(item.total)}</span>
         </div>
+        <div style="border-bottom:1px dotted #ccc;margin:3px 0;"></div>
       `).join('')}
-      <div class="divider"></div>
       ${params.discount ? `
         <div style="display:flex;justify-content:space-between;">
-          <span>Chegirma:</span><span>-${fmt(params.discount)}</span>
+          <span class="small">Chegirma:</span><span class="small">-${fmt(params.discount)}</span>
         </div>
       ` : ''}
+      ${params.subtotal !== params.total ? `
+        <div style="display:flex;justify-content:space-between;">
+          <span class="small">Jami (chegirmasiz):</span><span class="small">${fmt(params.subtotal)}</span>
+        </div>
+      ` : ''}
+      <div class="divider"></div>
       <div style="display:flex;justify-content:space-between;" class="bold large">
-        <span>JAMI:</span><span>${fmt(params.total)}</span>
+        <span>TO'LOV:</span><span>${fmt(params.total)}</span>
       </div>
       <div class="small" style="margin-top:4px;">
-        To'lov: ${payLabels[params.paymentMethod] || params.paymentMethod}
+        Usul: ${payLabels[params.paymentMethod] || params.paymentMethod}
       </div>
       ${params.contactName ? `<div class="small">Mijoz: ${params.contactName}</div>` : ''}
       <div class="divider"></div>

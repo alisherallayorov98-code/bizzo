@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import {
   Plus, Trash2, ArrowUpFromLine, Search,
   AlertTriangle, ChevronDown, Sparkles, RotateCcw,
+  CheckCircle, Printer, FileText,
 } from 'lucide-react'
 import { PageHeader } from '@components/layout/PageHeader/PageHeader'
 import { Button } from '@components/ui/Button/Button'
@@ -15,6 +16,9 @@ import { useProducts } from '@features/products/hooks/useProducts'
 import { formatCurrency } from '@utils/formatters'
 import { cn } from '@utils/cn'
 import type { Product } from '@services/product.service'
+import type { DocumentResult } from '@services/warehouse.service'
+import { generateReceipt, generateNakladnaya, printHTML } from '@utils/printDocument'
+import { useAuth } from '@hooks/useAuth'
 import api from '@config/api'
 
 interface FrequentProduct {
@@ -140,14 +144,25 @@ function ProductPicker({
 // ============================================
 // ASOSIY SAHIFA
 // ============================================
+interface SaleResult {
+  docResult:   DocumentResult
+  lines:       DocLine[]
+  contactName: string
+  warehouseId: string
+  totalAmount: number
+  notes:       string
+}
+
 export default function OutgoingPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [warehouseId, setWarehouseId] = useState('')
   const [contactId, setContactId]     = useState('')
   const [notes, setNotes]             = useState('')
   const [createDebt, setCreateDebt]   = useState(false)
   const [dueDate, setDueDate]         = useState('')
+  const [saleResult, setSaleResult]   = useState<SaleResult | null>(null)
   const [lines, setLines]             = useState<DocLine[]>([
     { id: crypto.randomUUID(), productId: '', product: null, quantity: 1, price: 0 },
   ])
@@ -155,6 +170,7 @@ export default function OutgoingPage() {
   const { data: warehouses = [] }   = useWarehouses()
   const { data: customersResult }   = useContacts({ type: 'CUSTOMER', limit: 100 })
   const customers                   = customersResult?.data ?? []
+  const selectedCustomer            = customers.find(c => c.id === contactId)
   const { data: stockItems = [] }   = useStockOverview(warehouseId || undefined)
   const createOutgoing              = useCreateOutgoing()
 
@@ -324,7 +340,7 @@ export default function OutgoingPage() {
 
   const handleSubmit = async () => {
     if (!canSubmit) return
-    await createOutgoing.mutateAsync({
+    const docResult = await createOutgoing.mutateAsync({
       warehouseId,
       contactId:  contactId || undefined,
       lines:      lines.map(l => ({ productId: l.productId, quantity: l.quantity, price: l.price })),
@@ -332,7 +348,136 @@ export default function OutgoingPage() {
       createDebt: createDebt && !!contactId,
       dueDate:    dueDate || undefined,
     })
-    navigate('/warehouse/movements')
+    setSaleResult({
+      docResult,
+      lines:       [...lines],
+      contactName: selectedCustomer?.name ?? '',
+      warehouseId,
+      totalAmount: docResult.totalAmount,
+      notes,
+    })
+  }
+
+  const receiptNumber = saleResult
+    ? `OUT-${saleResult.docResult.movements[0]?.id?.slice(-6).toUpperCase() ?? '------'}`
+    : ''
+
+  const handlePrintReceipt = () => {
+    if (!saleResult) return
+    const html = generateReceipt({
+      companyName:    (user as any)?.company?.name ?? 'BIZZO',
+      companyPhone:   (user as any)?.company?.phone ?? undefined,
+      companyAddress: (user as any)?.company?.address ?? undefined,
+      items:          saleResult.lines.map(l => ({
+        name:  l.product?.name ?? l.productId,
+        qty:   l.quantity,
+        unit:  l.product?.unit ?? 'dona',
+        price: l.price,
+        total: l.quantity * l.price,
+      })),
+      subtotal:       saleResult.totalAmount,
+      total:          saleResult.totalAmount,
+      paymentMethod:  saleResult.docResult.debt ? 'DEBT' : 'CASH',
+      contactName:    saleResult.contactName || undefined,
+      date:           new Date().toLocaleString('uz-UZ'),
+      cashier:        (user as any)?.firstName
+                        ? `${(user as any).firstName} ${(user as any).lastName ?? ''}`.trim()
+                        : undefined,
+      receiptNumber,
+      saleType:       'ULGURJI',
+    })
+    printHTML(html, `Chek ${receiptNumber}`)
+  }
+
+  const handlePrintNakladnaya = () => {
+    if (!saleResult) return
+    const html = generateNakladnaya({
+      type:      'OUT',
+      docNumber: receiptNumber,
+      date:      new Date().toLocaleString('uz-UZ'),
+      company: {
+        name:    (user as any)?.company?.name ?? 'BIZZO',
+        stir:    (user as any)?.company?.stir ?? undefined,
+        address: (user as any)?.company?.address ?? undefined,
+      },
+      contact: saleResult.contactName
+        ? { name: saleResult.contactName }
+        : undefined,
+      items: saleResult.lines.map(l => ({
+        name:  l.product?.name ?? l.productId,
+        unit:  l.product?.unit ?? 'dona',
+        qty:   l.quantity,
+        price: l.price,
+        total: l.quantity * l.price,
+      })),
+      total: saleResult.totalAmount,
+      notes: saleResult.notes || undefined,
+    })
+    printHTML(html, `Nakladnaya ${receiptNumber}`)
+  }
+
+  const handleNewSale = () => {
+    setSaleResult(null)
+    setLines([{ id: crypto.randomUUID(), productId: '', product: null, quantity: 1, price: 0 }])
+    setNotes('')
+    setCreateDebt(false)
+    setDueDate('')
+  }
+
+  if (saleResult) {
+    return (
+      <div className="max-w-lg mx-auto mt-12 flex flex-col items-center text-center space-y-6">
+        <div className="w-20 h-20 rounded-full bg-success/10 border-4 border-success/20 flex items-center justify-center">
+          <CheckCircle size={40} className="text-success" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-black text-text-primary">Saqlandi!</h2>
+          <p className="text-sm text-text-muted mt-1">
+            {receiptNumber} · {formatCurrency(saleResult.totalAmount)}
+          </p>
+          {saleResult.contactName && (
+            <p className="text-sm text-text-secondary mt-0.5">Mijoz: {saleResult.contactName}</p>
+          )}
+          {saleResult.docResult.debt && (
+            <p className="text-xs text-warning mt-1">
+              Qarz yozildi: {formatCurrency(saleResult.totalAmount)}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
+          <button
+            onClick={handlePrintReceipt}
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-border-primary text-text-secondary hover:text-text-primary hover:bg-bg-secondary transition-colors text-sm font-medium"
+          >
+            <Printer size={16} />
+            Chek (58mm)
+          </button>
+          <button
+            onClick={handlePrintNakladnaya}
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-border-primary text-text-secondary hover:text-text-primary hover:bg-bg-secondary transition-colors text-sm font-medium"
+          >
+            <FileText size={16} />
+            Nakladnaya
+          </button>
+        </div>
+
+        <div className="flex gap-3 w-full max-w-sm">
+          <button
+            onClick={handleNewSale}
+            className="flex-1 py-3 rounded-xl bg-accent-primary hover:opacity-90 text-white font-semibold text-sm transition-opacity"
+          >
+            Yangi chiqim
+          </button>
+          <button
+            onClick={() => navigate('/warehouse/movements')}
+            className="flex-1 py-3 rounded-xl border border-border-primary text-text-secondary hover:bg-bg-secondary transition-colors text-sm font-medium"
+          >
+            Jurnalga o'tish
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (

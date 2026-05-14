@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useMutation }    from '@tanstack/react-query'
 import toast              from 'react-hot-toast'
+import { useDebounce }    from '@hooks/useDebounce'
 import { usePOSStore }    from '@store/pos.store'
 import type { POSItem, PaymentMethod } from '@store/pos.store'
 import { useProducts }    from '@features/products/hooks/useProducts'
@@ -31,9 +32,10 @@ function ProductSearch({ warehouseId, priceLevel }: { warehouseId: string; price
   const { addItem }  = usePOSStore()
   const inputRef     = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<any>(null)
+  const debouncedQuery = useDebounce(query, 250)
 
   const { data } = useProducts({
-    search: query.length >= 1 ? query : undefined,
+    search: debouncedQuery.length >= 2 ? debouncedQuery : undefined,
     limit:  20,
   })
 
@@ -448,15 +450,20 @@ export default function POSPage() {
   const handlePrint = () => {
     if (!result) return
     const html = generateReceipt({
-      companyName:   (user as any)?.company?.name || 'BIZZO',
-      items:         items.map(i => ({ name: i.productName, qty: i.quantity, unit: i.productUnit, price: i.price, total: i.total })),
-      subtotal:      subtotal(),
-      discount:      discountAmt() || undefined,
-      total:         grandTotal(),
+      companyName:    (user as any)?.company?.name || 'BIZZO',
+      companyPhone:   (user as any)?.company?.phone ?? undefined,
+      companyAddress: (user as any)?.company?.address ?? undefined,
+      items:          items.map(i => ({ name: i.productName, qty: i.quantity, unit: i.productUnit, price: i.price, total: i.total })),
+      subtotal:       subtotal(),
+      discount:       discountAmt() || undefined,
+      total:          grandTotal(),
       paymentMethod,
-      contactName:   contactName || undefined,
-      date:          new Date().toLocaleString('uz-UZ'),
-      cashier:       (user as any)?.firstName ? `${(user as any).firstName} ${(user as any).lastName}` : undefined,
+      contactName:    contactName || undefined,
+      date:           new Date().toLocaleString('uz-UZ'),
+      cashier:        (user as any)?.firstName
+                        ? `${(user as any).firstName} ${(user as any).lastName ?? ''}`.trim()
+                        : undefined,
+      saleType:       contactPriceLevel === 'WHOLESALE' ? 'ULGURJI' : 'CHAKANA',
     })
     printHTML(html, 'Chek')
   }
