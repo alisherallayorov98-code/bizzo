@@ -98,12 +98,12 @@ export default function AutomationAnalyticsPage() {
                   <span className="text-xs text-[var(--color-text-muted)] w-20 shrink-0">{d.date?.slice(5)}</span>
                   <div className="flex-1 flex gap-1 h-5">
                     <div
-                      className="bg-green-500/70 rounded-sm"
+                      className="bg-[var(--color-success)]/70 rounded-sm"
                       style={{ width: `${(d.success / maxCount) * 100}%`, minWidth: d.success > 0 ? 4 : 0 }}
                       title={`Muvaffaqiyatli: ${d.success}`}
                     />
                     <div
-                      className="bg-red-500/70 rounded-sm"
+                      className="bg-[var(--color-danger)]/70 rounded-sm"
                       style={{ width: `${(d.failed / maxCount) * 100}%`, minWidth: d.failed > 0 ? 4 : 0 }}
                       title={`Xato: ${d.failed}`}
                     />
@@ -112,8 +112,8 @@ export default function AutomationAnalyticsPage() {
                 </div>
               ))}
               <div className="flex gap-4 pt-2 text-xs text-[var(--color-text-muted)]">
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-500/70 inline-block" /> Muvaffaqiyatli</span>
-                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500/70 inline-block" /> Xato</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[var(--color-success)]/70 inline-block" /> Muvaffaqiyatli</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-[var(--color-danger)]/70 inline-block" /> Xato</span>
               </div>
             </div>
           )}

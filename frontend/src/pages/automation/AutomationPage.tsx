@@ -34,17 +34,27 @@ const ACTION_LABELS: Record<string, string> = {
 }
 
 const TRIGGER_COLORS: Record<string, string> = {
-  INVOICE_OVERDUE:   '#EF4444',
-  STOCK_LOW:         '#F59E0B',
-  DEAL_WON:          '#10B981',
-  CONTRACT_EXPIRING: '#8B5CF6',
-  PAYMENT_RECEIVED:  '#3B82F6',
-  DEBT_OVERDUE:      '#EF4444',
-  CONTACT_CREATED:   '#06B6D4',
-  SALARY_DUE:        '#F59E0B',
-  STOCK_MOVEMENT:    '#6B7280',
-  MANUAL:            '#9CA3AF',
-  DEAL_STAGE_CHANGED:'#10B981',
+  INVOICE_OVERDUE:   'var(--color-danger)',
+  INVOICE_DUE_SOON:  'var(--color-warning)',
+  STOCK_LOW:         'var(--color-warning)',
+  DEAL_WON:          'var(--color-success)',
+  CONTRACT_EXPIRING: 'var(--color-accent-secondary, #8B5CF6)',
+  PAYMENT_RECEIVED:  'var(--color-accent-primary)',
+  DEBT_OVERDUE:      'var(--color-danger)',
+  CONTACT_CREATED:   'var(--color-info, #06B6D4)',
+  CUSTOMER_INACTIVE: 'var(--color-warning)',
+  SALARY_DUE:        'var(--color-warning)',
+  STOCK_MOVEMENT:    'var(--color-text-muted)',
+  MANUAL:            'var(--color-text-muted)',
+  DEAL_STAGE_CHANGED:'var(--color-success)',
+  DEAL_STALE:        'var(--color-danger)',
+  WEBHOOK_INBOUND:   'var(--color-accent-primary)',
+  DAILY_MORNING:     'var(--color-info, #06B6D4)',
+  WEEKLY_MONDAY:     'var(--color-accent-primary)',
+  MONTHLY_FIRST:     'var(--color-accent-primary)',
+  QUOTATION_APPROVED:'var(--color-success)',
+  QUOTATION_EXPIRED: 'var(--color-warning)',
+  PURCHASE_RECEIVED: 'var(--color-accent-primary)',
 }
 
 function StatusBadge({ status }: { status: 'SUCCESS' | 'PARTIAL' | 'FAILED' }) {
@@ -101,7 +111,7 @@ function RuleCard({
               <Zap size={16} style={{ color: triggerColor }} />
             </div>
             <div className="min-w-0">
-              <p className="font-semibold truncate" style={{ color: 'var(--color-text-primary)', fontSize: 14 }}>
+              <p className="font-semibold truncate text-sm" style={{ color: 'var(--color-text-primary)' }}>
                 {rule.name}
               </p>
               <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
@@ -113,21 +123,21 @@ function RuleCard({
           <div className="flex items-center gap-1 flex-shrink-0">
             <button
               onClick={() => onRun(rule.id)}
-              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/30"
               title="Qo'lda ishga tushirish"
             >
               <Play size={14} style={{ color: 'var(--color-accent-primary)' }} />
             </button>
             <button
               onClick={() => onEdit(rule)}
-              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/30"
               title="Tahrirlash"
             >
               <Edit2 size={14} style={{ color: 'var(--color-text-muted)' }} />
             </button>
             <button
               onClick={() => onToggle(rule.id)}
-              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/30"
               title={rule.isActive ? 'O\'chirish' : 'Yoqish'}
             >
               {rule.isActive
@@ -137,7 +147,7 @@ function RuleCard({
             </button>
             <button
               onClick={() => onDelete(rule.id)}
-              className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/30"
               title="O'chirish"
             >
               <Trash2 size={14} style={{ color: 'var(--color-danger)' }} />
@@ -166,7 +176,7 @@ function RuleCard({
           style={{ borderTop: '1px solid var(--color-border-primary)' }}>
           <div className="flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
             <Activity size={12} />
-            <span style={{ fontSize: 12 }}>{rule.runCount ?? 0} marta</span>
+            <span className="text-xs">{rule.runCount ?? 0} marta</span>
           </div>
 
           <div className="flex items-center gap-3">
@@ -289,19 +299,19 @@ export default function AutomationPage() {
             label: 'Jami qoidalar',
             value: stats?.total ?? rules.length,
             icon: Settings2,
-            color: '#3B82F6',
+            iconCls: 'text-[var(--color-accent-primary)] bg-[var(--color-accent-primary)]/10',
           },
           {
             label: 'Faol qoidalar',
             value: stats?.active ?? activeRules.length,
             icon: Zap,
-            color: '#10B981',
+            iconCls: 'text-[var(--color-success)] bg-[var(--color-success)]/10',
           },
           {
             label: 'Jami ishga tushirildi',
             value: stats?.totalRuns ?? rules.reduce((s, r) => s + (r.runCount ?? 0), 0),
             icon: TrendingUp,
-            color: '#F59E0B',
+            iconCls: 'text-[var(--color-warning)] bg-[var(--color-warning)]/10',
           },
           {
             label: 'Oxirgi 24 soat',
@@ -309,21 +319,20 @@ export default function AutomationPage() {
               new Date(l.executedAt) > new Date(Date.now() - 86400000)
             ).length,
             icon: Activity,
-            color: '#8B5CF6',
+            iconCls: 'text-purple-400 bg-purple-400/10',
           },
         ].map((card, i) => (
           <div key={i} className="rounded-xl p-4 border"
             style={{
-              background: 'var(--color-bg-elevated)',
+              background:  'var(--color-bg-elevated)',
               borderColor: 'var(--color-border-primary)',
             }}>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                 {card.label}
               </span>
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center"
-                style={{ background: `${card.color}20` }}>
-                <card.icon size={14} style={{ color: card.color }} />
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${card.iconCls}`}>
+                <card.icon size={14} />
               </div>
             </div>
             <p className="text-2xl font-bold" style={{ color: 'var(--color-text-primary)' }}>
@@ -420,8 +429,8 @@ export default function AutomationPage() {
             background: 'var(--color-bg-elevated)',
             borderColor: 'var(--color-border-primary)',
           }}>
-          <p className="font-semibold mb-4 flex items-center gap-2"
-            style={{ color: 'var(--color-text-primary)', fontSize: 14 }}>
+          <p className="font-semibold mb-4 flex items-center gap-2 text-sm"
+            style={{ color: 'var(--color-text-primary)' }}>
             <Activity size={16} />
             Oxirgi bajarilishlar
           </p>

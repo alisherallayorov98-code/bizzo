@@ -145,6 +145,7 @@ export function AutomationRuleModal({ rule, onClose }: Props) {
   )
   const [isActive,    setIsActive]    = useState(rule?.isActive ?? true)
   const [cooldownMin, setCooldownMin] = useState(String(rule?.cooldownMin ?? '0'))
+  const [nameError,   setNameError]   = useState('')
 
   const { data: triggers = [] } = useQuery({
     queryKey: ['automation-triggers'],
@@ -173,6 +174,15 @@ export function AutomationRuleModal({ rule, onClose }: Props) {
       toast.error(err?.response?.data?.message ?? 'Xato yuz berdi')
     },
   })
+
+  function handleSave() {
+    if (!name.trim()) {
+      setNameError('Qoida nomi kiritilishi shart')
+      return
+    }
+    setNameError('')
+    saveMut.mutate()
+  }
 
   // ─── Condition helpers ───────────────────────────────────────────────────
 
@@ -218,43 +228,49 @@ export function AutomationRuleModal({ rule, onClose }: Props) {
   const conditionFields = CONDITION_FIELDS[trigger] ?? []
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border shadow-2xl"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+      style={{ background: 'rgba(0,0,0,0.6)' }}>
+      <div className="w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl border shadow-2xl"
         style={{
           background:   'var(--color-bg-secondary)',
           borderColor:  'var(--color-border-primary)',
         }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b"
+        <div className="flex items-center justify-between px-6 py-4 border-b shrink-0"
           style={{ borderColor: 'var(--color-border-primary)' }}>
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center"
               style={{ background: 'var(--color-accent-primary)20' }}>
               <Zap size={16} style={{ color: 'var(--color-accent-primary)' }} />
             </div>
-            <h2 className="font-bold" style={{ color: 'var(--color-text-primary)', fontSize: 16 }}>
+            <h2 className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>
               {isEdit ? 'Qoidani tahrirlash' : 'Yangi qoida yaratish'}
             </h2>
           </div>
           <button onClick={onClose}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors">
+            className="p-2 rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/30">
             <X size={18} style={{ color: 'var(--color-text-muted)' }} />
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
           {/* Asosiy ma'lumotlar */}
           <Section title="Asosiy" icon={Settings2}>
             <div className="space-y-3">
-              <Field label="Qoida nomi *">
+              <Field label={<>Qoida nomi <span style={{ color: 'var(--color-danger)' }}>*</span></>}>
                 <input
                   value={name}
-                  onChange={e => setName(e.target.value)}
+                  onChange={e => { setName(e.target.value); if (nameError) setNameError('') }}
                   placeholder="Masalan: Muddati o'tgan hisoblarga eslatma"
                   className="w-full px-3 py-2 rounded-lg text-sm outline-none"
-                  style={inputStyle}
+                  style={{
+                    ...inputStyle,
+                    ...(nameError ? { borderColor: 'var(--color-danger)' } : {}),
+                  }}
                 />
+                {nameError && (
+                  <p className="text-xs mt-1" style={{ color: 'var(--color-danger)' }}>{nameError}</p>
+                )}
               </Field>
               <Field label="Tavsif">
                 <input
@@ -358,7 +374,7 @@ export function AutomationRuleModal({ rule, onClose }: Props) {
                       style={inputStyle}
                     />
                     <button onClick={() => removeCondition(i)}
-                      className="p-2 rounded-lg hover:bg-white/10 transition-colors">
+                      className="p-2 rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors">
                       <Trash2 size={14} style={{ color: 'var(--color-danger)' }} />
                     </button>
                   </div>
@@ -397,7 +413,7 @@ export function AutomationRuleModal({ rule, onClose }: Props) {
                     </select>
                     {actions.length > 1 && (
                       <button onClick={() => removeAction(i)}
-                        className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                        className="p-1.5 rounded-lg hover:bg-[var(--color-bg-tertiary)] transition-colors">
                         <Trash2 size={14} style={{ color: 'var(--color-danger)' }} />
                       </button>
                     )}
@@ -470,19 +486,19 @@ export function AutomationRuleModal({ rule, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t"
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t shrink-0"
           style={{ borderColor: 'var(--color-border-primary)' }}>
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors hover:bg-white/10"
+            className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors hover:bg-[var(--color-bg-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/30"
             style={{ color: 'var(--color-text-secondary)' }}
           >
             Bekor qilish
           </button>
           <button
-            onClick={() => saveMut.mutate()}
-            disabled={!name || actions.length === 0 || saveMut.isPending}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50"
+            onClick={handleSave}
+            disabled={actions.length === 0 || saveMut.isPending}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/30"
             style={{ background: 'var(--color-accent-primary)', color: '#fff' }}
           >
             <Save size={15} />
@@ -525,7 +541,7 @@ function Section({
 function Field({
   label, children, className = '',
 }: {
-  label: string
+  label: React.ReactNode
   children: React.ReactNode
   className?: string
 }) {
