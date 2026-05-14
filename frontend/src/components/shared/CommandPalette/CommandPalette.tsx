@@ -26,6 +26,7 @@ const COMMANDS: Command[] = [
   { id: 'warehouse',    label: 'Ombor',           path: '/warehouse',           icon: Warehouse,       category: 'Asosiy',    keywords: 'sklad qoldiq' },
   { id: 'incoming',     label: 'Kirim hujjati',   path: '/warehouse/incoming',  icon: Upload,          category: 'Asosiy',    keywords: 'kirim qabul ombor' },
   { id: 'outgoing',     label: 'Chiqim hujjati',  path: '/warehouse/outgoing',  icon: Package,         category: 'Asosiy',    keywords: 'chiqim sotuv ombor' },
+  { id: 'return',       label: 'Tovar qaytarish', path: '/warehouse/return',    icon: Package,         category: 'Asosiy',    keywords: 'qaytarish return refund ombor' },
   { id: 'pos',          label: 'POS Kassa',       path: '/pos',                 icon: DollarSign,      category: 'Asosiy',    keywords: 'kassa sotuv tezkor' },
   { id: 'employees',    label: 'Xodimlar',        path: '/employees',           icon: UserCheck,       category: 'Asosiy',    keywords: 'staff hr' },
   { id: 'salary',       label: 'Ish haqi',        path: '/salary',              icon: DollarSign,      category: 'Asosiy',    keywords: 'maosh oylik' },

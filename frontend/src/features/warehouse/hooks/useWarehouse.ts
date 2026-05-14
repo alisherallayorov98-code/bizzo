@@ -128,3 +128,22 @@ export function useAdjustStock() {
     },
   })
 }
+
+// ============================================
+// QAYTARISH HUJJATI
+// ============================================
+export function useCreateReturn() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: Parameters<typeof warehouseService.createReturn>[0]) =>
+      warehouseService.createReturn(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [WAREHOUSE_KEY] })
+      qc.invalidateQueries({ queryKey: ['debts'] })
+      toast.success('Qaytarish hujjati saqlandi')
+    },
+    onError: (e: any) => {
+      toast.error(e?.response?.data?.message ?? 'Xatolik yuz berdi')
+    },
+  })
+}

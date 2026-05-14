@@ -1,5 +1,5 @@
 // ============================================================
-// BIZNISERP — PRISMA SCHEMA
+// BIZNISERP вЂ” PRISMA SCHEMA
 // O'zbekiston ERP/CRM Platformasi
 // ============================================================
 
@@ -13,7 +13,7 @@ datasource db {
 }
 
 // ============================================================
-// KOMPANIYA — MULTI-TENANT ASOSI
+// KOMPANIYA вЂ” MULTI-TENANT ASOSI
 // ============================================================
 
 model Company {
@@ -311,6 +311,8 @@ enum MovementType {
   PRODUCTION_OUT
   WASTE_IN
   WASTE_OUT
+  RETURN_IN
+  RETURN_OUT
 }
 
 // ============================================================
@@ -1566,7 +1568,7 @@ model Attachment {
 }
 
 // ============================================================
-// HAYDOVCHILAR (DRIVERS) — yetkazib berish uchun
+// HAYDOVCHILAR (DRIVERS) вЂ” yetkazib berish uchun
 // (korxona xodimi emas, alohida kontakt sifatida saqlanadi)
 // ============================================================
 

@@ -6,7 +6,7 @@ import {
   Upload, ArrowDownToLine, ArrowUpFromLine,
   ClipboardList, TrendingUp, DollarSign, ScanLine,
   Repeat, Banknote, Zap, ArrowLeftRight,
-  FileCheck, Megaphone, Target, Webhook, PieChart,
+  FileCheck, Megaphone, Target, Webhook, PieChart, RotateCcw,
   type LucideIcon,
 } from 'lucide-react'
 

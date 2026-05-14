@@ -73,6 +73,21 @@ export interface CreateOutgoingDto {
   dueDate?:    string;
 }
 
+export interface ReturnLineDto {
+  productId: string;
+  quantity:  number;
+  price:     number;
+}
+
+export interface CreateReturnDto {
+  type:        'RETURN_IN' | 'RETURN_OUT'; // RETURN_IN = xaridordan, RETURN_OUT = yetkazib beruvchiga
+  warehouseId: string;
+  contactId?:  string;
+  lines:       ReturnLineDto[];
+  notes?:      string;
+  refundDebt?: boolean; // qarzni kamaytirish
+}
+
 @Injectable()
 export class WarehouseService {
   constructor(
@@ -742,6 +757,95 @@ export class WarehouseService {
       }
 
       return { movements, debt, totalAmount };
+    });
+  }
+
+  // ============================================
+  // TOVAR QAYTARISH
+  // ============================================
+  async createReturn(companyId: string, dto: CreateReturnDto, userId: string) {
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: { id: dto.warehouseId, companyId, isActive: true },
+    });
+    if (!warehouse) throw new NotFoundException('Ombor topilmadi');
+    if (!dto.lines.length) throw new BadRequestException('Kamida bitta qator kerak');
+
+    const productIds = dto.lines.map(l => l.productId);
+    const products   = await this.prisma.product.findMany({
+      where: { id: { in: productIds }, companyId, isActive: true },
+    });
+    if (products.length !== productIds.length) {
+      throw new NotFoundException('Bir yoki bir nechta mahsulot topilmadi');
+    }
+    const productMap = new Map(products.map(p => [p.id, p]));
+
+    // RETURN_OUT = ombor kamayadi → qoldiqni tekshirish kerak
+    if (dto.type === 'RETURN_OUT') {
+      const stockItems = await this.prisma.stockItem.findMany({
+        where: { warehouseId: dto.warehouseId, productId: { in: productIds } },
+      });
+      const stockMap = new Map(stockItems.map(s => [s.productId, Number(s.quantity)]));
+      for (const line of dto.lines) {
+        const product = productMap.get(line.productId)!;
+        const avail   = stockMap.get(line.productId) ?? 0;
+        if (avail < line.quantity) {
+          throw new BadRequestException(
+            `${product.name}: yetarli qoldiq yo'q. Mavjud: ${avail} ${product.unit}, so'ralgan: ${line.quantity}`,
+          );
+        }
+      }
+    }
+
+    const totalAmount = dto.lines.reduce((s, l) => s + l.quantity * l.price, 0);
+    const isIn        = dto.type === 'RETURN_IN';
+
+    return this.prisma.$transaction(async tx => {
+      const movements = [];
+      for (const line of dto.lines) {
+        const movement = await tx.stockMovement.create({
+          data: {
+            warehouseId:   dto.warehouseId,
+            productId:     line.productId,
+            contactId:     dto.contactId ?? null,
+            type:          dto.type as any,
+            quantity:      line.quantity,
+            price:         line.price,
+            totalAmount:   line.quantity * line.price,
+            reason:        isIn ? "Xaridordan qaytarildi" : "Yetkazib beruvchiga qaytarildi",
+            referenceType: 'RETURN',
+            notes:         dto.notes,
+            createdById:   userId,
+          },
+        });
+        movements.push(movement);
+        // RETURN_IN → stock oshadi, RETURN_OUT → stock kamayadi
+        await this._upsertStock(tx, dto.warehouseId, line.productId,
+          isIn ? line.quantity : -line.quantity,
+          line.price,
+          isIn ? 'in' : 'out',
+        );
+      }
+
+      // Qarz muvozanatini o'zgartirish
+      let debtNote = null;
+      if (dto.refundDebt && dto.contactId && totalAmount > 0) {
+        debtNote = await tx.debtRecord.create({
+          data: {
+            companyId,
+            contactId:    dto.contactId,
+            // RETURN_IN → biz mijozga qaytaramiz (PAYABLE), RETURN_OUT → yetkazib beruvchi bizga (RECEIVABLE)
+            type:         isIn ? 'PAYABLE' : 'RECEIVABLE' as any,
+            amount:       totalAmount,
+            paidAmount:   0,
+            remaining:    totalAmount,
+            currency:     'UZS',
+            notes:        dto.notes ?? (isIn ? 'Qaytarish — mijozga' : 'Qaytarish — yetkazib beruvchiga'),
+            referenceType: 'RETURN',
+          },
+        });
+      }
+
+      return { movements, debtNote, totalAmount };
     });
   }
 

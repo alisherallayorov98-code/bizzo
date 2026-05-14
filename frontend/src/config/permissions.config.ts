@@ -12,6 +12,7 @@ export const ROUTE_PERMISSIONS: Record<string, UserRole[]> = {
   '/warehouse':           ['ADMIN', 'MANAGER', 'STOREKEEPER'],
   '/warehouse/incoming':  ['ADMIN', 'MANAGER', 'STOREKEEPER'],
   '/warehouse/outgoing':  ['ADMIN', 'MANAGER', 'STOREKEEPER'],
+  '/warehouse/return':    ['ADMIN', 'MANAGER', 'STOREKEEPER'],
   '/warehouse/movements': ['ADMIN', 'MANAGER', 'STOREKEEPER', 'ACCOUNTANT'],
   '/warehouse/inventory': ['ADMIN', 'MANAGER', 'STOREKEEPER'],
 

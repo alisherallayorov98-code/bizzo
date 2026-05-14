@@ -11,6 +11,7 @@ import {
   AdjustStockDto,
   CreateIncomingDto,
   CreateOutgoingDto,
+  CreateReturnDto,
 } from './warehouse.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
@@ -93,6 +94,18 @@ export class WarehouseController {
     @Body() dto: CreateOutgoingDto,
   ) {
     return this.warehouseService.createOutgoing(user.companyId, dto, user.id);
+  }
+
+  // ============================================
+  // QAYTARISH HUJJATI
+  // ============================================
+  @Post('return')
+  @ApiOperation({ summary: 'Tovar qaytarish (xaridordan yoki yetkazib beruvchiga)' })
+  createReturn(
+    @CurrentUser() user: any,
+    @Body() dto: CreateReturnDto,
+  ) {
+    return this.warehouseService.createReturn(user.companyId, dto, user.id);
   }
 
   // ============================================

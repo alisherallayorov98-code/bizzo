@@ -115,7 +115,17 @@ export interface CreateOutgoingPayload {
 export interface DocumentResult {
   movements:   StockMovement[]
   debt:        null | { id: string; amount: number; type: string }
+  debtNote:    null | { id: string; amount: number; type: string }
   totalAmount: number
+}
+
+export interface CreateReturnPayload {
+  type:        'RETURN_IN' | 'RETURN_OUT'
+  warehouseId: string
+  contactId?:  string
+  lines:       DocumentLine[]
+  notes?:      string
+  refundDebt?: boolean
 }
 
 // ============================================
@@ -169,6 +179,11 @@ export const warehouseService = {
 
   async createOutgoing(payload: CreateOutgoingPayload): Promise<DocumentResult> {
     const { data } = await api.post<{ data: DocumentResult }>('/warehouse/outgoing', payload)
+    return data.data
+  },
+
+  async createReturn(payload: CreateReturnPayload): Promise<DocumentResult> {
+    const { data } = await api.post<{ data: DocumentResult }>('/warehouse/return', payload)
     return data.data
   },
 }

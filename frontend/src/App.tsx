@@ -41,6 +41,7 @@ const StockMovementsPage  = lazy(() => import('@pages/warehouse/StockMovementsPa
 const InventoryPage       = lazy(() => import('@pages/warehouse/InventoryPage'))
 const IncomingPage        = lazy(() => import('@pages/warehouse/IncomingPage'))
 const OutgoingPage        = lazy(() => import('@pages/warehouse/OutgoingPage'))
+const ReturnPage          = lazy(() => import('@pages/warehouse/ReturnPage'))
 const EmployeesListPage   = lazy(() => import('@pages/employees/EmployeesListPage'))
 const EmployeeDetailPage  = lazy(() => import('@pages/employees/EmployeeDetailPage'))
 const SalaryPage          = lazy(() => import('@pages/employees/SalaryPage'))
@@ -243,6 +244,7 @@ export default function App() {
                 <Route path="/warehouse/incoming"   element={<IncomingPage />} />
                 <Route path="/warehouse/outgoing"   element={<OutgoingPage />} />
                 <Route path="/warehouse/transfers"  element={<StockTransferPage />} />
+                <Route path="/warehouse/return"     element={<ReturnPage />} />
                 <Route path="/purchase/orders"          element={<PurchaseOrdersPage />} />
 
                 {/* Taklifnomalar */}
