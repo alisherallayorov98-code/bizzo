@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+﻿import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 export interface CreateProjectDto {
@@ -291,7 +291,7 @@ export class ConstructionService {
             contactId:     dto.contactId,
             type:          'PAYABLE',
             amount,
-            remainAmount:  amount,
+            remaining:  amount,
             paidAmount:    0,
             referenceId:   dto.projectId,
             referenceType: 'CONSTRUCTION',
@@ -457,3 +457,4 @@ export class ConstructionService {
     };
   }
 }
+

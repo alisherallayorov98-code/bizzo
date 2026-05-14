@@ -75,7 +75,7 @@ export class ContactsService {
     if (hasDebt !== undefined || isOverdue !== undefined) {
       where.debtRecords = {
         some: {
-          remainAmount: { gt: 0 },
+          remaining: { gt: 0 },
           ...(isOverdue !== undefined && { isOverdue }),
         },
       };
@@ -90,8 +90,8 @@ export class ContactsService {
         orderBy: { [sortBy]: sortOrder },
         include: {
           debtRecords: {
-            where:  { remainAmount: { gt: 0 } },
-            select: { type: true, remainAmount: true, isOverdue: true },
+            where:  { remaining: { gt: 0 } },
+            select: { type: true, remaining: true, isOverdue: true },
           },
         },
       }),
@@ -100,11 +100,11 @@ export class ContactsService {
     const data = contacts.map(contact => {
       const totalReceivable = contact.debtRecords
         .filter(d => d.type === 'RECEIVABLE')
-        .reduce((sum, d) => sum + Number(d.remainAmount), 0);
+        .reduce((sum, d) => sum + Number(d.remaining), 0);
 
       const totalPayable = contact.debtRecords
         .filter(d => d.type === 'PAYABLE')
-        .reduce((sum, d) => sum + Number(d.remainAmount), 0);
+        .reduce((sum, d) => sum + Number(d.remaining), 0);
 
       const hasOverdueFlag = contact.debtRecords.some(d => d.isOverdue);
 
@@ -133,8 +133,8 @@ export class ContactsService {
       where:   { id, companyId, isActive: true },
       include: {
         debtRecords: {
-          where:  { remainAmount: { gt: 0 } },
-          select: { type: true, remainAmount: true, isOverdue: true },
+          where:  { remaining: { gt: 0 } },
+          select: { type: true, remaining: true, isOverdue: true },
         },
       },
     });
@@ -143,11 +143,11 @@ export class ContactsService {
 
     const totalReceivable = contact.debtRecords
       .filter(d => d.type === 'RECEIVABLE')
-      .reduce((sum, d) => sum + Number(d.remainAmount), 0);
+      .reduce((sum, d) => sum + Number(d.remaining), 0);
 
     const totalPayable = contact.debtRecords
       .filter(d => d.type === 'PAYABLE')
-      .reduce((sum, d) => sum + Number(d.remainAmount), 0);
+      .reduce((sum, d) => sum + Number(d.remaining), 0);
 
     const hasOverdue = contact.debtRecords.some(d => d.isOverdue);
 
@@ -191,7 +191,7 @@ export class ContactsService {
     await this.findOne(companyId, id);
 
     const hasActiveDebt = await this.prisma.debtRecord.findFirst({
-      where: { contactId: id, remainAmount: { gt: 0 } },
+      where: { contactId: id, remaining: { gt: 0 } },
     });
 
     if (hasActiveDebt) {
@@ -231,28 +231,28 @@ export class ContactsService {
           where: {
             companyId,
             isActive: true,
-            debtRecords: { some: { remainAmount: { gt: 0 } } },
+            debtRecords: { some: { remaining: { gt: 0 } } },
           },
         }),
         this.prisma.contact.count({
           where: {
             companyId,
             isActive: true,
-            debtRecords: { some: { remainAmount: { gt: 0 }, isOverdue: true } },
+            debtRecords: { some: { remaining: { gt: 0 }, isOverdue: true } },
           },
         }),
       ]);
 
     const debtSums = await this.prisma.debtRecord.groupBy({
       by:    ['type'],
-      where: { contact: { companyId }, remainAmount: { gt: 0 } },
-      _sum:  { remainAmount: true },
+      where: { contact: { companyId }, remaining: { gt: 0 } },
+      _sum:  { remaining: true },
     });
 
     const totalReceivable =
-      debtSums.find(d => d.type === 'RECEIVABLE')?._sum.remainAmount ?? 0;
+      debtSums.find(d => d.type === 'RECEIVABLE')?._sum.remaining ?? 0;
     const totalPayable =
-      debtSums.find(d => d.type === 'PAYABLE')?._sum.remainAmount ?? 0;
+      debtSums.find(d => d.type === 'PAYABLE')?._sum.remaining ?? 0;
 
     return {
       total,
@@ -309,17 +309,17 @@ export class ContactsService {
     const [rec, pay, overdueCount, movements, deals, recentDebts] =
       await Promise.all([
         this.prisma.debtRecord.aggregate({
-          where: { contactId, companyId, type: 'RECEIVABLE', remainAmount: { gt: 0 } },
-          _sum:   { remainAmount: true },
+          where: { contactId, companyId, type: 'RECEIVABLE', remaining: { gt: 0 } },
+          _sum:   { remaining: true },
           _count: true,
         }),
         this.prisma.debtRecord.aggregate({
-          where: { contactId, companyId, type: 'PAYABLE', remainAmount: { gt: 0 } },
-          _sum:   { remainAmount: true },
+          where: { contactId, companyId, type: 'PAYABLE', remaining: { gt: 0 } },
+          _sum:   { remaining: true },
           _count: true,
         }),
         this.prisma.debtRecord.count({
-          where: { contactId, companyId, remainAmount: { gt: 0 }, dueDate: { lt: new Date() } },
+          where: { contactId, companyId, remaining: { gt: 0 }, dueDate: { lt: new Date() } },
         }),
         this.prisma.stockMovement.findMany({
           where: { contactId, warehouse: { companyId } },
@@ -340,18 +340,18 @@ export class ContactsService {
           },
         }).catch(() => []),
         this.prisma.debtRecord.findMany({
-          where:   { contactId, companyId, remainAmount: { gt: 0 } },
+          where:   { contactId, companyId, remaining: { gt: 0 } },
           take:    15,
           orderBy: { createdAt: 'desc' },
           select: {
-            id: true, type: true, amount: true, remainAmount: true,
+            id: true, type: true, amount: true, remaining: true,
             dueDate: true, isOverdue: true, createdAt: true, notes: true,
           },
         }),
       ]);
 
-    const receivable      = Number(rec._sum.remainAmount ?? 0);
-    const payable         = Number(pay._sum.remainAmount ?? 0);
+    const receivable      = Number(rec._sum.remaining ?? 0);
+    const payable         = Number(pay._sum.remaining ?? 0);
     const receivableCount = rec._count;
     const payableCount    = pay._count;
 
@@ -375,7 +375,7 @@ export class ContactsService {
       recentDebts: recentDebts.map(d => ({
         ...d,
         amount:       Number(d.amount),
-        remainAmount: Number(d.remainAmount),
+        remaining: Number(d.remaining),
       })),
       stats: {
         totalDeals: deals.length,

@@ -41,6 +41,21 @@ export const reportService = {
     return data.data
   },
 
+  async getPnL(filters: ReportFilters) {
+    const { data } = await api.get('/reports/pnl', { params: filters })
+    return data.data ?? data
+  },
+
+  async getBalanceSheet() {
+    const { data } = await api.get('/reports/balance-sheet')
+    return data.data ?? data
+  },
+
+  async getCashFlow(filters: ReportFilters) {
+    const { data } = await api.get('/reports/cash-flow', { params: filters })
+    return data.data ?? data
+  },
+
   async getChartsData(): Promise<{
     sales:  { month: string; sotuv: number; maqsad: number }[]
     stock:  { month: string; kirim: number; chiqim: number }[]

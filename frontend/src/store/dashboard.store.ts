@@ -18,12 +18,13 @@ const DEFAULT_WIDGETS: DashboardWidget[] = [
 ]
 
 interface DashboardState {
-  widgets:     DashboardWidget[]
-  editMode:    boolean
-  setEditMode: (v: boolean) => void
-  toggleWidget:(id: string) => void
-  moveWidget:  (id: string, direction: 'up' | 'down') => void
-  resetWidgets:() => void
+  widgets:       DashboardWidget[]
+  editMode:      boolean
+  setEditMode:   (v: boolean) => void
+  toggleWidget:  (id: string) => void
+  moveWidget:    (id: string, direction: 'up' | 'down') => void
+  reorderWidget: (fromId: string, toId: string) => void
+  resetWidgets:  () => void
 }
 
 export const useDashboardStore = create<DashboardState>()(
@@ -54,6 +55,19 @@ export const useDashboardStore = create<DashboardState>()(
           newWidgets[swapIdx].order    = tmp
 
           return { widgets: newWidgets }
+        }),
+
+      reorderWidget: (fromId, toId) =>
+        set(s => {
+          if (fromId === toId) return {}
+          const sorted = [...s.widgets].sort((a, b) => a.order - b.order)
+          const fromIdx = sorted.findIndex(w => w.id === fromId)
+          const toIdx   = sorted.findIndex(w => w.id === toId)
+          if (fromIdx === -1 || toIdx === -1) return {}
+          const newWidgets = sorted.map(w => ({ ...w }))
+          const [moved]    = newWidgets.splice(fromIdx, 1)
+          newWidgets.splice(toIdx, 0, moved)
+          return { widgets: newWidgets.map((w, i) => ({ ...w, order: i })) }
         }),
 
       resetWidgets: () => set({ widgets: DEFAULT_WIDGETS }),

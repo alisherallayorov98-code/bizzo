@@ -20,9 +20,13 @@ export const ROUTES = {
   PRODUCT_EDIT:    (id: string) => `/products/${id}/edit`,
 
   // Ombor
-  WAREHOUSE:           '/warehouse',
-  WAREHOUSE_MOVEMENTS: '/warehouse/movements',
-  WAREHOUSE_INVENTORY: '/warehouse/inventory',
+  WAREHOUSE:            '/warehouse',
+  WAREHOUSE_MOVEMENTS:  '/warehouse/movements',
+  WAREHOUSE_INVENTORY:  '/warehouse/inventory',
+  WAREHOUSE_TRANSFERS:  '/warehouse/transfers',
+
+  // Xarid
+  PURCHASE_ORDERS:      '/purchase/orders',
 
   // Xodimlar
   EMPLOYEES:       '/employees',
@@ -45,6 +49,9 @@ export const ROUTES = {
   SALES:        '/sales',
   CONSTRUCTION: '/construction',
   PRODUCTION:   '/production',
+
+  // Avtomatlashtirish
+  AUTOMATION:   '/automation',
 
   // Xatolar
   UNAUTHORIZED: '/unauthorized',

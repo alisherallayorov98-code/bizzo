@@ -4,7 +4,7 @@ import {
   Search, X, Plus, Minus, Trash2,
   CreditCard, Wallet, TrendingDown, ArrowLeft,
   CheckCircle, Printer, ShoppingCart, User,
-  Percent, Camera, Mic, MicOff,
+  Percent, Camera, Mic, MicOff, Clock,
 } from 'lucide-react'
 import { useMutation }    from '@tanstack/react-query'
 import toast              from 'react-hot-toast'
@@ -490,6 +490,13 @@ export default function POSPage() {
             <h1 className="font-bold text-text-primary text-base leading-none">Tezkor sotish</h1>
             <p className="text-[11px] text-text-muted mt-0.5">POS Lite</p>
           </div>
+          <button
+            onClick={() => navigate('/pos/shift')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border-primary text-xs text-text-secondary hover:text-text-primary hover:bg-bg-tertiary transition-all"
+          >
+            <Clock size={13} />
+            Smena
+          </button>
         </div>
 
         <select

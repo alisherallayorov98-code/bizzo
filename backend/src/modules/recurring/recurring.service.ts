@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
+﻿import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 
 export interface CreateRecurringDto {
@@ -111,7 +111,7 @@ export class RecurringService {
   }
 
   // ============================================
-  // CRON HELPER — keyingi run vaqtini hisoblash
+  // CRON HELPER вЂ” keyingi run vaqtini hisoblash
   // ============================================
   computeNext(
     base: Date,
@@ -145,7 +145,7 @@ export class RecurringService {
   }
 
   // ============================================
-  // CRON PROCESSOR — tushgan qoidalarni bajarish
+  // CRON PROCESSOR вЂ” tushgan qoidalarni bajarish
   // ============================================
   async processDueRules(now: Date = new Date()) {
     const due = await this.prisma.recurringRule.findMany({
@@ -164,12 +164,12 @@ export class RecurringService {
       try {
         // Type bo'yicha mos yozuv yaratish
         if (rule.type === 'EXPENSE' || rule.type === 'INCOME') {
-          // Shunchaki notification yaratamiz — ish stajlash uchun
+          // Shunchaki notification yaratamiz вЂ” ish stajlash uchun
           await this.prisma.notification.create({
             data: {
               companyId: rule.companyId,
               title:     `Takroriy ${rule.type === 'EXPENSE' ? 'xarajat' : 'daromad'}: ${rule.title}`,
-              message:   `${Number(rule.amount).toLocaleString('uz-UZ')} ${rule.currency} — tasdiqlash kerak`,
+              message:   `${Number(rule.amount).toLocaleString('uz-UZ')} ${rule.currency} вЂ” tasdiqlash kerak`,
               type:      'info',
               category:  'recurring',
               link:      '/recurring',
@@ -184,7 +184,7 @@ export class RecurringService {
               type:         'PAYABLE' as any,
               amount:       rule.amount,
               paidAmount:   0,
-              remainAmount: rule.amount,
+              remaining: rule.amount,
               currency:     rule.currency ?? 'UZS',
               dueDate:      now,
               notes:        `Takroriy: ${rule.title}`,
@@ -212,3 +212,4 @@ export class RecurringService {
     return { processed }
   }
 }
+

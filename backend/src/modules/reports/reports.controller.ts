@@ -62,4 +62,23 @@ export class ReportsController {
   getCharts(@CurrentUser() user: any) {
     return this.reportsService.getChartsData(user.companyId)
   }
+
+  @Get('pnl')
+  @ApiQuery({ name: 'dateFrom', example: '2025-01-01' })
+  @ApiQuery({ name: 'dateTo',   example: '2025-12-31' })
+  getPnL(@CurrentUser() user: any, @Query() filters: ReportFilters) {
+    return this.reportsService.getPnLReport(user.companyId, filters)
+  }
+
+  @Get('balance-sheet')
+  getBalanceSheet(@CurrentUser() user: any) {
+    return this.reportsService.getBalanceSheet(user.companyId)
+  }
+
+  @Get('cash-flow')
+  @ApiQuery({ name: 'dateFrom', example: '2025-01-01' })
+  @ApiQuery({ name: 'dateTo',   example: '2025-12-31' })
+  getCashFlow(@CurrentUser() user: any, @Query() filters: ReportFilters) {
+    return this.reportsService.getCashFlow(user.companyId, filters)
+  }
 }

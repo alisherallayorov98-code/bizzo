@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // IMPORT TYPES
 // ============================================================
 
@@ -11,7 +11,7 @@ export interface RawRow {
 }
 
 export interface ColumnMapping {
-  [sourceColumn: string]: string // sourceColumn → targetField
+  [sourceColumn: string]: string // sourceColumn в†’ targetField
 }
 
 export interface ImportContactRow {
@@ -85,47 +85,48 @@ export interface ImportDealRow {
   notes?:       string
 }
 
-// Column detection patterns — aqlli ustun aniqlash
+// Column detection patterns вЂ” aqlli ustun aniqlash
 export const COLUMN_PATTERNS: Record<string, RegExp[]> = {
   // Contact
-  name:         [/^(ism|nomi?|name|наименование|контрагент|mijoz|firma)/i],
-  type:         [/^(tur|type|тип|вид)/i],
-  phone:        [/^(tel|phone|mobil|рабочий\s*тел|телефон)/i],
-  email:        [/^(email|почта|e-?mail)/i],
-  stir:         [/^(stir|инн|inn|солик|tax.?id)/i],
-  address:      [/^(manzil|adres|address|адрес)/i],
-  region:       [/^(viloyat|region|город|шаҳар)/i],
+  name:         [/^(ism|nomi?|name|РЅР°РёРјРµРЅРѕРІР°РЅРёРµ|РєРѕРЅС‚СЂР°РіРµРЅС‚|mijoz|firma)/i],
+  type:         [/^(tur|type|С‚РёРї|РІРёРґ)/i],
+  phone:        [/^(tel|phone|mobil|СЂР°Р±РѕС‡РёР№\s*С‚РµР»|С‚РµР»РµС„РѕРЅ)/i],
+  email:        [/^(email|РїРѕС‡С‚Р°|e-?mail)/i],
+  stir:         [/^(stir|РёРЅРЅ|inn|СЃРѕР»РёРє|tax.?id)/i],
+  address:      [/^(manzil|adres|address|Р°РґСЂРµСЃ)/i],
+  region:       [/^(viloyat|region|РіРѕСЂРѕРґ|С€Р°ТіР°СЂ)/i],
 
   // Product
-  code:         [/^(kod|code|артикул|şifr)/i],
-  barcode:      [/^(barcode|штрих|barkod)/i],
-  category:     [/^(kategoriya|category|группа|group)/i],
-  unit:         [/^(birlik|unit|ед\.?\s*изм|o`lchov)/i],
-  buyPrice:     [/^(xarid|buy.?price|себестоимость|закупочн)/i],
-  sellPrice:    [/^(sotish|sell.?price|цена\s*продажи|нарх)/i],
-  minStock:     [/^(min.?qoldiq|min.?stock|минимальн|запас)/i],
+  code:         [/^(kod|code|Р°СЂС‚РёРєСѓР»|Еџifr)/i],
+  barcode:      [/^(barcode|С€С‚СЂРёС…|barkod)/i],
+  category:     [/^(kategoriya|category|РіСЂСѓРїРїР°|group)/i],
+  unit:         [/^(birlik|unit|РµРґ\.?\s*РёР·Рј|o`lchov)/i],
+  buyPrice:     [/^(xarid|buy.?price|СЃРµР±РµСЃС‚РѕРёРјРѕСЃС‚СЊ|Р·Р°РєСѓРїРѕС‡РЅ)/i],
+  sellPrice:    [/^(sotish|sell.?price|С†РµРЅР°\s*РїСЂРѕРґР°Р¶Рё|РЅР°СЂС…)/i],
+  minStock:     [/^(min.?qoldiq|min.?stock|РјРёРЅРёРјР°Р»СЊРЅ|Р·Р°РїР°СЃ)/i],
 
   // Financial
-  amount:       [/^(summa|amount|сумма|miqdor)/i],
-  paidAmount:   [/^(to`langan|paid|оплачено)/i],
-  remainAmount: [/^(qoldiq|remain|остаток)/i],
-  dueDate:      [/^(muddat|due.?date|срок|to`lov\s*sanasi)/i],
-  currency:     [/^(valyuta|currency|валюта)/i],
+  amount:       [/^(summa|amount|СЃСѓРјРјР°|miqdor)/i],
+  paidAmount:   [/^(to`langan|paid|РѕРїР»Р°С‡РµРЅРѕ)/i],
+  remaining: [/^(qoldiq|remain|РѕСЃС‚Р°С‚РѕРє)/i],
+  dueDate:      [/^(muddat|due.?date|СЃСЂРѕРє|to`lov\s*sanasi)/i],
+  currency:     [/^(valyuta|currency|РІР°Р»СЋС‚Р°)/i],
 
   // Employee
-  firstName:    [/^(ism|first.?name|имя)/i],
-  lastName:     [/^(familiya|last.?name|фамилия)/i],
-  position:     [/^(lavozim|position|должность)/i],
-  department:   [/^(bo`lim|department|отдел)/i],
-  baseSalary:   [/^(maosh|salary|оклад|зарплата)/i],
-  hireDate:     [/^(qabul|hire.?date|дата\s*приема)/i],
+  firstName:    [/^(ism|first.?name|РёРјСЏ)/i],
+  lastName:     [/^(familiya|last.?name|С„Р°РјРёР»РёСЏ)/i],
+  position:     [/^(lavozim|position|РґРѕР»Р¶РЅРѕСЃС‚СЊ)/i],
+  department:   [/^(bo`lim|department|РѕС‚РґРµР»)/i],
+  baseSalary:   [/^(maosh|salary|РѕРєР»Р°Рґ|Р·Р°СЂРїР»Р°С‚Р°)/i],
+  hireDate:     [/^(qabul|hire.?date|РґР°С‚Р°\s*РїСЂРёРµРјР°)/i],
 
   // Deal
-  title:        [/^(sarlavha|title|название|описание)/i],
-  stage:        [/^(bosqich|stage|этап|стадия)/i],
-  closedAt:     [/^(yopilgan|closed|закрыто|дата)/i],
+  title:        [/^(sarlavha|title|РЅР°Р·РІР°РЅРёРµ|РѕРїРёСЃР°РЅРёРµ)/i],
+  stage:        [/^(bosqich|stage|СЌС‚Р°Рї|СЃС‚Р°РґРёСЏ)/i],
+  closedAt:     [/^(yopilgan|closed|Р·Р°РєСЂС‹С‚Рѕ|РґР°С‚Р°)/i],
 
   // Opening balances
-  openingStock:      [/^(boshlang`ich\s*qoldiq|opening\s*stock|нач\.\s*остаток)/i],
-  openingDebtAmount: [/^(boshlang`ich\s*qarz|opening\s*debt|нач\.\s*долг)/i],
+  openingStock:      [/^(boshlang`ich\s*qoldiq|opening\s*stock|РЅР°С‡\.\s*РѕСЃС‚Р°С‚РѕРє)/i],
+  openingDebtAmount: [/^(boshlang`ich\s*qarz|opening\s*debt|РЅР°С‡\.\s*РґРѕР»Рі)/i],
 }
+

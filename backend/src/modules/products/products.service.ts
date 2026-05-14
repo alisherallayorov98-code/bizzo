@@ -410,4 +410,17 @@ export class ProductsService {
       totalQty:   Number(totalValueResult._sum.quantity ?? 0),
     };
   }
+
+  async findByBarcode(companyId: string, code: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { companyId, barcode: code, isActive: true },
+      include: {
+        stockItems: {
+          include: { warehouse: { select: { id: true, name: true } } },
+        },
+      },
+    })
+    if (!product) throw new NotFoundException(`Barcode ${code} bo'yicha mahsulot topilmadi`)
+    return product
+  }
 }

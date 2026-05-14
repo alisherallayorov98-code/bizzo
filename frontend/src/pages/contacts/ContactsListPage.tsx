@@ -29,6 +29,7 @@ import { formatCurrency, formatPhone, getInitials } from '@utils/formatters'
 import { cn } from '@utils/cn'
 import { useDebounce } from '@hooks/useDebounce'
 import { useKeyboardShortcuts } from '@hooks/useKeyboardShortcuts'
+import { AdvancedFilter } from '@components/ui/AdvancedFilter/AdvancedFilter'
 
 // ============================================
 // KONTAKT TURI BADGE
@@ -222,6 +223,7 @@ export default function ContactsListPage() {
   const typeTab = validTypes.includes(typeFromUrl) ? typeFromUrl : 'ALL'
 
   const [search,       setSearch]       = useState('')
+  const [advFilters,   setAdvFilters]   = useState<Record<string, string | undefined>>({})
   const [page,         setPage]         = useState(1)
   const [formOpen,     setFormOpen]     = useState(false)
   const [editContact,  setEditContact]  = useState<Contact | null>(null)
@@ -415,6 +417,16 @@ export default function ContactsListPage() {
             value={search}
             onChange={e => handleSearch(e.target.value)}
             className="sm:max-w-xs"
+          />
+
+          <AdvancedFilter
+            values={advFilters}
+            onChange={v => { setAdvFilters(v); setPage(1) }}
+            fields={[
+              { key: 'city', label: 'Shahar', type: 'text', placeholder: 'Toshkent' },
+              { key: 'minBalance', label: 'Min balans', type: 'number' },
+              { key: 'maxBalance', label: 'Maks balans', type: 'number' },
+            ]}
           />
 
           {/* Type tabs */}

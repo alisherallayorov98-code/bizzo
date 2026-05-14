@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import {
   Building2, Users, Puzzle, CreditCard,
-  Shield, ChevronRight, Save, Link2, FileClock, PlayCircle,
+  Shield, ChevronRight, Save, Link2, FileClock, PlayCircle, RefreshCw,
 } from 'lucide-react'
 import { ImageUpload } from '@components/ui/ImageUpload/ImageUpload'
 import { useOnboardingStore } from '@store/onboarding.store'
@@ -14,6 +14,9 @@ import { cn }         from '@utils/cn'
 import {
   useCompanySettings, useUpdateCompany,
 } from '@features/settings/hooks/useSettings'
+import {
+  useExchangeRates, useUpdateRates, useRefreshCbuRates,
+} from '@features/currency/useCurrency'
 import UsersSettingsPage    from './UsersSettingsPage'
 import ModulesSettingsPage  from './ModulesSettingsPage'
 import PlanSettingsPage     from './PlanSettingsPage'
@@ -173,6 +176,8 @@ function CompanyForm() {
         </div>
       </div>
 
+      <CurrencyRatesPanel />
+
       <div className="flex items-center justify-between pt-2">
         <OnboardingRestartButton />
         <Button
@@ -182,6 +187,72 @@ function CompanyForm() {
           onClick={() => update.mutate(form)}
         >
           {t('common.save')}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function CurrencyRatesPanel() {
+  const t = useT()
+  const { data: rates, isLoading } = useExchangeRates()
+  const update   = useUpdateRates()
+  const refresh  = useRefreshCbuRates()
+  const [local, setLocal] = useState({ USD: 0, EUR: 0, RUB: 0 })
+
+  useEffect(() => {
+    if (rates) setLocal({ USD: rates.USD, EUR: rates.EUR, RUB: rates.RUB })
+  }, [rates])
+
+  return (
+    <div className="space-y-3 pt-4 border-t border-[var(--color-border-primary)]">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-[var(--color-text-primary)]">{t('settings.exchangeRates')}</p>
+          {rates && (
+            <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">
+              {rates.source === 'CBU' ? 'CBU' : 'Manual'} · {rates.date}
+            </p>
+          )}
+        </div>
+        <Button
+          variant="outline" size="sm"
+          leftIcon={<RefreshCw size={13} />}
+          loading={refresh.isPending}
+          onClick={() => refresh.mutate()}
+        >
+          CBU
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="h-10 bg-[var(--color-bg-tertiary)] rounded-lg animate-pulse" />
+      ) : (
+        <div className="grid grid-cols-3 gap-3">
+          {(['USD', 'EUR', 'RUB'] as const).map(code => (
+            <div key={code} className="space-y-1">
+              <label className="text-xs font-medium text-[var(--color-text-muted)]">
+                {code === 'USD' ? '🇺🇸 USD' : code === 'EUR' ? '🇪🇺 EUR' : '🇷🇺 RUB'} → so'm
+              </label>
+              <input
+                type="number"
+                value={local[code]}
+                onChange={e => setLocal(p => ({ ...p, [code]: Number(e.target.value) }))}
+                className="h-9 w-full rounded-md text-sm bg-[var(--color-bg-tertiary)] text-[var(--color-text-primary)] border border-[var(--color-border-primary)] px-3 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/50"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <Button
+          variant="ghost" size="sm"
+          leftIcon={<Save size={13} />}
+          loading={update.isPending}
+          onClick={() => update.mutate({ USD: local.USD, EUR: local.EUR, RUB: local.RUB })}
+        >
+          {t('settings.saveRates')}
         </Button>
       </div>
     </div>

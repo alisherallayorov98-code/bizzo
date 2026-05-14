@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common'
+﻿import { Injectable, BadRequestException } from '@nestjs/common'
 import { PrismaService }  from '../../prisma/prisma.service'
 import { DedupService }   from './dedup.service'
 import { SnapshotService } from './snapshot.service'
@@ -28,9 +28,9 @@ export class ImportService {
     private snapshots: SnapshotService,
   ) {}
 
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   // SESSION MANAGEMENT
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   async createSession(companyId: string, name: string, source = 'EXCEL') {
     const snapshotId = await this.snapshots.takeSnapshot(companyId)
     return this.prisma.migrationSession.create({
@@ -82,9 +82,9 @@ export class ImportService {
     }
   }
 
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   // AQLLI USTUN ANIQLASH
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   detectColumns(headers: string[]): ColumnMapping {
     const mapping: ColumnMapping = {}
     for (const header of headers) {
@@ -107,9 +107,9 @@ export class ImportService {
     return result
   }
 
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   // PREVIEW (import qilmasdan tekshirish)
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   async previewImport(companyId: string, entity: ImportEntity, rows: RawRow[], mapping: ColumnMapping) {
     const preview = []
     for (let i = 0; i < Math.min(rows.length, 50); i++) {
@@ -148,9 +148,9 @@ export class ImportService {
     return { total: rows.length, preview }
   }
 
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   // IMPORT: KONTAKTLAR
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   async importContacts(companyId: string, sessionId: string, rows: ImportContactRow[], dupStrategy: 'skip' | 'update' | 'merge' = 'skip'): Promise<ImportResult> {
     const result: ImportResult = { sessionId, entity: 'contact', created: 0, updated: 0, skipped: 0, errors: 0, duplicates: 0, rows: [] }
 
@@ -218,7 +218,7 @@ export class ImportService {
               type:         debtType as any,
               amount,
               paidAmount:   0,
-              remainAmount: amount,
+              remaining: amount,
               dueDate:      row.openingDebtDate ? new Date(row.openingDebtDate) : null,
               notes:        'Import orqali kiritilgan ochilish qarzi',
               referenceType: 'IMPORT',
@@ -240,9 +240,9 @@ export class ImportService {
     return result
   }
 
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   // IMPORT: MAHSULOTLAR
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   async importProducts(companyId: string, sessionId: string, rows: ImportProductRow[], dupStrategy: 'skip' | 'update' = 'skip'): Promise<ImportResult> {
     const result: ImportResult = { sessionId, entity: 'product', created: 0, updated: 0, skipped: 0, errors: 0, duplicates: 0, rows: [] }
 
@@ -319,7 +319,7 @@ export class ImportService {
               quantity:    Number(row.openingStock),
               price:       row.openingAvgPrice || row.buyPrice || 0,
               totalAmount: Number(row.openingStock) * (row.openingAvgPrice || row.buyPrice || 0),
-              reason:      'Import — boshlang\'ich qoldiq',
+              reason:      'Import вЂ” boshlang\'ich qoldiq',
               referenceType: 'IMPORT',
             },
           })
@@ -339,9 +339,9 @@ export class ImportService {
     return result
   }
 
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   // IMPORT: QARZLAR
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   async importDebts(companyId: string, sessionId: string, rows: ImportDebtRow[]): Promise<ImportResult> {
     const result: ImportResult = { sessionId, entity: 'debt', created: 0, updated: 0, skipped: 0, errors: 0, duplicates: 0, rows: [] }
 
@@ -367,7 +367,7 @@ export class ImportService {
 
         const amount      = Number(row.amount)
         const paidAmount  = Number(row.paidAmount || 0)
-        const remainAmount = amount - paidAmount
+        const remaining = amount - paidAmount
         const debtType    = row.type?.toUpperCase() === 'PAYABLE' ? 'PAYABLE' : 'RECEIVABLE'
 
         const debt = await this.prisma.debtRecord.create({
@@ -377,7 +377,7 @@ export class ImportService {
             type:         debtType as any,
             amount,
             paidAmount,
-            remainAmount,
+            remaining,
             currency:     row.currency || 'UZS',
             dueDate:      row.dueDate ? new Date(row.dueDate) : null,
             isOverdue:    row.dueDate ? new Date(row.dueDate) < new Date() : false,
@@ -399,9 +399,9 @@ export class ImportService {
     return result
   }
 
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   // IMPORT: OMBOR QOLDIQLARI
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   async importStock(companyId: string, sessionId: string, rows: ImportStockRow[]): Promise<ImportResult> {
     const result: ImportResult = { sessionId, entity: 'stock', created: 0, updated: 0, skipped: 0, errors: 0, duplicates: 0, rows: [] }
 
@@ -455,7 +455,7 @@ export class ImportService {
             quantity:    Number(row.quantity),
             price:       row.avgPrice || 0,
             totalAmount: Number(row.quantity) * (row.avgPrice || 0),
-            reason:      'Import — boshlang\'ich qoldiq',
+            reason:      'Import вЂ” boshlang\'ich qoldiq',
             referenceType: 'IMPORT',
           },
         })
@@ -473,9 +473,9 @@ export class ImportService {
     return result
   }
 
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   // IMPORT: XODIMLAR
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   async importEmployees(companyId: string, sessionId: string, rows: ImportEmployeeRow[]): Promise<ImportResult> {
     const result: ImportResult = { sessionId, entity: 'employee', created: 0, updated: 0, skipped: 0, errors: 0, duplicates: 0, rows: [] }
 
@@ -527,9 +527,9 @@ export class ImportService {
     return result
   }
 
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   // IMPORT: BITIMLAR (DEALS)
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   async importDeals(companyId: string, sessionId: string, rows: any[]): Promise<ImportResult> {
     const result: ImportResult = { sessionId, entity: 'deal', created: 0, updated: 0, skipped: 0, errors: 0, duplicates: 0, rows: [] }
 
@@ -572,7 +572,7 @@ export class ImportService {
             companyId,
             contactId:   contact.id,
             dealNumber,
-            title:       (row.title ?? row['Sarlavha'] ?? `${contactName} — import`) as string,
+            title:       (row.title ?? row['Sarlavha'] ?? `${contactName} вЂ” import`) as string,
             amount,
             finalAmount: amount,
             stage:       stage as any,
@@ -596,9 +596,9 @@ export class ImportService {
     return result
   }
 
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   // RECONCILIATION REPORT
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   async getReconciliationReport(companyId: string, sessionId: string) {
     const session = await this.prisma.migrationSession.findUnique({
       where: { id: sessionId },
@@ -649,9 +649,9 @@ export class ImportService {
     }
   }
 
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   // HELPERS
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   private async logRow(
     sessionId: string, entity: string, action: string,
     rowIndex?: number, externalId?: string | null, internalId?: string | null, message?: string,
@@ -675,9 +675,9 @@ export class ImportService {
     }).catch(() => {})
   }
 
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   // 1C XML FORMAT PARSER (CommerceML 2.x)
-  // ──────────────────────────────────────────────
+  // в”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђв”Ђ
   parse1CXml(xml: string): { entity: string; rows: any[] } {
     const getTag  = (src: string, tag: string): string => {
       const m = src.match(new RegExp(`<${tag}[^>]*>([^<]*)<\\/${tag}>`, 'i'))
@@ -691,18 +691,18 @@ export class ImportService {
       return out
     }
 
-    // ── Products: <Товар> or <Номенклатура> ──
-    const productBlocks = [...getBlock(xml, 'Товар'), ...getBlock(xml, 'Номенклатура')]
+    // в”Ђв”Ђ Products: <РўРѕРІР°СЂ> or <РќРѕРјРµРЅРєР»Р°С‚СѓСЂР°> в”Ђв”Ђ
+    const productBlocks = [...getBlock(xml, 'РўРѕРІР°СЂ'), ...getBlock(xml, 'РќРѕРјРµРЅРєР»Р°С‚СѓСЂР°')]
     if (productBlocks.length > 0) {
       const rows = productBlocks.map(block => {
-        const name     = getTag(block, 'Наименование') || getTag(block, 'НаименованиеПолное')
-        const code     = getTag(block, 'Артикул') || getTag(block, 'Код')
-        const barcode  = getTag(block, 'Штрихкод')
-        const unit     = getTag(block, 'БазоваяЕдиница') || getTag(block, 'ЕдиницаИзмерения') || 'dona'
-        const buyPrice = parseFloat(getTag(block, 'ЦенаЗакупки') || getTag(block, 'Себестоимость') || '0') || 0
-        const sellPrice = parseFloat(getTag(block, 'ЦенаПродажи') || getTag(block, 'Цена') || '0') || 0
-        const category = getTag(block, 'Группа') || getTag(block, 'Категория')
-        const qty      = parseFloat(getTag(block, 'Количество') || '0') || 0
+        const name     = getTag(block, 'РќР°РёРјРµРЅРѕРІР°РЅРёРµ') || getTag(block, 'РќР°РёРјРµРЅРѕРІР°РЅРёРµРџРѕР»РЅРѕРµ')
+        const code     = getTag(block, 'РђСЂС‚РёРєСѓР»') || getTag(block, 'РљРѕРґ')
+        const barcode  = getTag(block, 'РЁС‚СЂРёС…РєРѕРґ')
+        const unit     = getTag(block, 'Р‘Р°Р·РѕРІР°СЏР•РґРёРЅРёС†Р°') || getTag(block, 'Р•РґРёРЅРёС†Р°РР·РјРµСЂРµРЅРёСЏ') || 'dona'
+        const buyPrice = parseFloat(getTag(block, 'Р¦РµРЅР°Р—Р°РєСѓРїРєРё') || getTag(block, 'РЎРµР±РµСЃС‚РѕРёРјРѕСЃС‚СЊ') || '0') || 0
+        const sellPrice = parseFloat(getTag(block, 'Р¦РµРЅР°РџСЂРѕРґР°Р¶Рё') || getTag(block, 'Р¦РµРЅР°') || '0') || 0
+        const category = getTag(block, 'Р“СЂСѓРїРїР°') || getTag(block, 'РљР°С‚РµРіРѕСЂРёСЏ')
+        const qty      = parseFloat(getTag(block, 'РљРѕР»РёС‡РµСЃС‚РІРѕ') || '0') || 0
 
         return {
           name: name || undefined,
@@ -720,18 +720,18 @@ export class ImportService {
       return { entity: 'product', rows }
     }
 
-    // ── Contacts: <Контрагент> or <Партнер> ──
-    const contactBlocks = [...getBlock(xml, 'Контрагент'), ...getBlock(xml, 'Партнер')]
+    // в”Ђв”Ђ Contacts: <РљРѕРЅС‚СЂР°РіРµРЅС‚> or <РџР°СЂС‚РЅРµСЂ> в”Ђв”Ђ
+    const contactBlocks = [...getBlock(xml, 'РљРѕРЅС‚СЂР°РіРµРЅС‚'), ...getBlock(xml, 'РџР°СЂС‚РЅРµСЂ')]
     if (contactBlocks.length > 0) {
       const rows = contactBlocks.map(block => {
-        const name    = getTag(block, 'Наименование') || getTag(block, 'НаименованиеПолное')
-        const stir    = getTag(block, 'ИНН')
-        const phone   = getTag(block, 'Телефон') || getTag(block, 'НомерТелефона')
-        const email   = getTag(block, 'ЭлектроннаяПочта') || getTag(block, 'Email')
-        const address = getTag(block, 'Адрес') || getTag(block, 'ЮридическийАдрес')
-        const typeRaw = getTag(block, 'ТипКонтрагента') || ''
-        const type    = typeRaw.toLowerCase().includes('поставщик') ? 'SUPPLIER'
-                      : typeRaw.toLowerCase().includes('покупател') ? 'CUSTOMER'
+        const name    = getTag(block, 'РќР°РёРјРµРЅРѕРІР°РЅРёРµ') || getTag(block, 'РќР°РёРјРµРЅРѕРІР°РЅРёРµРџРѕР»РЅРѕРµ')
+        const stir    = getTag(block, 'РРќРќ')
+        const phone   = getTag(block, 'РўРµР»РµС„РѕРЅ') || getTag(block, 'РќРѕРјРµСЂРўРµР»РµС„РѕРЅР°')
+        const email   = getTag(block, 'Р­Р»РµРєС‚СЂРѕРЅРЅР°СЏРџРѕС‡С‚Р°') || getTag(block, 'Email')
+        const address = getTag(block, 'РђРґСЂРµСЃ') || getTag(block, 'Р®СЂРёРґРёС‡РµСЃРєРёР№РђРґСЂРµСЃ')
+        const typeRaw = getTag(block, 'РўРёРїРљРѕРЅС‚СЂР°РіРµРЅС‚Р°') || ''
+        const type    = typeRaw.toLowerCase().includes('РїРѕСЃС‚Р°РІС‰РёРє') ? 'SUPPLIER'
+                      : typeRaw.toLowerCase().includes('РїРѕРєСѓРїР°С‚РµР»') ? 'CUSTOMER'
                       : undefined
 
         return {
@@ -747,17 +747,17 @@ export class ImportService {
       return { entity: 'contact', rows }
     }
 
-    // ── Employees: <Сотрудник> ──
-    const empBlocks = getBlock(xml, 'Сотрудник')
+    // в”Ђв”Ђ Employees: <РЎРѕС‚СЂСѓРґРЅРёРє> в”Ђв”Ђ
+    const empBlocks = getBlock(xml, 'РЎРѕС‚СЂСѓРґРЅРёРє')
     if (empBlocks.length > 0) {
       const rows = empBlocks.map(block => {
-        const fullName  = getTag(block, 'Наименование') || getTag(block, 'ФИО')
+        const fullName  = getTag(block, 'РќР°РёРјРµРЅРѕРІР°РЅРёРµ') || getTag(block, 'Р¤РРћ')
         const parts     = fullName.split(/\s+/)
         const firstName = parts[1] || parts[0] || ''
         const lastName  = parts[0] || ''
-        const position  = getTag(block, 'Должность')
-        const phone     = getTag(block, 'Телефон')
-        const salary    = parseFloat(getTag(block, 'Оклад') || '0') || 0
+        const position  = getTag(block, 'Р”РѕР»Р¶РЅРѕСЃС‚СЊ')
+        const phone     = getTag(block, 'РўРµР»РµС„РѕРЅ')
+        const salary    = parseFloat(getTag(block, 'РћРєР»Р°Рґ') || '0') || 0
 
         return {
           firstName: firstName || undefined,
@@ -777,8 +777,9 @@ export class ImportService {
   private normalizeContactType(type?: string): 'CUSTOMER' | 'SUPPLIER' | 'BOTH' {
     if (!type) return 'CUSTOMER'
     const t = type.toUpperCase()
-    if (t.includes('SUPPLIER') || t.includes('YETKAZUVCHI') || t.includes('ПОСТАВЩИК')) return 'SUPPLIER'
-    if (t.includes('BOTH') || t.includes('IKKALASI') || t.includes('ОБА')) return 'BOTH'
+    if (t.includes('SUPPLIER') || t.includes('YETKAZUVCHI') || t.includes('РџРћРЎРўРђР’Р©РРљ')) return 'SUPPLIER'
+    if (t.includes('BOTH') || t.includes('IKKALASI') || t.includes('РћР‘Рђ')) return 'BOTH'
     return 'CUSTOMER'
   }
 }
+

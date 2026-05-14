@@ -16,6 +16,8 @@ import {
   useContract, useSignContract, useCancelContract,
   useGeneratePdf, useUpdateContract,
 } from '@features/contracts/hooks/useContracts'
+import { useCompanySettings } from '@features/settings/hooks/useSettings'
+import { ContractPDFDoc, PDFDownloadButton } from '@features/pdf'
 import { formatCurrency, formatDate } from '@utils/formatters'
 import { useT } from '@i18n/index'
 import { cn } from '@utils/cn'
@@ -109,6 +111,7 @@ export default function ContractDetailPage() {
   const [cancelModal, setCancelModal] = useState(false)
 
   const { data: contract, isLoading } = useContract(id!)
+  const { data: company } = useCompanySettings()
   const signContract   = useSignContract()
   const cancelContract = useCancelContract()
   const generatePdf    = useGeneratePdf()
@@ -152,16 +155,13 @@ export default function ContractDetailPage() {
                 {t('common.edit')}
               </Button>
             )}
-            {contract.pdfUrl ? (
-              <Button variant="secondary" size="sm" leftIcon={<ExternalLink size={14} />}
-                onClick={() => window.open(contract.pdfUrl!, '_blank')}>
-                {t('contracts.openPdf')}
-              </Button>
-            ) : (
-              <Button variant="secondary" size="sm" leftIcon={<FileDown size={14} />}
-                loading={generatePdf.isPending} onClick={handleGenerate}>
-                {t('contracts.generatePdf')}
-              </Button>
+            {company && (
+              <PDFDownloadButton
+                document={<ContractPDFDoc contract={contract as any} company={company} />}
+                fileName={`shartnoma_${contract.contractNumber}.pdf`}
+                label="Shartnoma PDF"
+                showPreview
+              />
             )}
             {contract.status === 'DRAFT' && (
               <Button variant="success" size="sm" leftIcon={<CheckCircle2 size={14} />}

@@ -14,6 +14,8 @@ import { Skeleton }    from '@components/ui/Skeleton/Skeleton'
 import {
   useGetInvoice, useUpdateInvoiceStatus, useAddPayment,
 } from '@features/sales-module/hooks/useSales'
+import { useCompanySettings } from '@features/settings/hooks/useSettings'
+import { InvoicePDFDoc, PDFDownloadButton } from '@features/pdf'
 import { formatCurrency, formatDate, formatDateTime } from '@utils/formatters'
 import { cn } from '@utils/cn'
 import { useT } from '@i18n/index'
@@ -120,6 +122,7 @@ export default function SalesInvoiceDetailPage() {
   const t        = useT()
 
   const { data: invoice, isLoading } = useGetInvoice(id!)
+  const { data: company } = useCompanySettings()
   const updateStatus = useUpdateInvoiceStatus()
   const [payModal, setPayModal] = useState(false)
 
@@ -163,6 +166,14 @@ export default function SalesInvoiceDetailPage() {
             <Button variant="secondary" leftIcon={<ArrowLeft size={15} />} onClick={() => navigate(-1)}>
               Orqaga
             </Button>
+            {company && (
+              <PDFDownloadButton
+                document={<InvoicePDFDoc invoice={invoice as any} company={company} />}
+                fileName={`invoice_${invoice.invoiceNumber}.pdf`}
+                label="PDF"
+                showPreview
+              />
+            )}
             {canMarkSent && (
               <Button
                 variant="secondary"

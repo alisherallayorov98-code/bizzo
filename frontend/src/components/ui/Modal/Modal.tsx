@@ -85,6 +85,7 @@ export function Modal({
           'rounded-[var(--radius-xl)]',
           'shadow-[var(--shadow-xl)]',
           'flex flex-col',
+          'max-h-[90vh]',
           'animate-scale-bounce',
           sizeStyles[size],
         )}

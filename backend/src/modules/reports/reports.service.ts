@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+﻿import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 
 export interface ReportFilters {
@@ -37,8 +37,8 @@ export class ReportsService {
         // Qarzlar holati
         this.prisma.debtRecord.groupBy({
           by:    ['type'],
-          where: { companyId, remainAmount: { gt: 0 } },
-          _sum:  { remainAmount: true },
+          where: { companyId, remaining: { gt: 0 } },
+          _sum:  { remaining: true },
           _count: true,
         }).catch(() => []),
 
@@ -80,10 +80,10 @@ export class ReportsService {
     const netProfit     = totalRevenue - totalExpenses
 
     const receivableTotal = Number(
-      debtStats.find(d => d.type === 'RECEIVABLE')?._sum?.remainAmount || 0
+      debtStats.find(d => d.type === 'RECEIVABLE')?._sum?.remaining || 0
     )
     const payableTotal = Number(
-      debtStats.find(d => d.type === 'PAYABLE')?._sum?.remainAmount || 0
+      debtStats.find(d => d.type === 'PAYABLE')?._sum?.remaining || 0
     )
 
     return {
@@ -105,7 +105,7 @@ export class ReportsService {
         .sort((a, b) => Number(b.finalAmount) - Number(a.finalAmount))
         .slice(0, 10)
         .map(d => ({
-          contact:  d.contact?.name ?? '—',
+          contact:  d.contact?.name ?? 'вЂ”',
           amount:   Number(d.finalAmount),
           closedAt: d.closedAt,
         })),
@@ -205,7 +205,7 @@ export class ReportsService {
       })),
       topMovements: topMovements.map(m => ({
         productId:     m.productId,
-        productName:   products.find(p => p.id === m.productId)?.name || '—',
+        productName:   products.find(p => p.id === m.productId)?.name || 'вЂ”',
         unit:          products.find(p => p.id === m.productId)?.unit || '',
         totalQty:      Number(m._sum.quantity || 0),
         movementCount: m._count,
@@ -245,7 +245,7 @@ export class ReportsService {
     deals.forEach(d => {
       const key = d.contactId ?? '__unknown__'
       if (!byContact[key]) {
-        byContact[key] = { name: d.contact?.name ?? '—', total: 0, count: 0 }
+        byContact[key] = { name: d.contact?.name ?? 'вЂ”', total: 0, count: 0 }
       }
       byContact[key].total += Number(d.finalAmount)
       byContact[key].count++
@@ -274,7 +274,7 @@ export class ReportsService {
       },
       deals: deals.map(d => ({
         dealNumber: d.dealNumber,
-        contact:    d.contact?.name ?? '—',
+        contact:    d.contact?.name ?? 'вЂ”',
         amount:     Number(d.finalAmount),
         closedAt:   d.closedAt,
         itemsCount: d.items.length,
@@ -554,7 +554,7 @@ export class ReportsService {
       batches: batches.map(b => ({
         id:         b.id,
         batchNumber: b.batchNumber,
-        formula:    b.formula?.name ?? '—',
+        formula:    b.formula?.name ?? 'вЂ”',
         status:     b.status,
         overhead:   Number(b.overheadCost ?? 0),
         plannedStart: b.plannedStart,
@@ -617,7 +617,7 @@ export class ReportsService {
       // TRANSFER, ADJUSTMENT, WASTE_OUT are excluded from chart
     }
 
-    // 3. Monthly debt balance (receivable - payable sum per month end — approximated by month of creation)
+    // 3. Monthly debt balance (receivable - payable sum per month end вЂ” approximated by month of creation)
     const debtsRaw = await this.prisma.debtRecord.findMany({
       where: { companyId, createdAt: { gte: new Date(year, 0, 1) } },
       select: { type: true, amount: true, createdAt: true },
@@ -655,4 +655,277 @@ export class ReportsService {
 
     return { sales, stock, debts }
   }
+
+  // ============================================
+  // P&L (DAROMAD VA ZARAR)
+  // ============================================
+  async getPnLReport(companyId: string, filters: ReportFilters) {
+    const from = new Date(filters.dateFrom)
+    const to   = new Date(filters.dateTo + 'T23:59:59')
+
+    const [invoices, salaryExpenses, cashExpenses, wasteCosts] = await Promise.all([
+      (this.prisma.$queryRaw<any[]>`
+        SELECT
+          TO_CHAR(si."createdAt", 'YYYY-MM') AS month,
+          SUM(si."totalAmount")::float        AS revenue,
+          SUM(
+            COALESCE((
+              SELECT SUM(ii.quantity * p."buyPrice")
+              FROM "invoice_items" ii
+              JOIN "Product" p ON p.id = ii."productId"
+              WHERE ii."invoiceId" = si.id
+            ), 0)
+          )::float AS cogs
+        FROM "invoices" si
+        WHERE si."companyId" = ${companyId}
+          AND si."createdAt" >= ${from}
+          AND si."createdAt" <= ${to}
+          AND si.status != 'CANCELLED'
+        GROUP BY TO_CHAR(si."createdAt", 'YYYY-MM')
+        ORDER BY month ASC
+      `.catch(() => [])) as Promise<any[]>,
+
+      this.prisma.salaryRecord.groupBy({
+        by: ['createdAt'],
+        where: { employee: { companyId }, createdAt: { gte: from, lte: to } },
+        _sum: { totalAmount: true },
+      }).catch(() => [] as any[]) as Promise<any[]>,
+
+      (this.prisma.$queryRaw<any[]>`
+        SELECT
+          TO_CHAR("date", 'YYYY-MM') AS month,
+          SUM(amount)::float          AS amount,
+          category
+        FROM "CashExpense"
+        WHERE "companyId" = ${companyId}
+          AND date >= ${from}
+          AND date <= ${to}
+        GROUP BY TO_CHAR("date", 'YYYY-MM'), category
+        ORDER BY month ASC
+      `.catch(() => [])) as Promise<any[]>,
+
+      this.prisma.wasteBatch.groupBy({
+        by: ['receivedAt'],
+        where: { companyId, receivedAt: { gte: from, lte: to } },
+        _sum: { totalCost: true },
+      }).catch(() => [] as any[]) as Promise<any[]>,
+    ])
+
+    const totalRevenue  = invoices.reduce((s, r) => s + (r.revenue || 0), 0)
+    const totalCOGS     = invoices.reduce((s, r) => s + (r.cogs || 0), 0)
+    const grossProfit   = totalRevenue - totalCOGS
+
+    const totalSalary   = salaryExpenses.reduce((s, r) => s + Number(r._sum.totalAmount || 0), 0)
+    const totalWaste    = wasteCosts.reduce((s, r) => s + Number(r._sum.totalCost || 0), 0)
+    const totalCashExp  = cashExpenses.reduce((s, r) => s + (r.amount || 0), 0)
+    const totalOpex     = totalSalary + totalCashExp
+    const ebit          = grossProfit - totalOpex
+    const netProfit     = ebit - totalWaste
+
+    const byMonth = invoices.map(r => ({
+      month:       r.month,
+      revenue:     r.revenue || 0,
+      cogs:        r.cogs || 0,
+      grossProfit: (r.revenue || 0) - (r.cogs || 0),
+    }))
+
+    const cashExpByCategory: Record<string, number> = {}
+    cashExpenses.forEach(r => {
+      cashExpByCategory[r.category] = (cashExpByCategory[r.category] || 0) + r.amount
+    })
+
+    return {
+      period: { from: filters.dateFrom, to: filters.dateTo },
+      summary: {
+        totalRevenue,
+        totalCOGS,
+        grossProfit,
+        grossMargin:  totalRevenue > 0 ? +((grossProfit / totalRevenue) * 100).toFixed(1) : 0,
+        totalOpex,
+        totalSalary,
+        totalCashExp,
+        ebit,
+        totalWaste,
+        netProfit,
+        netMargin:    totalRevenue > 0 ? +((netProfit / totalRevenue) * 100).toFixed(1) : 0,
+      },
+      byMonth,
+      cashExpByCategory,
+    }
+  }
+
+  // ============================================
+  // BALANS VARAQASI
+  // ============================================
+  async getBalanceSheet(companyId: string) {
+    const now = new Date()
+
+    const [stockValue, receivables, payables, cashBalance, invoicesTotal] = await Promise.all([
+      // Ombordagi tovarlar (aktiv)
+      this.prisma.$queryRaw<{ value: number }[]>`
+        SELECT SUM(si.quantity * p."buyPrice")::float AS value
+        FROM "StockItem" si
+        JOIN "Product" p ON p.id = si."productId"
+        JOIN "Warehouse" w ON w.id = si."warehouseId"
+        WHERE w."companyId" = ${companyId}
+          AND si.quantity > 0
+      `.catch(() => [{ value: 0 }]),
+
+      // Debitorlik (aktiv)
+      this.prisma.$queryRaw<{ total: number }[]>`
+        SELECT SUM(remaining)::float AS total
+        FROM "DebtRecord"
+        WHERE "companyId" = ${companyId}
+          AND type = 'RECEIVABLE'
+          AND "isPaid" = false
+      `.catch(() => [{ total: 0 }]),
+
+      // Kreditorlik (passiv)
+      this.prisma.$queryRaw<{ total: number }[]>`
+        SELECT SUM(remaining)::float AS total
+        FROM "DebtRecord"
+        WHERE "companyId" = ${companyId}
+          AND type = 'PAYABLE'
+          AND "isPaid" = false
+      `.catch(() => [{ total: 0 }]),
+
+      // Kassa qoldig'i (avanslardagi pul)
+      this.prisma.$queryRaw<{ total: number }[]>`
+        SELECT SUM(amount)::float AS total
+        FROM "AvansRecord"
+        WHERE "companyId" = ${companyId}
+          AND status = 'ACTIVE'
+      `.catch(() => [{ total: 0 }]),
+
+      // Jami sotilgan (daromad)
+      this.prisma.invoice.aggregate({
+        where: { companyId, status: { not: 'CANCELLED' } },
+        _sum: { totalAmount: true },
+      }).catch(() => ({ _sum: { totalAmount: null } })),
+    ])
+
+    const assets = {
+      stock:       Number(stockValue[0]?.value || 0),
+      receivables: Number(receivables[0]?.total || 0),
+      cash:        Number(cashBalance[0]?.total || 0),
+    }
+    const liabilities = {
+      payables: Number(payables[0]?.total || 0),
+    }
+    const totalAssets      = assets.stock + assets.receivables + assets.cash
+    const totalLiabilities = liabilities.payables
+    const equity           = totalAssets - totalLiabilities
+
+    return {
+      asOf: now.toISOString().split('T')[0],
+      assets: { ...assets, total: totalAssets },
+      liabilities: { ...liabilities, total: totalLiabilities },
+      equity,
+      totalRevenue: Number(invoicesTotal._sum.totalAmount || 0),
+    }
+  }
+
+  // ============================================
+  // PULSIZ OQIM (CASH FLOW)
+  // ============================================
+  async getCashFlow(companyId: string, filters: ReportFilters) {
+    const from = new Date(filters.dateFrom)
+    const to   = new Date(filters.dateTo + 'T23:59:59')
+
+    const [inflows, outflows, cashExpenses, salaries] = await Promise.all([
+      // Kiruvchi pul: to'lovlar
+      this.prisma.debtPayment.groupBy({
+        by: ['createdAt'],
+        where: {
+          debt: { companyId, type: 'RECEIVABLE' },
+          createdAt: { gte: from, lte: to },
+        },
+        _sum: { amount: true },
+      }).catch(() => [] as any[]) as Promise<any[]>,
+
+      // Chiquvchi pul: payable to'lovlar
+      this.prisma.debtPayment.groupBy({
+        by: ['createdAt'],
+        where: {
+          debt: { companyId, type: 'PAYABLE' },
+          createdAt: { gte: from, lte: to },
+        },
+        _sum: { amount: true },
+      }).catch(() => [] as any[]) as Promise<any[]>,
+
+      // Naqd xarajatlar
+      (this.prisma.$queryRaw<any[]>`
+        SELECT TO_CHAR(date, 'YYYY-MM') AS month, SUM(amount)::float AS amount
+        FROM "CashExpense"
+        WHERE "companyId" = ${companyId}
+          AND date >= ${from}
+          AND date <= ${to}
+        GROUP BY TO_CHAR(date, 'YYYY-MM')
+        ORDER BY month ASC
+      `.catch(() => [])) as Promise<any[]>,
+
+      // Ish haqi
+      (this.prisma.$queryRaw<any[]>`
+        SELECT TO_CHAR(sr."createdAt", 'YYYY-MM') AS month, SUM(sr."totalAmount")::float AS amount
+        FROM "SalaryRecord" sr
+        JOIN "Employee" e ON e.id = sr."employeeId"
+        WHERE e."companyId" = ${companyId}
+          AND sr."createdAt" >= ${from}
+          AND sr."createdAt" <= ${to}
+        GROUP BY TO_CHAR(sr."createdAt", 'YYYY-MM')
+        ORDER BY month ASC
+      `.catch(() => [])) as Promise<any[]>,
+    ])
+
+    const totalInflow  = inflows.reduce((s, r) => s + Number(r._sum.amount || 0), 0)
+    const totalOutflow = outflows.reduce((s, r) => s + Number(r._sum.amount || 0), 0)
+    const totalCashExp = cashExpenses.reduce((s, r) => s + (r.amount || 0), 0)
+    const totalSalary  = salaries.reduce((s, r) => s + (r.amount || 0), 0)
+    const totalExpenses = totalOutflow + totalCashExp + totalSalary
+    const netCashFlow   = totalInflow - totalExpenses
+
+    // Oylik breakdown
+    const months: Record<string, { inflow: number; outflow: number }> = {}
+    inflows.forEach(r => {
+      const m = new Date(r.createdAt).toISOString().slice(0, 7)
+      months[m] = months[m] || { inflow: 0, outflow: 0 }
+      months[m].inflow += Number(r._sum.amount || 0)
+    })
+    outflows.forEach(r => {
+      const m = new Date(r.createdAt).toISOString().slice(0, 7)
+      months[m] = months[m] || { inflow: 0, outflow: 0 }
+      months[m].outflow += Number(r._sum.amount || 0)
+    })
+    cashExpenses.forEach(r => {
+      months[r.month] = months[r.month] || { inflow: 0, outflow: 0 }
+      months[r.month].outflow += r.amount
+    })
+    salaries.forEach(r => {
+      months[r.month] = months[r.month] || { inflow: 0, outflow: 0 }
+      months[r.month].outflow += r.amount
+    })
+
+    const byMonth = Object.entries(months)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, v]) => ({
+        month,
+        inflow:   v.inflow,
+        outflow:  v.outflow,
+        net:      v.inflow - v.outflow,
+      }))
+
+    return {
+      period: { from: filters.dateFrom, to: filters.dateTo },
+      summary: {
+        totalInflow,
+        totalOutflow,
+        totalCashExp,
+        totalSalary,
+        totalExpenses,
+        netCashFlow,
+      },
+      byMonth,
+    }
+  }
 }
+

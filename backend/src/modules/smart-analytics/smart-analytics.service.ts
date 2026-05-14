@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+﻿import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 // ============================================================
@@ -113,18 +113,18 @@ export class SmartAnalyticsService {
     // Debt health
     const [receivable, payable, overdueCount, totalDebts] = await Promise.all([
       this.prisma.debtRecord.aggregate({
-        where: { companyId, type: 'RECEIVABLE', remainAmount: { gt: 0 } },
-        _sum: { remainAmount: true },
-      }).then(r => Number(r._sum.remainAmount || 0)).catch(() => 0),
+        where: { companyId, type: 'RECEIVABLE', remaining: { gt: 0 } },
+        _sum: { remaining: true },
+      }).then(r => Number(r._sum.remaining || 0)).catch(() => 0),
       this.prisma.debtRecord.aggregate({
-        where: { companyId, type: 'PAYABLE', remainAmount: { gt: 0 } },
-        _sum: { remainAmount: true },
-      }).then(r => Number(r._sum.remainAmount || 0)).catch(() => 0),
+        where: { companyId, type: 'PAYABLE', remaining: { gt: 0 } },
+        _sum: { remaining: true },
+      }).then(r => Number(r._sum.remaining || 0)).catch(() => 0),
       this.prisma.debtRecord.count({
-        where: { companyId, remainAmount: { gt: 0 }, dueDate: { lt: now } },
+        where: { companyId, remaining: { gt: 0 }, dueDate: { lt: now } },
       }).catch(() => 0),
       this.prisma.debtRecord.count({
-        where: { companyId, remainAmount: { gt: 0 } },
+        where: { companyId, remaining: { gt: 0 } },
       }).catch(() => 0),
     ]);
     const overdueRatio = totalDebts > 0 ? overdueCount / totalDebts : 0;
@@ -269,7 +269,7 @@ export class SmartAnalyticsService {
       where:   { companyId, isActive: true, type: 'CUSTOMER' },
       include: {
         debtRecords: {
-          select: { type: true, amount: true, remainAmount: true, createdAt: true, dueDate: true },
+          select: { type: true, amount: true, remaining: true, createdAt: true, dueDate: true },
         },
       },
     });
@@ -473,23 +473,23 @@ export class SmartAnalyticsService {
     // Muddati o'tgan qarzlar ortdi?
     const [overdueNow, overdueLast] = await Promise.all([
       this.prisma.debtRecord.aggregate({
-        where: { companyId, remainAmount: { gt: 0 }, dueDate: { lt: new Date() } },
-        _sum:  { remainAmount: true },
+        where: { companyId, remaining: { gt: 0 }, dueDate: { lt: new Date() } },
+        _sum:  { remaining: true },
         _count: true,
-      }).catch(() => ({ _sum: { remainAmount: null }, _count: 0 })),
+      }).catch(() => ({ _sum: { remaining: null }, _count: 0 })),
       this.prisma.debtRecord.aggregate({
         where: {
           companyId,
-          remainAmount: { gt: 0 },
+          remaining: { gt: 0 },
           dueDate:    { lt: new Date(Date.now() - 30 * 86400000) },
         },
-        _sum:  { remainAmount: true },
+        _sum:  { remaining: true },
         _count: true,
-      }).catch(() => ({ _sum: { remainAmount: null }, _count: 0 })),
+      }).catch(() => ({ _sum: { remaining: null }, _count: 0 })),
     ]);
 
-    const overdueNowAmt  = Number(overdueNow._sum.remainAmount  || 0);
-    const overdueLastAmt = Number(overdueLast._sum.remainAmount || 0);
+    const overdueNowAmt  = Number(overdueNow._sum.remaining  || 0);
+    const overdueLastAmt = Number(overdueLast._sum.remaining || 0);
     if (overdueNowAmt > 0 && overdueNowAmt > overdueLastAmt * 1.5) {
       anomalies.push({
         type:         'debt_surge',
@@ -582,7 +582,7 @@ export class SmartAnalyticsService {
     const dueSoon = await this.prisma.debtRecord.findMany({
       where: {
         contact: { companyId },
-        remainAmount: { gt: 0 },
+        remaining: { gt: 0 },
         dueDate: { gte: now, lte: in7 },
       },
       include: { contact: { select: { name: true } } },
@@ -715,3 +715,4 @@ export class SmartAnalyticsService {
     return lines.join('\n');
   }
 }
+

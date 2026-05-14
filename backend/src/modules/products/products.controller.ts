@@ -125,4 +125,10 @@ export class ProductsController {
   ) {
     return this.productsService.bulkDelete(user.companyId, body.ids);
   }
+
+  @Get('barcode/:code')
+  @ApiOperation({ summary: 'Barcode orqali mahsulot qidirish' })
+  findByBarcode(@CurrentUser() user: any, @Param('code') code: string) {
+    return this.productsService.findByBarcode(user.companyId, code)
+  }
 }

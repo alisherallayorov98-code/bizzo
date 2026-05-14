@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable, NotFoundException,
   BadRequestException,
 } from '@nestjs/common'
@@ -147,7 +147,7 @@ export class SalesService {
         activities: {
           create: [{
             type:        'STATUS_CHANGE' as any,
-            title:       `Deal yaratildi — ${dto.stage || 'LEAD'} bosqichida`,
+            title:       `Deal yaratildi вЂ” ${dto.stage || 'LEAD'} bosqichida`,
             completedAt: new Date(),
             createdById: userId,
           }],
@@ -232,7 +232,7 @@ export class SalesService {
           data: {
             dealId,
             type:        'STATUS_CHANGE' as any,
-            title:       `Bosqich o'zgardi: ${this.getStageName(deal.stage)} → ${this.getStageName(newStage)}`,
+            title:       `Bosqich o'zgardi: ${this.getStageName(deal.stage)} в†’ ${this.getStageName(newStage)}`,
             completedAt: new Date(),
             createdById: userId,
           },
@@ -339,7 +339,7 @@ export class SalesService {
         data: {
           dealId,
           type:       'STATUS_CHANGE' as any,
-          title:      `Bosqich o'zgardi: ${this.getStageName(deal.stage)} → ${this.getStageName(newStage)}`,
+          title:      `Bosqich o'zgardi: ${this.getStageName(deal.stage)} в†’ ${this.getStageName(newStage)}`,
           description: newStage === 'LOST' && lostReason ? `Sabab: ${lostReason}` : undefined,
           completedAt: new Date(),
           createdById: userId,
@@ -354,7 +354,7 @@ export class SalesService {
             contactId:     deal.contactId,
             type:          'RECEIVABLE',
             amount:        deal.finalAmount,
-            remainAmount:  deal.finalAmount,
+            remaining:  deal.finalAmount,
             paidAmount:    0,
             referenceId:   dealId,
             referenceType: 'DEAL',
@@ -418,8 +418,8 @@ export class SalesService {
     if (newStage === 'WON') {
       this.notifications.create({
         companyId,
-        title:    "Deal yutildi! 🎉",
-        message:  `"${updated.title}" — ${Number(updated.finalAmount).toLocaleString()} so'm`,
+        title:    "Deal yutildi! рџЋ‰",
+        message:  `"${updated.title}" вЂ” ${Number(updated.finalAmount).toLocaleString()} so'm`,
         type:     'success',
         category: 'system',
         link:     `/sales/deals/${dealId}`,
@@ -605,10 +605,10 @@ export class SalesService {
     })
     if (!invoice) throw new NotFoundException('Invoice topilmadi')
 
-    const remainAmount = Number(invoice.totalAmount) - Number(invoice.paidAmount)
-    if (amount > remainAmount + 0.01) {
+    const remaining = Number(invoice.totalAmount) - Number(invoice.paidAmount)
+    if (amount > remaining + 0.01) {
       throw new BadRequestException(
-        `To'lov miqdori oshib ketdi. Qolgan: ${remainAmount.toFixed(0)} so'm`,
+        `To'lov miqdori oshib ketdi. Qolgan: ${remaining.toFixed(0)} so'm`,
       )
     }
 
@@ -634,12 +634,12 @@ export class SalesService {
           where: { companyId, referenceId: invoice.dealId, referenceType: 'DEAL' },
         })
         if (debt) {
-          const newRemain = Math.max(0, Number(debt.remainAmount) - amount)
+          const newRemain = Math.max(0, Number(debt.remaining) - amount)
           await tx.debtRecord.update({
             where: { id: debt.id },
             data: {
               paidAmount:   Number(debt.paidAmount) + amount,
-              remainAmount: newRemain,
+              remaining: newRemain,
             },
           })
         }
@@ -869,3 +869,4 @@ export class SalesService {
     return colors[stage] || '#6B7280'
   }
 }
+

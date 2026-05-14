@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Post,
+  Controller, Get, Post, Delete,
   Body, Param, Query,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
@@ -127,5 +127,43 @@ export class WarehouseController {
     @Body() dto: AdjustStockDto,
   ) {
     return this.warehouseService.adjustStock(user.companyId, dto, user.id);
+  }
+
+  // ============================================================
+  // OMBOR O'TKAZMALARI
+  // ============================================================
+
+  @Post('transfers')
+  @ApiOperation({ summary: 'Yangi ombor o\'tkazmasi yaratish' })
+  createTransfer(@CurrentUser() user: any, @Body() body: any) {
+    return this.warehouseService.createTransfer(user.companyId, user.id, body)
+  }
+
+  @Get('transfers')
+  @ApiOperation({ summary: 'O\'tkazmalar ro\'yxati' })
+  listTransfers(@CurrentUser() user: any, @Query() query: any) {
+    return this.warehouseService.listTransfers(user.companyId, {
+      status: query.status,
+      page:   query.page  ? Number(query.page)  : 1,
+      limit:  query.limit ? Number(query.limit) : 20,
+    })
+  }
+
+  @Get('transfers/:id')
+  @ApiOperation({ summary: 'O\'tkazma tafsiloti' })
+  getTransfer(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.warehouseService.getTransfer(user.companyId, id)
+  }
+
+  @Post('transfers/:id/confirm')
+  @ApiOperation({ summary: 'O\'tkazmani tasdiqlash va stokni yangilash' })
+  confirmTransfer(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.warehouseService.confirmTransfer(user.companyId, id, user.id)
+  }
+
+  @Delete('transfers/:id')
+  @ApiOperation({ summary: 'DRAFT o\'tkazmani o\'chirish' })
+  cancelTransfer(@CurrentUser() user: any, @Param('id') id: string) {
+    return this.warehouseService.cancelTransfer(user.companyId, id)
   }
 }

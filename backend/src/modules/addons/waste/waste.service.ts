@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -235,7 +235,7 @@ export class WasteService {
   }
 
   // ============================================
-  // QAYTA ISHLASH — ASOSIY ALGORITM
+  // QAYTA ISHLASH вЂ” ASOSIY ALGORITM
   // ============================================
   async createProcessing(companyId: string, dto: CreateProcessingDto, userId: string) {
     const batch = await this.prisma.wasteBatch.findFirst({
@@ -266,7 +266,7 @@ export class WasteService {
 
     // ============================================
     // YO'QOTISH HISOBLASH ALGORITMI
-    // FORMULA: lossPercent = (lossWeight / processedWeight) × 100
+    // FORMULA: lossPercent = (lossWeight / processedWeight) Г— 100
     // ============================================
     const lossWeight  = dto.processedWeight - dto.outputWeight;
     const lossPercent = (lossWeight / dto.processedWeight) * 100;
@@ -276,8 +276,8 @@ export class WasteService {
     const isAnomaly    = lossPercent > expectedMax * 1.5 || lossPercent < expectedMin * 0.5;
     const anomalyReason = isAnomaly
       ? lossPercent > expectedMax * 1.5
-        ? `Kutilganidan yuqori yo'qotish: ${lossPercent.toFixed(1)}% (norma: ${expectedMin}–${expectedMax}%)`
-        : `Kutilganidan past yo'qotish: ${lossPercent.toFixed(1)}% (norma: ${expectedMin}–${expectedMax}%)`
+        ? `Kutilganidan yuqori yo'qotish: ${lossPercent.toFixed(1)}% (norma: ${expectedMin}вЂ“${expectedMax}%)`
+        : `Kutilganidan past yo'qotish: ${lossPercent.toFixed(1)}% (norma: ${expectedMin}вЂ“${expectedMax}%)`
       : null;
 
     return this.prisma.$transaction(async (tx) => {
@@ -617,8 +617,8 @@ export class WasteService {
           contactId:    dto.buyerId,
           type:         'RECEIVABLE',
           amount:       saleAmount,
-          remainAmount: saleAmount,
-          notes:        `Chiqindi partiyasi #${batch.batchNumber} (${dto.weight} kg × ${dto.sellPricePerKg} so'm)${dto.notes ? ': ' + dto.notes : ''}`,
+          remaining: saleAmount,
+          notes:        `Chiqindi partiyasi #${batch.batchNumber} (${dto.weight} kg Г— ${dto.sellPricePerKg} so'm)${dto.notes ? ': ' + dto.notes : ''}`,
           dueDate,
         },
       }),
@@ -735,3 +735,4 @@ export class WasteService {
     };
   }
 }
+

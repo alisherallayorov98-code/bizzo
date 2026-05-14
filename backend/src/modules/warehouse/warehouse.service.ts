@@ -1,4 +1,4 @@
-import {
+﻿import {
   Injectable,
   NotFoundException,
   BadRequestException,
@@ -215,7 +215,7 @@ export class WarehouseService {
             quantity:      dto.quantity,
             price,
             totalAmount,
-            reason:        `Ko'chirildi: ${warehouse.name} → ${toWarehouse!.name}`,
+            reason:        `Ko'chirildi: ${warehouse.name} в†’ ${toWarehouse!.name}`,
             referenceId:   movement.id,
             notes:         dto.notes,
             createdById:   userId,
@@ -247,7 +247,7 @@ export class WarehouseService {
         this.notifications.create({
           companyId,
           title:    'Ombor kam qoldi',
-          message:  `${product.name} — ${Number(afterStock.quantity).toFixed(1)} ${product.unit} qoldi (min: ${product.minStock})`,
+          message:  `${product.name} вЂ” ${Number(afterStock.quantity).toFixed(1)} ${product.unit} qoldi (min: ${product.minStock})`,
           type:     'warning',
           category: 'stock',
           link:     '/warehouse',
@@ -460,7 +460,7 @@ export class WarehouseService {
           this.notifications.create({
             companyId,
             title:    'Ombor kam qoldi',
-            message:  `${product.name} — ${Number(afterStock.quantity).toFixed(1)} ${product.unit} qoldi`,
+            message:  `${product.name} вЂ” ${Number(afterStock.quantity).toFixed(1)} ${product.unit} qoldi`,
             type:     'warning',
             category: 'stock',
             link:     '/warehouse',
@@ -477,7 +477,7 @@ export class WarehouseService {
             type:         'PAYABLE' as any,
             amount:       totalAmount,
             paidAmount:   0,
-            remainAmount: totalAmount,
+            remaining: totalAmount,
             currency:     'UZS',
             dueDate:      dto.dueDate ? new Date(dto.dueDate) : null,
             notes:        dto.notes,
@@ -530,7 +530,7 @@ export class WarehouseService {
     const ninetyDaysAgo = new Date();
     ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
 
-    // Har bir mahsulot uchun: lastIn + sales — parallel (Promise.all 2 query)
+    // Har bir mahsulot uchun: lastIn + sales вЂ” parallel (Promise.all 2 query)
     const suggestions = await Promise.all(
       lowStock.map(async ({ product, totalQty }) => {
         const [lastIn, sales] = await Promise.all([
@@ -582,7 +582,7 @@ export class WarehouseService {
   }
 
   // ============================================
-  // OXIRGI HUJJAT — qator-qator nusxa olish uchun
+  // OXIRGI HUJJAT вЂ” qator-qator nusxa olish uchun
   // ============================================
   async getLastDocument(
     companyId: string,
@@ -603,7 +603,7 @@ export class WarehouseService {
     });
     if (!lastMovement) return null;
 
-    // Shu daqiqada (5 sek ichida) yaratilgan barcha movements — bitta hujjat
+    // Shu daqiqada (5 sek ichida) yaratilgan barcha movements вЂ” bitta hujjat
     const docTime = lastMovement.createdAt;
     const windowStart = new Date(docTime.getTime() - 5_000);
     const windowEnd   = new Date(docTime.getTime() + 5_000);
@@ -715,7 +715,7 @@ export class WarehouseService {
           this.notifications.create({
             companyId,
             title:    'Ombor kam qoldi',
-            message:  `${product.name} — ${Number(afterStock.quantity).toFixed(1)} ${product.unit} qoldi`,
+            message:  `${product.name} вЂ” ${Number(afterStock.quantity).toFixed(1)} ${product.unit} qoldi`,
             type:     'warning',
             category: 'stock',
             link:     '/warehouse',
@@ -732,7 +732,7 @@ export class WarehouseService {
             type:         'RECEIVABLE' as any,
             amount:       totalAmount,
             paidAmount:   0,
-            remainAmount: totalAmount,
+            remaining: totalAmount,
             currency:     'UZS',
             dueDate:      dto.dueDate ? new Date(dto.dueDate) : null,
             notes:        dto.notes,
@@ -765,4 +765,168 @@ export class WarehouseService {
       userId,
     );
   }
+
+  // ============================================================
+  // OMBOR O'TKAZMALARI (STOCK TRANSFERS)
+  // ============================================================
+
+  private async nextTransferNumber(companyId: string): Promise<string> {
+    const ym    = new Date().toISOString().slice(0, 7).replace('-', '')
+    const count = await this.prisma.stockTransfer.count({ where: { companyId } })
+    return `TR-${ym}-${String(count + 1).padStart(4, '0')}`
+  }
+
+  async createTransfer(companyId: string, userId: string, dto: {
+    fromWarehouseId: string
+    toWarehouseId:   string
+    notes?:          string
+    items: { productId: string; quantity: number }[]
+  }) {
+    if (dto.fromWarehouseId === dto.toWarehouseId) {
+      throw new BadRequestException('Manba va manzil ombor bir xil bo\'lishi mumkin emas')
+    }
+    const transferNumber = await this.nextTransferNumber(companyId)
+    return this.prisma.stockTransfer.create({
+      data: {
+        companyId,
+        transferNumber,
+        fromWarehouseId: dto.fromWarehouseId,
+        toWarehouseId:   dto.toWarehouseId,
+        notes:           dto.notes,
+        createdById:     userId,
+        items: {
+          create: dto.items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+        },
+      },
+      include: {
+        items:         { include: { product: { select: { id: true, name: true, unit: true } } } },
+        fromWarehouse: { select: { id: true, name: true } },
+        toWarehouse:   { select: { id: true, name: true } },
+      },
+    })
+  }
+
+  async confirmTransfer(companyId: string, transferId: string, userId: string) {
+    const transfer = await this.prisma.stockTransfer.findFirst({
+      where:   { id: transferId, companyId },
+      include: { items: true },
+    })
+    if (!transfer) throw new NotFoundException('O\'tkazma topilmadi')
+    if (transfer.status !== 'DRAFT') throw new BadRequestException('Faqat DRAFT holatdagi o\'tkazmani tasdiqlash mumkin')
+
+    await this.prisma.$transaction(async tx => {
+      for (const item of transfer.items) {
+        const qty = Number(item.quantity)
+
+        // Check source stock
+        const srcStock = await tx.stockItem.findUnique({
+          where: { warehouseId_productId: { warehouseId: transfer.fromWarehouseId, productId: item.productId } },
+        })
+        if (!srcStock || Number(srcStock.quantity) < qty) {
+          throw new BadRequestException(`Mahsulot miqdori yetarli emas: ${item.productId}`)
+        }
+
+        // OUT from source
+        await tx.stockMovement.create({
+          data: {
+            warehouseId:   transfer.fromWarehouseId,
+            productId:     item.productId,
+            type:          'TRANSFER',
+            quantity:      qty,
+            price:         srcStock.avgPrice,
+            totalAmount:   Number(srcStock.avgPrice) * qty,
+            reason:        `O'tkazma #${transfer.transferNumber}`,
+            referenceId:   transfer.id,
+            referenceType: 'STOCK_TRANSFER',
+            createdById:   userId,
+          },
+        })
+        await tx.stockItem.update({
+          where: { warehouseId_productId: { warehouseId: transfer.fromWarehouseId, productId: item.productId } },
+          data:  { quantity: { decrement: qty } },
+        })
+
+        // IN to destination
+        await tx.stockMovement.create({
+          data: {
+            warehouseId:   transfer.toWarehouseId,
+            productId:     item.productId,
+            type:          'IN',
+            quantity:      qty,
+            price:         srcStock.avgPrice,
+            totalAmount:   Number(srcStock.avgPrice) * qty,
+            reason:        `O'tkazma #${transfer.transferNumber}`,
+            referenceId:   transfer.id,
+            referenceType: 'STOCK_TRANSFER',
+            createdById:   userId,
+          },
+        })
+        const dstStock = await tx.stockItem.findUnique({
+          where: { warehouseId_productId: { warehouseId: transfer.toWarehouseId, productId: item.productId } },
+        })
+        if (dstStock) {
+          const newQty      = Number(dstStock.quantity) + qty
+          const newAvgPrice = (Number(dstStock.quantity) * Number(dstStock.avgPrice) + qty * Number(srcStock.avgPrice)) / newQty
+          await tx.stockItem.update({
+            where: { warehouseId_productId: { warehouseId: transfer.toWarehouseId, productId: item.productId } },
+            data:  { quantity: newQty, avgPrice: newAvgPrice },
+          })
+        } else {
+          await tx.stockItem.create({
+            data: { warehouseId: transfer.toWarehouseId, productId: item.productId, quantity: qty, avgPrice: srcStock.avgPrice },
+          })
+        }
+      }
+
+      await tx.stockTransfer.update({ where: { id: transferId }, data: { status: 'COMPLETED' } })
+    })
+
+    return this.getTransfer(companyId, transferId)
+  }
+
+  async listTransfers(companyId: string, filters: { status?: string; page?: number; limit?: number }) {
+    const page  = filters.page  || 1
+    const limit = filters.limit || 20
+    const where: any = { companyId }
+    if (filters.status) where.status = filters.status
+
+    const [data, total] = await Promise.all([
+      this.prisma.stockTransfer.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip:    (page - 1) * limit,
+        take:    limit,
+        include: {
+          fromWarehouse: { select: { id: true, name: true } },
+          toWarehouse:   { select: { id: true, name: true } },
+          _count:        { select: { items: true } },
+        },
+      }),
+      this.prisma.stockTransfer.count({ where }),
+    ])
+    return { data, total, page, limit }
+  }
+
+  async getTransfer(companyId: string, transferId: string) {
+    const transfer = await this.prisma.stockTransfer.findFirst({
+      where:   { id: transferId, companyId },
+      include: {
+        items:         { include: { product: { select: { id: true, name: true, unit: true, code: true } } } },
+        fromWarehouse: { select: { id: true, name: true } },
+        toWarehouse:   { select: { id: true, name: true } },
+        createdBy:     { select: { id: true, firstName: true, lastName: true } },
+      },
+    })
+    if (!transfer) throw new NotFoundException('O\'tkazma topilmadi')
+    return transfer
+  }
+
+  async cancelTransfer(companyId: string, transferId: string) {
+    const transfer = await this.prisma.stockTransfer.findFirst({ where: { id: transferId, companyId } })
+    if (!transfer) throw new NotFoundException()
+    if (transfer.status !== 'DRAFT') throw new BadRequestException('Faqat DRAFT holatdagi o\'tkazmani bekor qilish mumkin')
+    await this.prisma.stockTransfer.delete({ where: { id: transferId } })
+    return { ok: true }
+  }
 }
+

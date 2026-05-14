@@ -1,17 +1,19 @@
 import {
   Controller, Get, Post, Patch, Delete,
-  Body, Param, Query, Req,
+  Body, Param, Query, Req, HttpCode,
 } from '@nestjs/common'
-import { IntegrationsService } from './integrations.service'
-import { SmsService } from './sms/sms.service'
-import { TelegramService } from './telegram/telegram.service'
+import { IntegrationsService }  from './integrations.service'
+import { SmsService }           from './sms/sms.service'
+import { TelegramService }      from './telegram/telegram.service'
+import { TelegramBotService }   from './telegram/telegram-bot.service'
 
 @Controller('integrations')
 export class IntegrationsController {
   constructor(
     private integrationsService: IntegrationsService,
-    private smsService: SmsService,
-    private telegramService: TelegramService,
+    private smsService:          SmsService,
+    private telegramService:     TelegramService,
+    private telegramBotService:  TelegramBotService,
   ) {}
 
   // Barcha integratsiyalar ro'yxati
@@ -57,6 +59,37 @@ export class IntegrationsController {
     @Body() body: { phones: string[]; message: string },
   ) {
     return this.smsService.sendBulk(req.user.companyId, body.phones, body.message)
+  }
+
+  // Telegram bot webhook (public — no auth)
+  @Post('telegram/webhook/:companyId')
+  @HttpCode(200)
+  async telegramWebhook(
+    @Param('companyId') companyId: string,
+    @Body() body: any,
+  ) {
+    await this.telegramBotService.handleWebhook(companyId, body)
+    return { ok: true }
+  }
+
+  // Telegram test xabar
+  @Post('telegram/test-message')
+  async sendTestMessage(
+    @Req() req: any,
+    @Body() body: { chatId: string },
+  ) {
+    return this.telegramBotService.sendTestMessage(req.user.companyId, body.chatId)
+  }
+
+  // Telegram stats (bot orqali)
+  @Post('telegram/send-stats')
+  @HttpCode(200)
+  async sendTelegramStats(
+    @Req() req: any,
+    @Body() body: { chatId: string },
+  ) {
+    await this.telegramBotService.sendStats(req.user.companyId, body.chatId)
+    return { success: true }
   }
 
   // Telegram test

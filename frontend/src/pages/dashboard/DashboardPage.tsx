@@ -5,7 +5,7 @@ import {
   TrendingUp, AlertCircle,
   ArrowRight, Sparkles, CheckCircle,
   BarChart3, ScanLine, Wallet, Repeat, Calendar,
-  Settings2, Eye, EyeOff, ChevronUp, ChevronDown, RotateCcw, X,
+  Settings2, Eye, EyeOff, ChevronUp, ChevronDown, RotateCcw, X, GripVertical,
 } from 'lucide-react'
 import { HealthScoreWidget }  from '@components/smart/HealthScoreWidget'
 import { SmartAlertsWidget }  from '@components/smart/SmartAlertsWidget'
@@ -40,19 +40,40 @@ function WidgetWrapper({
   id:       string
   children: React.ReactNode
 }) {
-  const { widgets, editMode, toggleWidget, moveWidget } = useDashboardStore()
+  const { widgets, editMode, toggleWidget, moveWidget, reorderWidget } = useDashboardStore()
   const widget = widgets.find(w => w.id === id)
   if (!widget) return null
-
   if (!widget.visible && !editMode) return null
 
+  function onDragStart(e: React.DragEvent) {
+    e.dataTransfer.setData('widgetId', id)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+  function onDragOver(e: React.DragEvent) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault()
+    const fromId = e.dataTransfer.getData('widgetId')
+    if (fromId && fromId !== id) reorderWidget(fromId, id)
+  }
+
   return (
-    <div className={cn(
-      'relative transition-opacity',
-      !widget.visible && editMode && 'opacity-40',
-    )}>
+    <div
+      draggable={editMode}
+      onDragStart={editMode ? onDragStart : undefined}
+      onDragOver={editMode ? onDragOver : undefined}
+      onDrop={editMode ? onDrop : undefined}
+      className={cn(
+        'relative transition-opacity',
+        !widget.visible && editMode && 'opacity-40',
+        editMode && 'cursor-grab active:cursor-grabbing',
+      )}
+    >
       {editMode && (
         <div className="absolute -top-2 right-0 z-10 flex items-center gap-1 bg-bg-elevated border border-border-primary rounded-lg px-1.5 py-0.5 shadow-md">
+          <GripVertical size={12} className="text-text-muted cursor-grab mr-0.5" />
           <button
             onClick={() => moveWidget(id, 'up')}
             className="p-0.5 rounded hover:bg-bg-tertiary text-text-muted hover:text-text-primary transition-colors"

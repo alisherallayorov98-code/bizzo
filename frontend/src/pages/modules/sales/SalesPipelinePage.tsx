@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import {
   Plus, Search, TrendingUp, Target,
   DollarSign, BarChart3, Calendar, ChevronRight, MoreVertical,
@@ -27,8 +27,12 @@ const STAGE_ORDER = ['LEAD', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOS
 // DEAL KARTA
 // ============================================
 function DealCard({
-  deal, onStageChange,
-}: { deal: Deal; onStageChange: (id: string, stage: string) => void }) {
+  deal, onStageChange, onDragStart,
+}: {
+  deal: Deal
+  onStageChange: (id: string, stage: string) => void
+  onDragStart: (deal: Deal) => void
+}) {
   const t = useT()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -41,7 +45,11 @@ function DealCard({
     : false
 
   return (
-    <div className="p-3 rounded-lg border border-border-primary bg-bg-secondary hover:border-border-secondary transition-all duration-150 cursor-pointer group">
+    <div
+      draggable
+      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart(deal) }}
+      className="p-3 rounded-lg border border-border-primary bg-bg-secondary hover:border-border-secondary transition-all duration-150 cursor-grab active:cursor-grabbing active:opacity-50 group"
+    >
       <div className="flex items-start justify-between gap-2 mb-2">
         <p className="text-sm font-medium text-text-primary line-clamp-2 flex-1">
           {deal.title}
@@ -126,9 +134,17 @@ function DealCard({
 // KANBAN USTUN
 // ============================================
 function KanbanColumn({
-  column, onStageChange,
-}: { column: PipelineColumn; onStageChange: (id: string, stage: string) => void }) {
+  column, onStageChange, onDragStart, onDrop,
+}: {
+  column: PipelineColumn
+  onStageChange: (id: string, stage: string) => void
+  onDragStart: (deal: Deal) => void
+  onDrop: (stage: string) => void
+}) {
   const t = useT()
+  const [isDragOver, setIsDragOver] = useState(false)
+  const dragCounter = useRef(0)
+
   return (
     <div className="flex flex-col min-w-[260px] max-w-[300px]">
       <div className="flex items-center justify-between mb-3 px-1">
@@ -147,13 +163,25 @@ function KanbanColumn({
         </span>
       </div>
 
-      <div className="flex flex-col gap-2 flex-1 min-h-[80px]">
+      <div
+        className={cn(
+          'flex flex-col gap-2 flex-1 min-h-[80px] rounded-xl p-1 transition-colors duration-150',
+          isDragOver && 'bg-accent-primary/5 ring-2 ring-accent-primary/30 ring-dashed',
+        )}
+        onDragEnter={e => { e.preventDefault(); dragCounter.current++; setIsDragOver(true) }}
+        onDragOver={e => e.preventDefault()}
+        onDragLeave={() => { dragCounter.current--; if (dragCounter.current === 0) setIsDragOver(false) }}
+        onDrop={e => { e.preventDefault(); dragCounter.current = 0; setIsDragOver(false); onDrop(column.stage) }}
+      >
         {column.deals.map(deal => (
-          <DealCard key={deal.id} deal={deal} onStageChange={onStageChange} />
+          <DealCard key={deal.id} deal={deal} onStageChange={onStageChange} onDragStart={onDragStart} />
         ))}
         {column.deals.length === 0 && (
-          <div className="flex-1 min-h-[80px] rounded-lg border-2 border-dashed border-border-primary flex items-center justify-center">
-            <p className="text-xs text-text-muted">{t('sales.empty')}</p>
+          <div className={cn(
+            'flex-1 min-h-[80px] rounded-lg border-2 border-dashed flex items-center justify-center transition-colors',
+            isDragOver ? 'border-accent-primary/50' : 'border-border-primary',
+          )}>
+            <p className="text-xs text-text-muted">{isDragOver ? '↓' : t('sales.empty')}</p>
           </div>
         )}
       </div>
@@ -166,8 +194,9 @@ function KanbanColumn({
 // ============================================
 export default function SalesPipelinePage() {
   const t = useT()
-  const [search,    setSearch]    = useState('')
-  const [dealModal, setDealModal] = useState(false)
+  const [search,      setSearch]      = useState('')
+  const [dealModal,   setDealModal]   = useState(false)
+  const draggedDeal = useRef<Deal | null>(null)
 
   const debouncedSearch = useDebounce(search, 400)
   const updateStage     = useUpdateStage()
@@ -179,6 +208,18 @@ export default function SalesPipelinePage() {
 
   const handleStageChange = useCallback((id: string, stage: string) => {
     updateStage.mutate({ id, stage })
+  }, [updateStage])
+
+  const handleDragStart = useCallback((deal: Deal) => {
+    draggedDeal.current = deal
+  }, [])
+
+  const handleDrop = useCallback((targetStage: string) => {
+    const deal = draggedDeal.current
+    if (deal && deal.stage !== targetStage) {
+      updateStage.mutate({ id: deal.id, stage: targetStage })
+    }
+    draggedDeal.current = null
   }, [updateStage])
 
   return (
@@ -280,6 +321,8 @@ export default function SalesPipelinePage() {
               key={column.stage}
               column={column}
               onStageChange={handleStageChange}
+              onDragStart={handleDragStart}
+              onDrop={handleDrop}
             />
           ))}
         </div>

@@ -649,7 +649,9 @@
     "allActions": "Все действия",
     "noAuditLogs": "Записи журнала не найдены",
     "integrationsSubtitle": "Подключение SMS, Telegram и других сервисов",
-    "logs": "Логи"
+    "logs": "Логи",
+    "exchangeRates": "Курсы валют",
+    "saveRates": "Сохранить курсы"
   },
   "construction": {
     "moduleName": "Строительство",

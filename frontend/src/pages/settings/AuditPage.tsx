@@ -2,7 +2,7 @@ import { useState, Fragment } from 'react'
 import {
   Shield, AlertTriangle, LogIn,
   Trash2, Edit2, Download, Eye,
-  User, Clock, Globe,
+  User, Clock, Globe, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { Card }     from '@components/ui/Card/Card'
@@ -158,6 +158,28 @@ export default function AuditPage() {
               Tozalash
             </Button>
           )}
+
+          <Button
+            variant="outline" size="sm"
+            leftIcon={<Download size={13} />}
+            onClick={() => {
+              if (!data?.data?.length) return
+              const rows = data.data.map((l: any) => [
+                l.createdAt, l.user ? `${l.user.firstName} ${l.user.lastName}` : '—',
+                l.action, l.entity, l.entityId ?? '', l.ipAddress ?? '',
+              ])
+              const csv = [
+                ['Sana', 'Foydalanuvchi', 'Amal', "Ob'ekt", 'ID', 'IP'],
+                ...rows,
+              ].map(r => r.join(',')).join('\n')
+              const a = document.createElement('a')
+              a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv)
+              a.download = `audit-${new Date().toISOString().slice(0,10)}.csv`
+              a.click()
+            }}
+          >
+            CSV eksport
+          </Button>
         </div>
       </Card>
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+﻿import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -66,17 +66,17 @@ export class AiService {
       ),
 
       this.prisma.debtRecord.aggregate({
-        where: { contact: { companyId }, type: 'RECEIVABLE', remainAmount: { gt: 0 } },
-        _sum:  { remainAmount: true },
-      }).then(r => Number(r._sum.remainAmount || 0)),
+        where: { contact: { companyId }, type: 'RECEIVABLE', remaining: { gt: 0 } },
+        _sum:  { remaining: true },
+      }).then(r => Number(r._sum.remaining || 0)),
 
       this.prisma.debtRecord.aggregate({
-        where: { contact: { companyId }, type: 'PAYABLE', remainAmount: { gt: 0 } },
-        _sum:  { remainAmount: true },
-      }).then(r => Number(r._sum.remainAmount || 0)),
+        where: { contact: { companyId }, type: 'PAYABLE', remaining: { gt: 0 } },
+        _sum:  { remaining: true },
+      }).then(r => Number(r._sum.remaining || 0)),
 
       this.prisma.debtRecord.count({
-        where: { contact: { companyId }, remainAmount: { gt: 0 }, dueDate: { lt: now } },
+        where: { contact: { companyId }, remaining: { gt: 0 }, dueDate: { lt: now } },
       }),
 
       this.prisma.deal.aggregate({
@@ -154,7 +154,7 @@ export class AiService {
     const data = await this.gatherCompanyData(companyId)
 
     const systemPrompt = `Sen BIZZO ERP platformasining aqlli yordamchisissan.
-Sening vazifang — biznes ma'lumotlarini tahlil qilib, aniq va foydali javob berish.
+Sening vazifang вЂ” biznes ma'lumotlarini tahlil qilib, aniq va foydali javob berish.
 
 Hozirgi kompaniya ma'lumotlari (${data.currentDate}):
 ${JSON.stringify(data, null, 2)}
@@ -163,8 +163,8 @@ Qoidalar:
 1. Faqat o'zbek tilida javob ber
 2. Raqamlarni formatlash: 1,500,000 so'm
 3. Qisqa va aniq javob ber (max 3-4 gap)
-4. Tavsiya bersang — konkret va amaliy bo'lsin
-5. Agar ma'lumot yetarli bo'lmasa — ochiq ayt`
+4. Tavsiya bersang вЂ” konkret va amaliy bo'lsin
+5. Agar ma'lumot yetarli bo'lmasa вЂ” ochiq ayt`
 
     const response = await this.client.messages.create({
       model:      'claude-haiku-4-5-20251001',
@@ -274,8 +274,8 @@ Qoidalar:
 
   // ============================================
   // INVOYS RASMINI O'QISH (Claude Vision)
-  // — yetkazib beruvchi qog'oz/PDF hisob-fakturasini fotoga olib jo'natadi
-  // — Claude qatorlarni JSON ga o'giradi
+  // вЂ” yetkazib beruvchi qog'oz/PDF hisob-fakturasini fotoga olib jo'natadi
+  // вЂ” Claude qatorlarni JSON ga o'giradi
   // ============================================
   async parseInvoiceImage(
     companyId: string,
@@ -310,7 +310,7 @@ Qoidalar:
       select: { name: true, code: true, unit: true },
       take:   200,
     })
-    const productHint = products.map(p => `${p.code ? p.code + ' — ' : ''}${p.name} (${p.unit})`).join('\n')
+    const productHint = products.map(p => `${p.code ? p.code + ' вЂ” ' : ''}${p.name} (${p.unit})`).join('\n')
 
     const prompt = `Sen yetkazib beruvchi invoyslarini o'qiy oladigan yordamchisan.
 Berilgan invoys rasmidan QUYIDAGI JSON formatida ma'lumot ajratib ber:
@@ -355,7 +355,7 @@ Faqat JSON qaytar, izoh qo'shma. Agar rasm noaniq bo'lsa, lines bo'sh massiv qay
       })
 
       const text = (response.content[0] as any)?.text ?? ''
-      // Claude javobida JSON code-block bo'lishi mumkin — tozalaymiz
+      // Claude javobida JSON code-block bo'lishi mumkin вЂ” tozalaymiz
       const jsonMatch = text.match(/\{[\s\S]*\}/)
       if (!jsonMatch) {
         return { supplier: null, docNumber: null, docDate: null, currency: 'UZS', lines: [], grandTotal: null, raw: text }
@@ -385,3 +385,4 @@ Faqat JSON qaytar, izoh qo'shma. Agar rasm noaniq bo'lsa, lines bo'sh massiv qay
     }
   }
 }
+

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+﻿import { Injectable, Logger } from '@nestjs/common'
 import Anthropic from '@anthropic-ai/sdk'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { PrismaService } from '../../prisma/prisma.service'
@@ -19,13 +19,13 @@ export class AssistantService {
       : null
 
     this.logger.log(
-      `AssistantService init — Claude: ${this.claude ? 'YES (' + (process.env.ANTHROPIC_API_KEY?.length ?? 0) + ' chars)' : 'NO'}, ` +
+      `AssistantService init вЂ” Claude: ${this.claude ? 'YES (' + (process.env.ANTHROPIC_API_KEY?.length ?? 0) + ' chars)' : 'NO'}, ` +
       `Gemini: ${this.gemini ? 'YES (' + (process.env.GEMINI_API_KEY?.length ?? 0) + ' chars)' : 'NO'}`,
     )
   }
 
   // ============================================
-  // YOZMA BUYRUQ — Claude orqali
+  // YOZMA BUYRUQ вЂ” Claude orqali
   // ============================================
   async processText(_companyId: string, text: string): Promise<AssistantAction> {
     if (!this.claude) {
@@ -49,7 +49,7 @@ export class AssistantService {
   }
 
   // ============================================
-  // OVOZLI BUYRUQ — Gemini orqali (audio nativ)
+  // OVOZLI BUYRUQ вЂ” Gemini orqali (audio nativ)
   // ============================================
   async processVoice(
     _companyId: string,
@@ -80,7 +80,7 @@ export class AssistantService {
   }
 
   // ============================================
-  // QUERY — ma'lumot so'rovi (tizimdan to'g'ridan-to'g'ri)
+  // QUERY вЂ” ma'lumot so'rovi (tizimdan to'g'ridan-to'g'ri)
   // ============================================
   async resolveQuery(companyId: string, type: string, params?: any): Promise<{ answer: string; data?: any }> {
     const today    = new Date(); today.setHours(0, 0, 0, 0)
@@ -148,18 +148,18 @@ export class AssistantService {
       case 'debt_total': {
         const [rec, pay] = await Promise.all([
           this.prisma.debtRecord.aggregate({
-            where: { companyId, type: 'RECEIVABLE', remainAmount: { gt: 0 } },
-            _sum:  { remainAmount: true },
+            where: { companyId, type: 'RECEIVABLE', remaining: { gt: 0 } },
+            _sum:  { remaining: true },
             _count: true,
           }),
           this.prisma.debtRecord.aggregate({
-            where: { companyId, type: 'PAYABLE', remainAmount: { gt: 0 } },
-            _sum:  { remainAmount: true },
+            where: { companyId, type: 'PAYABLE', remaining: { gt: 0 } },
+            _sum:  { remaining: true },
             _count: true,
           }),
         ])
-        const recAmt = Number(rec._sum.remainAmount ?? 0)
-        const payAmt = Number(pay._sum.remainAmount ?? 0)
+        const recAmt = Number(rec._sum.remaining ?? 0)
+        const payAmt = Number(pay._sum.remaining ?? 0)
         return {
           answer: `Sizga qarzdorlar: ${rec._count} ta, jami ${recAmt.toLocaleString('uz-UZ')} so'm. Siz qarzdorsiz: ${pay._count} ta, jami ${payAmt.toLocaleString('uz-UZ')} so'm`,
           data: { receivable: recAmt, payable: payAmt },
@@ -175,7 +175,7 @@ export class AssistantService {
           const total = p.stockItems.reduce((s, i) => s + Number(i.quantity), 0)
           return total < Number(p.minStock)
         })
-        if (low.length === 0) return { answer: 'Barcha mahsulotlar yetarli qoldiqda 👍' }
+        if (low.length === 0) return { answer: 'Barcha mahsulotlar yetarli qoldiqda рџ‘Ќ' }
         const names = low.slice(0, 5).map(p => p.name).join(', ')
         return {
           answer: `${low.length} ta mahsulot kam qoldi: ${names}${low.length > 5 ? ' va boshqalar' : ''}`,
@@ -222,7 +222,7 @@ export class AssistantService {
   }
 
   // ============================================
-  // FIND_CONTACT — kontaktni topish
+  // FIND_CONTACT вЂ” kontaktni topish
   // ============================================
   async findContact(companyId: string, name: string) {
     const contact = await this.prisma.contact.findFirst({
@@ -264,3 +264,4 @@ export class AssistantService {
     }
   }
 }
+

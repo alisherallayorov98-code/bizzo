@@ -68,3 +68,29 @@ export function useProductionReport(filters: ReportFilters) {
     staleTime: STALE,
   })
 }
+
+export function usePnLReport(filters: ReportFilters) {
+  return useQuery({
+    queryKey: [REPORTS_KEY, 'pnl', filters],
+    queryFn:  () => reportService.getPnL(filters),
+    enabled:  enabled(filters),
+    staleTime: STALE,
+  })
+}
+
+export function useBalanceSheet() {
+  return useQuery({
+    queryKey: [REPORTS_KEY, 'balance-sheet'],
+    queryFn:  () => reportService.getBalanceSheet(),
+    staleTime: STALE,
+  })
+}
+
+export function useCashFlow(filters: ReportFilters) {
+  return useQuery({
+    queryKey: [REPORTS_KEY, 'cash-flow', filters],
+    queryFn:  () => reportService.getCashFlow(filters),
+    enabled:  enabled(filters),
+    staleTime: STALE,
+  })
+}

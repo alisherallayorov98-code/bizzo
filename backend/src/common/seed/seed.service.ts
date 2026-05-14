@@ -1,4 +1,4 @@
-import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common'
+﻿import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common'
 import { PrismaService } from '../../prisma/prisma.service'
 import * as bcrypt from 'bcrypt'
 
@@ -54,7 +54,7 @@ export class SeedService implements OnApplicationBootstrap {
           emailVerified: true,
         },
       })
-      this.logger.log('Admin created — admin@demo.uz / Admin@123')
+      this.logger.log('Admin created вЂ” admin@demo.uz / Admin@123')
     }
 
     // ---- BARCHA MODULLARNI YOQISH (har safar tekshiriladi) ----
@@ -202,12 +202,13 @@ export class SeedService implements OnApplicationBootstrap {
     // ---- QARZLAR ----
     await this.prisma.debtRecord.createMany({
       data: [
-        { companyId: CID, contactId: contacts[0].id, type: 'RECEIVABLE', amount: 2_400_000, remainAmount: 2_400_000, notes: 'Laptop uchun to`lov', dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000) },
-        { companyId: CID, contactId: contacts[1].id, type: 'RECEIVABLE', amount: 1_200_000, remainAmount:   600_000, notes: 'Qisman to`langan',    dueDate: new Date(Date.now() + 7  * 24 * 60 * 60 * 1000) },
-        { companyId: CID, contactId: contacts[3].id, type: 'PAYABLE',    amount: 980_000,  remainAmount:   980_000, notes: 'Tovar uchun qarz',     dueDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000) },
+        { companyId: CID, contactId: contacts[0].id, type: 'RECEIVABLE', amount: 2_400_000, remaining: 2_400_000, notes: 'Laptop uchun to`lov', dueDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000) },
+        { companyId: CID, contactId: contacts[1].id, type: 'RECEIVABLE', amount: 1_200_000, remaining:   600_000, notes: 'Qisman to`langan',    dueDate: new Date(Date.now() + 7  * 24 * 60 * 60 * 1000) },
+        { companyId: CID, contactId: contacts[3].id, type: 'PAYABLE',    amount: 980_000,  remaining:   980_000, notes: 'Tovar uchun qarz',     dueDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000) },
       ],
     })
 
     this.logger.log('Demo data seeded: 5 contacts, 6 products, 1 warehouse, 5 employees, 6 deals, 3 debts')
   }
 }
+

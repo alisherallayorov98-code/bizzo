@@ -32,15 +32,21 @@ model Company {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  users        User[]
-  contacts     Contact[]
-  products     Product[]
-  warehouses   Warehouse[]
-  employees    Employee[]
-  modules      CompanyModule[]
-  auditLogs    AuditLog[]
-  debtRecords  DebtRecord[]
-  attachments  Attachment[]
+  users          User[]
+  contacts       Contact[]
+  products       Product[]
+  warehouses     Warehouse[]
+  employees      Employee[]
+  modules        CompanyModule[]
+  auditLogs      AuditLog[]
+  debtRecords    DebtRecord[]
+  attachments    Attachment[]
+  posShifts      PosShift[]
+  purchaseOrders PurchaseOrder[]
+  stockTransfers StockTransfer[]
+  quotations     Quotation[]
+  campaigns      Campaign[]
+  salesTargets   SalesTarget[]
 
   @@map("companies")
 }
@@ -80,6 +86,12 @@ model User {
   passwordResets     PasswordReset[]
   assignedDeals      Deal[]             @relation("DealAssignee")
   attachments        Attachment[]
+  posShifts          PosShift[]
+  purchaseOrders     PurchaseOrder[]
+  stockTransfers     StockTransfer[]
+  quotations         Quotation[]
+  campaigns          Campaign[]
+  salesTargets       SalesTarget[]
 
   @@unique([companyId, email])
   @@map("users")
@@ -161,12 +173,16 @@ model Contact {
   priceLevel   String      @default("RETAIL")
 
   debtRecords          DebtRecord[]
+  avansRecords         AvansRecord[]
   deals                Deal[]
   invoices             Invoice[]
   contracts            Contract[]
   constructionProjects ConstructionProject[]
   serviceTickets       ServiceTicket[]
   stockMovements       StockMovement[]
+  purchaseOrders       PurchaseOrder[]
+  quotations           Quotation[]
+  campaignLogs         CampaignLog[]
 
   @@index([companyId, type])
   @@index([companyId, name])
@@ -206,13 +222,16 @@ model Product {
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
 
-  stockItems   StockItem[]
-  movements    StockMovement[]
-  dealItems    DealItem[]
-  formulaInputs  FormulaInput[]  @relation("FormulaInputs")
-  formulaOutputs FormulaOutput[] @relation("FormulaOutputs")
-  batchInputs    BatchInput[]    @relation("BatchInputs")
-  batchOutputs   BatchOutput[]   @relation("BatchOutputs")
+  stockItems          StockItem[]
+  movements           StockMovement[]
+  dealItems           DealItem[]
+  formulaInputs       FormulaInput[]      @relation("FormulaInputs")
+  formulaOutputs      FormulaOutput[]     @relation("FormulaOutputs")
+  batchInputs         BatchInput[]        @relation("BatchInputs")
+  batchOutputs        BatchOutput[]       @relation("BatchOutputs")
+  purchaseOrderItems  PurchaseOrderItem[]
+  stockTransferItems  StockTransferItem[]
+  quotationItems      QuotationItem[]
 
   @@index([companyId, name])
   @@index([companyId, category])
@@ -234,8 +253,11 @@ model Warehouse {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  stockItems  StockItem[]
-  movements   StockMovement[]
+  stockItems      StockItem[]
+  movements       StockMovement[]
+  purchaseOrders  PurchaseOrder[]
+  transfersFrom   StockTransfer[] @relation("TransferFrom")
+  transfersTo     StockTransfer[] @relation("TransferTo")
 
   @@index([companyId])
   @@map("warehouses")
@@ -375,21 +397,86 @@ model DebtRecord {
   contactId     String
   contact       Contact   @relation(fields: [contactId], references: [id])
   type          DebtType
+  description   String?
   amount        Decimal   @db.Decimal(18, 2)
   paidAmount    Decimal   @default(0) @db.Decimal(18, 2)
-  remainAmount  Decimal   @db.Decimal(18, 2)
+  remaining     Decimal   @default(0) @db.Decimal(18, 2)
   currency      String    @default("UZS")
   dueDate       DateTime?
+  isPaid        Boolean   @default(false)
   isOverdue     Boolean   @default(false)
   referenceId   String?
   referenceType String?
   notes         String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  createdById   String?
+
+  payments      DebtPayment[]
 
   @@index([companyId, type])
+  @@index([companyId, isPaid])
   @@index([companyId, isOverdue])
+  @@index([contactId, type])
   @@map("debt_records")
+}
+
+model DebtPayment {
+  id            String          @id @default(cuid())
+  companyId     String
+  debtId        String
+  debt          DebtRecord      @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  amount        Decimal         @db.Decimal(18, 2)
+  paymentDate   DateTime        @default(now())
+  method        PaymentMethod   @default(CASH)
+  avansId       String?
+  avans         AvansRecord?    @relation(fields: [avansId], references: [id])
+  notes         String?
+  createdById   String?
+  createdAt     DateTime        @default(now())
+
+  @@index([debtId])
+  @@index([companyId, paymentDate])
+  @@map("debt_payments")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  AVANS
+  OTHER
+}
+
+// Avans (oldindan to'lov)
+model AvansRecord {
+  id            String      @id @default(cuid())
+  companyId     String
+  contactId     String
+  contact       Contact     @relation(fields: [contactId], references: [id])
+  type          AvansType
+  description   String?
+  amount        Decimal     @db.Decimal(18, 2)
+  usedAmount    Decimal     @default(0) @db.Decimal(18, 2)
+  remaining     Decimal     @default(0) @db.Decimal(18, 2)
+  currency      String      @default("UZS")
+  isFullyUsed   Boolean     @default(false)
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  createdById   String?
+
+  payments      DebtPayment[]
+
+  @@index([companyId, type])
+  @@index([companyId, isFullyUsed])
+  @@index([contactId])
+  @@map("avans_records")
+}
+
+enum AvansType {
+  GIVEN     // Biz yetkazuvchiga avans berdik (aktivimiz)
+  RECEIVED  // Mijoz bizga avans berdi (majburiyatimiz)
 }
 
 enum DebtType {
@@ -568,6 +655,7 @@ model Deal {
   items       DealItem[]
   activities  DealActivity[]
   invoices    Invoice[]
+  quotations  Quotation[]
 
   @@index([companyId, stage])
   @@index([companyId, contactId])
@@ -645,6 +733,8 @@ model Invoice {
   paidAt        DateTime?
 
   notes         String?
+  shiftId       String?
+  paymentMethod String?       @default("CASH")
   isActive      Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -655,6 +745,7 @@ model Invoice {
 
   @@index([companyId, status])
   @@index([companyId, contactId])
+  @@index([companyId, shiftId])
   @@map("invoices")
 }
 
@@ -1540,6 +1631,104 @@ model CashExpense {
 }
 
 // ============================================================
+// AVTOMATLASHTIRISH TIZIMI (AUTOMATION ENGINE)
+// ============================================================
+
+model AutomationRule {
+  id          String             @id @default(cuid())
+  companyId   String
+
+  name        String
+  description String?
+  isActive    Boolean            @default(true)
+
+  trigger     AutomationTrigger
+  conditions  Json               @default("[]")
+  actions     Json               @default("[]")
+
+  // Statistika
+  runCount    Int                @default(0)
+  lastRunAt   DateTime?
+
+  // Takrorlanmaslik oralig'i (daqiqalarda)
+  cooldownMin Int                @default(0)
+
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  createdById String?
+
+  logs        AutomationLog[]
+
+  @@index([companyId, isActive])
+  @@index([companyId, trigger])
+  @@map("automation_rules")
+}
+
+enum AutomationTrigger {
+  INVOICE_OVERDUE        // Hisob-faktura muddati o'tdi
+  STOCK_LOW              // Ombor zaxirasi kam
+  DEAL_WON               // Bitim yutildi
+  DEAL_STAGE_CHANGED     // Bitim bosqichi o'zgardi
+  CONTRACT_EXPIRING      // Shartnoma tugayapti
+  PAYMENT_RECEIVED       // To'lov qabul qilindi
+  DEBT_OVERDUE           // Qarz muddati o'tdi
+  CONTACT_CREATED        // Yangi kontragent qo'shildi
+  SALARY_DUE             // Ish haqi to'lash vaqti
+  STOCK_MOVEMENT         // Ombor harakati sodir bo'ldi
+  MANUAL                 // Qo'lda ishga tushirish
+  QUOTATION_APPROVED     // Taklifnoma tasdiqlandi
+  QUOTATION_EXPIRED      // Taklifnoma muddati o'tdi
+  PURCHASE_RECEIVED      // Xarid buyurtmasi qabul qilindi
+  DAILY_MORNING          // Har kuni 09:00
+  WEEKLY_MONDAY          // Har dushanba 09:00
+  MONTHLY_FIRST          // Har oyning 1-kuni
+}
+
+model AutomationLog {
+  id         String        @id @default(cuid())
+  ruleId     String
+  rule       AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  companyId  String
+
+  status     AutomationLogStatus @default(SUCCESS)
+  trigger    String
+  entityId   String?
+  entityType String?
+
+  actionsRun  Json         @default("[]")
+  contextData Json?        // retry uchun trigger context saqlash
+  errorMsg    String?
+
+  executedAt DateTime     @default(now())
+
+  @@index([ruleId, executedAt])
+  @@index([companyId, executedAt])
+  @@index([companyId, status])
+  @@map("automation_logs")
+}
+
+model AutomationBlueprint {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String
+  category    String
+  trigger     String
+  conditions  Json     @default("[]")
+  actions     Json
+  icon        String?
+  isPopular   Boolean  @default(false)
+
+  @@map("automation_blueprints")
+}
+
+enum AutomationLogStatus {
+  SUCCESS
+  PARTIAL
+  FAILED
+}
+
+// ============================================================
 // TAKRORIY OPERATSIYALAR (RECURRING TRANSACTIONS)
 // ============================================================
 
@@ -1577,4 +1766,263 @@ model RecurringRule {
   @@index([companyId, isActive])
   @@index([nextRunAt, isActive])
   @@map("recurring_rules")
+}
+
+
+// ============================================
+// POS SMENA (SHIFT)
+// ============================================
+model PosShift {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  companyId          String
+  userId             String
+  openingCash        Decimal   @default(0) @db.Decimal(18, 2)
+  closingCash        Decimal?  @db.Decimal(18, 2)
+  totalSales         Decimal   @default(0) @db.Decimal(18, 2)
+  totalTransactions  Int       @default(0)
+  openedAt           DateTime  @default(now())
+  closedAt           DateTime?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  company  Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user     User    @relation(fields: [userId],    references: [id], onDelete: Cascade)
+
+  @@index([companyId, closedAt])
+  @@map("pos_shifts")
+}
+
+// ============================================================
+// XARID BUYURTMALARI (PURCHASE ORDERS)
+// ============================================================
+
+model PurchaseOrder {
+  id           String              @id @default(cuid())
+  companyId    String
+  company      Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  orderNumber  String
+  supplierId   String
+  supplier     Contact             @relation(fields: [supplierId], references: [id])
+  warehouseId  String
+  warehouse    Warehouse           @relation(fields: [warehouseId], references: [id])
+  status       PurchaseOrderStatus @default(DRAFT)
+  expectedDate DateTime?
+  notes        String?
+  totalAmount  Decimal             @default(0) @db.Decimal(18, 2)
+  createdById  String
+  createdBy    User                @relation(fields: [createdById], references: [id])
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  items        PurchaseOrderItem[]
+
+  @@index([companyId, status])
+  @@index([companyId, supplierId])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id          String        @id @default(cuid())
+  orderId     String
+  order       PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product       @relation(fields: [productId], references: [id])
+  quantity    Decimal       @db.Decimal(18, 3)
+  receivedQty Decimal       @default(0) @db.Decimal(18, 3)
+  unitPrice   Decimal       @db.Decimal(18, 2)
+  totalPrice  Decimal       @db.Decimal(18, 2)
+
+  @@map("purchase_order_items")
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  CONFIRMED
+  PARTIAL
+  RECEIVED
+  CANCELLED
+}
+
+// ============================================================
+// OMBOR O'TKAZMALARI (STOCK TRANSFERS)
+// ============================================================
+
+model StockTransfer {
+  id               String         @id @default(cuid())
+  companyId        String
+  company          Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  transferNumber   String
+  fromWarehouseId  String
+  fromWarehouse    Warehouse      @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
+  toWarehouseId    String
+  toWarehouse      Warehouse      @relation("TransferTo", fields: [toWarehouseId], references: [id])
+  status           TransferStatus @default(DRAFT)
+  notes            String?
+  createdById      String
+  createdBy        User           @relation(fields: [createdById], references: [id])
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  items            StockTransferItem[]
+
+  @@index([companyId, status])
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id         String        @id @default(cuid())
+  transferId String
+  transfer   StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product       @relation(fields: [productId], references: [id])
+  quantity   Decimal       @db.Decimal(18, 3)
+
+  @@map("stock_transfer_items")
+}
+
+enum TransferStatus {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
+// ============================================================
+// TAKLIFNOMALAR (QUOTATIONS)
+// ============================================================
+
+model Quotation {
+  id                 String          @id @default(cuid())
+  companyId          String
+  company            Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  quoteNumber        String
+  contactId          String
+  contact            Contact         @relation(fields: [contactId], references: [id])
+  dealId             String?
+  deal               Deal?           @relation(fields: [dealId], references: [id])
+  status             QuotationStatus @default(DRAFT)
+  validUntil         DateTime?
+  notes              String?
+  subtotal           Decimal         @default(0) @db.Decimal(18, 2)
+  discount           Decimal         @default(0) @db.Decimal(5, 2)
+  taxRate            Decimal         @default(0) @db.Decimal(5, 2)
+  totalAmount        Decimal         @default(0) @db.Decimal(18, 2)
+  sentAt             DateTime?
+  approvedAt         DateTime?
+  rejectedAt         DateTime?
+  rejectedReason     String?
+  convertedInvoiceId String?
+  createdById        String
+  createdBy          User            @relation(fields: [createdById], references: [id])
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  items              QuotationItem[]
+
+  @@index([companyId, status])
+  @@index([companyId, contactId])
+  @@map("quotations")
+}
+
+model QuotationItem {
+  id          String    @id @default(cuid())
+  quotationId String
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product?  @relation(fields: [productId], references: [id])
+  name        String
+  quantity    Decimal   @db.Decimal(18, 3)
+  unit        String    @default("dona")
+  unitPrice   Decimal   @db.Decimal(18, 2)
+  discount    Decimal   @default(0) @db.Decimal(5, 2)
+  totalPrice  Decimal   @db.Decimal(18, 2)
+
+  @@map("quotation_items")
+}
+
+enum QuotationStatus {
+  DRAFT
+  SENT
+  APPROVED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+// ============================================================
+// EMAIL / SMS KAMPANIYALAR
+// ============================================================
+
+model Campaign {
+  id           String         @id @default(cuid())
+  companyId    String
+  company      Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name         String
+  type         CampaignType
+  status       CampaignStatus @default(DRAFT)
+  subject      String?
+  body         String
+  targetFilter Json           @default("{}")
+  totalSent    Int            @default(0)
+  totalFailed  Int            @default(0)
+  scheduledAt  DateTime?
+  sentAt       DateTime?
+  createdById  String
+  createdBy    User           @relation(fields: [createdById], references: [id])
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  logs         CampaignLog[]
+
+  @@index([companyId, status])
+  @@map("campaigns")
+}
+
+model CampaignLog {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId  String
+  contact    Contact  @relation(fields: [contactId], references: [id])
+  status     String   @default("PENDING")
+  error      String?
+  sentAt     DateTime?
+
+  @@index([campaignId, status])
+  @@map("campaign_logs")
+}
+
+enum CampaignType {
+  SMS
+  EMAIL
+}
+
+enum CampaignStatus {
+  DRAFT
+  SENDING
+  COMPLETED
+  FAILED
+}
+
+// ============================================================
+// SAVDO MAQSADI (SALES TARGET / FORECAST)
+// ============================================================
+
+model SalesTarget {
+  id            String   @id @default(cuid())
+  companyId     String
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id])
+  period        String
+  periodType    String   @default("MONTH")
+  targetAmount  Decimal  @db.Decimal(18, 2)
+  currency      String   @default("UZS")
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@unique([companyId, userId, period])
+  @@index([companyId, period])
+  @@map("sales_targets")
 }

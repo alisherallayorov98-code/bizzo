@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   FileText, FileSpreadsheet,
   TrendingUp, Package, Users, Recycle, HardHat, Factory,
+  Scale, DollarSign, ArrowRightLeft,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -16,6 +17,7 @@ import {
   useFinancialReport, useWarehouseReport,
   useSalesReport, useEmployeesReport, useWasteReport,
   useConstructionReport, useProductionReport,
+  usePnLReport, useBalanceSheet, useCashFlow,
 } from '@features/reports/hooks/useReports'
 import { exportToExcel, exportToPDF } from '@utils/exporters'
 import { formatCurrency, formatDate, formatWeight } from '@utils/formatters'
@@ -1041,18 +1043,206 @@ function ProductionReport({ filters }: { filters: any }) {
 }
 
 // ============================================
+// P&L HISOBOTI
+// ============================================
+function PnLReport({ filters }: { filters: { dateFrom: string; dateTo: string } }) {
+  const { data, isLoading } = usePnLReport(filters)
+
+  if (isLoading) return <Skeleton className="h-64" />
+  if (!data) return null
+
+  const s = data.summary
+  const fmt = (n: number) => formatCurrency(n)
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <StatCard label="Daromad"      value={fmt(s.totalRevenue)}  color="text-emerald-500" />
+        <StatCard label="Tannarx (COGS)" value={fmt(s.totalCOGS)} color="text-red-400" />
+        <StatCard label="Yalpi foyda"  value={fmt(s.grossProfit)}  color={s.grossProfit >= 0 ? 'text-emerald-500' : 'text-red-500'} />
+        <StatCard label="Yalpi marja"  value={`${s.grossMargin}%`} color="text-blue-400" />
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <StatCard label="Ish haqi"     value={fmt(s.totalSalary)} />
+        <StatCard label="Naqd xarajat" value={fmt(s.totalCashExp)} />
+        <StatCard label="EBIT"         value={fmt(s.ebit)} color={s.ebit >= 0 ? 'text-emerald-500' : 'text-red-500'} />
+        <StatCard label="Sof foyda"    value={fmt(s.netProfit)} color={s.netProfit >= 0 ? 'text-emerald-500' : 'text-red-500'} />
+      </div>
+
+      {data.byMonth?.length > 0 && (
+        <Card>
+          <p className="text-sm font-semibold mb-4 text-[var(--color-text-primary)]">Oylik P&L</p>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={data.byMonth} barGap={4}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-primary)" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} width={80}
+                tickFormatter={(v: number) => `${(v / 1_000_000).toFixed(0)}M`} />
+              <Tooltip contentStyle={CHART_TOOLTIP_STYLE}
+                formatter={(v: number) => formatCurrency(v)} />
+              <Bar dataKey="revenue"     name="Daromad"    fill="#10b981" radius={[3,3,0,0]} />
+              <Bar dataKey="cogs"        name="Tannarx"    fill="#f87171" radius={[3,3,0,0]} />
+              <Bar dataKey="grossProfit" name="Yalpi foyda" fill="#3b82f6" radius={[3,3,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      )}
+
+      {Object.keys(data.cashExpByCategory || {}).length > 0 && (
+        <Card>
+          <p className="text-sm font-semibold mb-4 text-[var(--color-text-primary)]">Xarajatlar turkumi</p>
+          <div className="space-y-2">
+            {Object.entries(data.cashExpByCategory).map(([cat, amt]: [string, any]) => (
+              <div key={cat} className="flex items-center justify-between py-1.5 border-b border-[var(--color-border-primary)] last:border-0">
+                <span className="text-sm text-[var(--color-text-secondary)]">{cat}</span>
+                <span className="text-sm font-medium text-[var(--color-text-primary)]">{fmt(amt)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+// ============================================
+// BALANS VARAQASI
+// ============================================
+function BalanceSheetReport() {
+  const { data, isLoading } = useBalanceSheet()
+
+  if (isLoading) return <Skeleton className="h-64" />
+  if (!data) return null
+
+  const fmt = (n: number) => formatCurrency(n)
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wider mb-3">AKTIVLAR</p>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-sm text-[var(--color-text-secondary)]">Tovar zaxirasi</span>
+              <span className="text-sm font-medium">{fmt(data.assets.stock)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-[var(--color-text-secondary)]">Debitorlik</span>
+              <span className="text-sm font-medium">{fmt(data.assets.receivables)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-[var(--color-text-secondary)]">Kassa / Avanslar</span>
+              <span className="text-sm font-medium">{fmt(data.assets.cash)}</span>
+            </div>
+            <div className="flex justify-between pt-2 border-t border-[var(--color-border-primary)]">
+              <span className="text-sm font-semibold">Jami aktivlar</span>
+              <span className="text-sm font-bold text-emerald-500">{fmt(data.assets.total)}</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <p className="text-xs font-semibold text-red-400 uppercase tracking-wider mb-3">PASSIVLAR</p>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-sm text-[var(--color-text-secondary)]">Kreditorlik</span>
+              <span className="text-sm font-medium">{fmt(data.liabilities.payables)}</span>
+            </div>
+            <div className="flex justify-between pt-2 border-t border-[var(--color-border-primary)]">
+              <span className="text-sm font-semibold">Jami passivlar</span>
+              <span className="text-sm font-bold text-red-400">{fmt(data.liabilities.total)}</span>
+            </div>
+          </div>
+        </Card>
+
+        <Card>
+          <p className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-3">KAPITAL</p>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-sm text-[var(--color-text-secondary)]">Umumiy daromad</span>
+              <span className="text-sm font-medium">{fmt(data.totalRevenue)}</span>
+            </div>
+            <div className="flex justify-between pt-2 border-t border-[var(--color-border-primary)]">
+              <span className="text-sm font-semibold">Sof kapital</span>
+              <span className={cn('text-sm font-bold', data.equity >= 0 ? 'text-emerald-500' : 'text-red-500')}>
+                {fmt(data.equity)}
+              </span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div className="p-3 rounded-lg border text-xs text-[var(--color-text-muted)]"
+        style={{ background: 'var(--color-bg-tertiary)', borderColor: 'var(--color-border-primary)' }}>
+        Hisobot sanasi: {data.asOf}
+      </div>
+    </div>
+  )
+}
+
+// ============================================
+// PULSIZ OQIM (CASH FLOW)
+// ============================================
+function CashFlowReport({ filters }: { filters: { dateFrom: string; dateTo: string } }) {
+  const { data, isLoading } = useCashFlow(filters)
+
+  if (isLoading) return <Skeleton className="h-64" />
+  if (!data) return null
+
+  const s = data.summary
+  const fmt = (n: number) => formatCurrency(n)
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <StatCard label="Kiruvchi pul"  value={fmt(s.totalInflow)}  color="text-emerald-500" />
+        <StatCard label="Chiquvchi pul" value={fmt(s.totalExpenses)} color="text-red-400" />
+        <StatCard label="Sof pul oqimi" value={fmt(s.netCashFlow)}
+          color={s.netCashFlow >= 0 ? 'text-emerald-500' : 'text-red-500'} />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <StatCard label="To'lovlar (kreditorlik)" value={fmt(s.totalOutflow)} />
+        <StatCard label="Naqd xarajatlar"         value={fmt(s.totalCashExp)} />
+      </div>
+
+      {data.byMonth?.length > 0 && (
+        <Card>
+          <p className="text-sm font-semibold mb-4 text-[var(--color-text-primary)]">Oylik pul oqimi</p>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart data={data.byMonth} barGap={4}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-primary)" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} width={80}
+                tickFormatter={(v: number) => `${(v / 1_000_000).toFixed(0)}M`} />
+              <Tooltip contentStyle={CHART_TOOLTIP_STYLE}
+                formatter={(v: number) => formatCurrency(v)} />
+              <Bar dataKey="inflow"  name="Kiruvchi"  fill="#10b981" radius={[3,3,0,0]} />
+              <Bar dataKey="outflow" name="Chiquvchi" fill="#f87171" radius={[3,3,0,0]} />
+              <Bar dataKey="net"     name="Sof"       fill="#3b82f6" radius={[3,3,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+      )}
+    </div>
+  )
+}
+
+// ============================================
 // ASOSIY SAHIFA
 // ============================================
-type TabId = 'financial' | 'warehouse' | 'sales' | 'employees' | 'waste' | 'construction' | 'production'
+type TabId = 'financial' | 'warehouse' | 'sales' | 'employees' | 'waste' | 'construction' | 'production' | 'pnl' | 'balance' | 'cashflow'
 
 const TABS: { id: TabId; label: string; Icon: typeof TrendingUp }[] = [
-  { id: 'financial',    label: 'Moliyaviy',      Icon: TrendingUp },
-  { id: 'warehouse',    label: 'Ombor',          Icon: Package    },
-  { id: 'sales',        label: 'Savdo',          Icon: TrendingUp },
-  { id: 'employees',    label: 'Xodimlar',       Icon: Users      },
-  { id: 'waste',        label: 'Chiqindi',       Icon: Recycle    },
-  { id: 'construction', label: 'Qurilish',       Icon: HardHat    },
-  { id: 'production',   label: 'Ishlab chiqarish', Icon: Factory  },
+  { id: 'financial',    label: 'Moliyaviy',        Icon: TrendingUp    },
+  { id: 'pnl',          label: 'P&L',              Icon: DollarSign    },
+  { id: 'balance',      label: 'Balans',           Icon: Scale         },
+  { id: 'cashflow',     label: 'Pul oqimi',        Icon: ArrowRightLeft },
+  { id: 'warehouse',    label: 'Ombor',            Icon: Package       },
+  { id: 'sales',        label: 'Savdo',            Icon: TrendingUp    },
+  { id: 'employees',    label: 'Xodimlar',         Icon: Users         },
+  { id: 'waste',        label: 'Chiqindi',         Icon: Recycle       },
+  { id: 'construction', label: 'Qurilish',         Icon: HardHat       },
+  { id: 'production',   label: 'Ishlab chiqarish', Icon: Factory       },
 ]
 
 export default function ReportsPage() {
@@ -1101,6 +1291,9 @@ export default function ReportsPage() {
 
       <div>
         {activeTab === 'financial'    && <FinancialReport    filters={filters} />}
+        {activeTab === 'pnl'          && <PnLReport          filters={filters} />}
+        {activeTab === 'balance'      && <BalanceSheetReport />}
+        {activeTab === 'cashflow'     && <CashFlowReport     filters={filters} />}
         {activeTab === 'warehouse'    && <WarehouseReport    filters={filters} />}
         {activeTab === 'sales'        && <SalesReport        filters={filters} />}
         {activeTab === 'employees'    && <EmployeesReport    filters={filters} />}

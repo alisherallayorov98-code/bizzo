@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import {
   Phone, Mail, MapPin, Hash, Edit2, ArrowLeft,
   TrendingUp, TrendingDown, Package, ShoppingCart,
   Plus, Clock, CheckCircle, AlertCircle, CreditCard,
-  FileText, Building2, BarChart3,
+  FileText, Building2, BarChart3, ExternalLink, Copy,
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { PageHeader }       from '@components/layout/PageHeader/PageHeader'
 import { Card }             from '@components/ui/Card/Card'
 import { Badge }            from '@components/ui/Badge/Badge'
@@ -97,8 +98,28 @@ function InfoRow({
 export default function ContactDetailPage() {
   const { id }   = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [editOpen, setEditOpen] = useState(false)
-  const [tab, setTab]           = useState('movements')
+  const [editOpen, setEditOpen]       = useState(false)
+  const [tab, setTab]                 = useState('movements')
+  const [portalLink, setPortalLink]   = useState('')
+
+  const magicLink = useMutation({
+    mutationFn: () => api.post('/portal/magic-link', { contactId: id }).then(r => r.data.data ?? r.data),
+    onSuccess:  (data: { url: string }) => {
+      setPortalLink(data.url)
+      navigator.clipboard.writeText(data.url).catch(() => null)
+      toast.success('Portal linki nusxalandi!')
+    },
+    onError: () => toast.error('Link yaratishda xatolik'),
+  })
+
+  const supplierMagicLink = useMutation({
+    mutationFn: () => api.post('/portal/supplier-magic-link', { supplierId: id }).then(r => r.data.data ?? r.data),
+    onSuccess:  (data: { url: string }) => {
+      navigator.clipboard.writeText(data.url).catch(() => null)
+      toast.success('Supplier portal linki nusxalandi!')
+    },
+    onError: () => toast.error('Link yaratishda xatolik'),
+  })
 
   const { data: contact, isLoading, isError } = useQuery<ContactFull>({
     queryKey: ['contact-full', id],
@@ -170,6 +191,24 @@ export default function ContactDetailPage() {
                 Hisobot
               </Button>
             </Link>
+            <Button
+              variant="secondary" size="sm"
+              leftIcon={<ExternalLink size={14} />}
+              loading={magicLink.isPending}
+              onClick={() => magicLink.mutate()}
+            >
+              Portal linki
+            </Button>
+            {(contact.type === 'SUPPLIER' || contact.type === 'BOTH') && (
+              <Button
+                variant="secondary" size="sm"
+                leftIcon={<Copy size={14} />}
+                loading={supplierMagicLink.isPending}
+                onClick={() => supplierMagicLink.mutate()}
+              >
+                Supplier portal
+              </Button>
+            )}
             <Button variant="primary" size="sm" leftIcon={<Edit2 size={14} />} onClick={() => setEditOpen(true)}>
               Tahrirlash
             </Button>

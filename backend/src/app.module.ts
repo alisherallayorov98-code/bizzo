@@ -1,7 +1,7 @@
 import {
   Module, MiddlewareConsumer, NestModule, RequestMethod,
 } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
@@ -42,11 +42,20 @@ import { UploadModule }           from './modules/upload/upload.module'
 import { AttachmentsModule }      from './modules/attachments/attachments.module';
 import { RecurringModule }        from './modules/recurring/recurring.module';
 import { CashExpensesModule }     from './modules/cash-expenses/cash-expenses.module';
-import { AssistantModule }        from './modules/assistant/assistant.module';
+import { AssistantModule }        from './modules/assistant/assistant.module'
+import { AutomationModule }       from './modules/automation/automation.module';
+import { CurrencyModule }         from './modules/currency/currency.module';
+import { PortalModule }           from './modules/portal/portal.module';
+import { PosModule }             from './modules/pos/pos.module';
+import { PurchaseModule }        from './modules/purchase/purchase.module';
+import { QuotationsModule }      from './modules/quotations/quotations.module';
+import { CampaignsModule }       from './modules/campaigns/campaigns.module';
+import { SalesForecastModule }   from './modules/sales-forecast/sales-forecast.module';
 
 // Xavfsizlik middleware
 import { SecurityMiddleware } from './common/middleware/security.middleware';
 import { RateLimitMiddleware, RATE_LIMITS } from './common/middleware/rate-limit.middleware';
+import { GlobalAuditInterceptor } from './common/interceptors/global-audit.interceptor';
 
 @Module({
   imports: [
@@ -98,6 +107,14 @@ import { RateLimitMiddleware, RATE_LIMITS } from './common/middleware/rate-limit
     RecurringModule,
     CashExpensesModule,
     AssistantModule,
+    AutomationModule,
+    CurrencyModule,
+    PortalModule,
+    PosModule,
+    PurchaseModule,
+    QuotationsModule,
+    CampaignsModule,
+    SalesForecastModule,
   ],
   controllers: [AppController],
   providers: [
@@ -113,6 +130,10 @@ import { RateLimitMiddleware, RATE_LIMITS } from './common/middleware/rate-limit
     },
     RateLimitMiddleware,
     SeedService,
+    {
+      provide:  APP_INTERCEPTOR,
+      useClass: GlobalAuditInterceptor,
+    },
   ],
 })
 export class AppModule implements NestModule {

@@ -66,6 +66,7 @@ const ServiceTicketsPage  = lazy(() => import('@pages/service/ServiceTicketsPage
 
 // POS
 const POSPage             = lazy(() => import('@pages/pos/POSPage'))
+const POSShiftPage        = lazy(() => import('@pages/pos/POSShiftPage'))
 
 // Import Markazi
 const ImportCenterPage    = lazy(() => import('@pages/import/ImportCenterPage'))
@@ -76,6 +77,10 @@ const RecurringPage       = lazy(() => import('@pages/recurring/RecurringPage'))
 // Cash Expenses
 const CashExpensesPage    = lazy(() => import('@pages/cash-expenses/CashExpensesPage'))
 
+// Avtomatlashtirish
+const AutomationPage      = lazy(() => import('@pages/automation/AutomationPage'))
+const AutomationLogsPage  = lazy(() => import('@pages/automation/AutomationLogsPage'))
+
 // Landing
 const LandingLayout       = lazy(() => import('@pages/landing/LandingLayout').then(m => ({ default: m.LandingLayout })))
 const LandingPage         = lazy(() => import('@pages/landing/LandingPage'))
@@ -85,6 +90,27 @@ const PricingPage         = lazy(() => import('@pages/billing/PricingPage'))
 const CheckoutPage        = lazy(() => import('@pages/billing/CheckoutPage'))
 const BillingPage         = lazy(() => import('@pages/billing/BillingPage'))
 const BillingSuccessPage  = lazy(() => import('@pages/billing/SuccessPage'))
+
+// Portal
+const PortalPage         = lazy(() => import('@pages/portal/PortalPage'))
+const SupplierPortalPage = lazy(() => import('@pages/portal/SupplierPortalPage'))
+
+// Purchase
+const PurchaseOrdersPage = lazy(() => import('@pages/purchase/PurchaseOrdersPage'))
+
+// Warehouse transfers
+const StockTransferPage  = lazy(() => import('@pages/warehouse/StockTransferPage'))
+
+// Quotations
+const QuotationsPage     = lazy(() => import('@pages/sales/quotations/QuotationsPage'))
+const QuotationDetailPage = lazy(() => import('@pages/sales/quotations/QuotationDetailPage'))
+
+// Campaigns
+const CampaignsPage      = lazy(() => import('@pages/sales/campaigns/CampaignsPage'))
+const CampaignDetailPage = lazy(() => import('@pages/sales/campaigns/CampaignDetailPage'))
+
+// Sales Forecast
+const ForecastPage       = lazy(() => import('@pages/sales/forecast/ForecastPage'))
 
 // Xato sahifalar
 const NotFoundPage        = lazy(() => import('@pages/errors/NotFoundPage'))
@@ -214,6 +240,19 @@ export default function App() {
                 <Route path="/warehouse/inventory"  element={<InventoryPage />} />
                 <Route path="/warehouse/incoming"   element={<IncomingPage />} />
                 <Route path="/warehouse/outgoing"   element={<OutgoingPage />} />
+                <Route path="/warehouse/transfers"  element={<StockTransferPage />} />
+                <Route path="/purchase/orders"          element={<PurchaseOrdersPage />} />
+
+                {/* Taklifnomalar */}
+                <Route path="/sales/quotations"       element={<QuotationsPage />} />
+                <Route path="/sales/quotations/:id"   element={<QuotationDetailPage />} />
+
+                {/* Kampaniyalar */}
+                <Route path="/campaigns"              element={<CampaignsPage />} />
+                <Route path="/campaigns/:id"          element={<CampaignDetailPage />} />
+
+                {/* Savdo prognozi */}
+                <Route path="/sales/forecast"         element={<ForecastPage />} />
 
                 {/* Xodimlar */}
                 <Route path="/employees"         element={<PermissionGate><EmployeesListPage /></PermissionGate>} />
@@ -242,6 +281,10 @@ export default function App() {
                 {/* Kassa xarajatlari */}
                 <Route path="/cash-expenses" element={<CashExpensesPage />} />
 
+                {/* Avtomatlashtirish */}
+                <Route path="/automation"      element={<PermissionGate><AutomationPage /></PermissionGate>} />
+                <Route path="/automation/logs" element={<PermissionGate><AutomationLogsPage /></PermissionGate>} />
+
                 {/* Sozlamalar */}
                 <Route path="/settings/*" element={<PermissionGate><CompanySettingsPage /></PermissionGate>} />
 
@@ -256,6 +299,7 @@ export default function App() {
                 <Route path="/production/*"   element={<ProductionModule />} />
                 <Route path="/service"        element={<PermissionGate><ServiceTicketsPage /></PermissionGate>} />
                 <Route path="/pos"           element={<PermissionGate><POSPage /></PermissionGate>} />
+                <Route path="/pos/shift"     element={<PermissionGate><POSShiftPage /></PermissionGate>} />
 
                 {/* Ruxsatsiz */}
                 <Route path="/unauthorized" element={<UnauthorizedPage />} />
@@ -263,6 +307,8 @@ export default function App() {
             </Route>
 
             {/* 404 */}
+            <Route path="/portal"           element={<PortalPage />} />
+            <Route path="/supplier-portal"  element={<SupplierPortalPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>

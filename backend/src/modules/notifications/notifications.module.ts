@@ -5,6 +5,7 @@ import { NotificationsController }    from './notifications.controller';
 import { NotificationsService }       from './notifications.service';
 import { NotificationsGateway }       from './notifications.gateway';
 import { NotificationsCronService }   from './notifications-cron.service';
+import { PushService }                from './push.service';
 import { PrismaModule }               from '../../prisma/prisma.module';
 import { IntegrationsModule }         from '../integrations/integrations.module';
 
@@ -21,7 +22,7 @@ import { IntegrationsModule }         from '../integrations/integrations.module'
     }),
   ],
   controllers: [NotificationsController],
-  providers:   [NotificationsService, NotificationsGateway, NotificationsCronService],
-  exports:     [NotificationsService, NotificationsGateway],
+  providers:   [NotificationsService, NotificationsGateway, NotificationsCronService, PushService],
+  exports:     [NotificationsService, NotificationsGateway, PushService],
 })
 export class NotificationsModule {}

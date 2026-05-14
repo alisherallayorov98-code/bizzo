@@ -52,7 +52,7 @@ function ConfigModal({
   integration: IntegrationDef
   onClose: () => void
 }) {
-  const [form, setForm]   = useState<Record<string, string>>(
+  const [form, setForm]   = useState<Record<string, any>>(
     Object.fromEntries(
       integration.configFields.map(f => [
         f.key,
@@ -62,6 +62,11 @@ function ConfigModal({
   )
   const [shown, setShown] = useState<Record<string, boolean>>({})
   const saveMutation       = useSaveIntegration()
+
+  const isTelegram = integration.type === 'TELEGRAM_BOT'
+  const webhookUrl = isTelegram
+    ? `${window.location.origin.replace(':5173', ':3000')}/integrations/telegram/webhook/YOUR_COMPANY_ID`
+    : ''
 
   const handleSave = () => {
     saveMutation.mutate({
@@ -127,6 +132,46 @@ function ConfigModal({
             )}
           </div>
         ))}
+
+        {/* Telegram-specific settings */}
+        {isTelegram && (
+          <>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-[var(--color-text-secondary)]">Hisobot Chat ID</label>
+              <Input
+                placeholder="Hisobotlar yuborilsin (guruh yoki kanal ID)"
+                value={form.reportChatId || ''}
+                onChange={e => setForm(f => ({ ...f, reportChatId: e.target.value }))}
+              />
+            </div>
+
+            <div className="p-3 rounded-xl" style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-primary)' }}>
+              <p className="text-xs font-semibold mb-2" style={{ color: 'var(--color-text-muted)' }}>Bildirishnoma sozlamalari</p>
+              {[
+                { key: 'dailyReport', label: 'Har kuni soat 09:00 da hisobot' },
+                { key: 'debtAlert', label: 'Muddati o\'tgan qarz eslatmasi' },
+                { key: 'stockAlert', label: 'Ombor zaxirasi ogohlantirishi' },
+              ].map(item => (
+                <label key={item.key} className="flex items-center justify-between py-2 cursor-pointer">
+                  <span className="text-sm" style={{ color: 'var(--color-text-secondary)' }}>{item.label}</span>
+                  <div
+                    onClick={() => setForm(f => ({ ...f, [item.key]: !f[item.key] }))}
+                    className="w-9 h-5 rounded-full relative cursor-pointer transition-colors"
+                    style={{ background: form[item.key] ? 'var(--color-accent-primary)' : 'var(--color-bg-elevated)' }}
+                  >
+                    <div className="w-4 h-4 rounded-full bg-white absolute top-0.5 transition-all"
+                      style={{ left: form[item.key] ? '18px' : '2px' }} />
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="p-3 rounded-xl" style={{ background: '#0088CC12', border: '1px solid #0088CC30' }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: '#0088CC' }}>Webhook URL (Telegram-ga qo'ying)</p>
+              <code className="text-xs break-all" style={{ color: 'var(--color-text-muted)' }}>{webhookUrl}</code>
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   )

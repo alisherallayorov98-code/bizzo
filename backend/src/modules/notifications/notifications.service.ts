@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@nestjs/common';
+﻿import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { NotificationsGateway } from './notifications.gateway';
 
@@ -78,7 +78,7 @@ export class NotificationsService {
         if (totalQty <= minStock) {
           alerts.push({
             title:    'Ombor kam qoldi',
-            message:  `${p.name} — ${totalQty.toFixed(1)} ${p.unit} qoldi (min: ${minStock})`,
+            message:  `${p.name} вЂ” ${totalQty.toFixed(1)} ${p.unit} qoldi (min: ${minStock})`,
             type:     'warning',
             category: 'stock',
             link:     '/warehouse',
@@ -98,7 +98,7 @@ export class NotificationsService {
       for (const d of overdueDebts) {
         alerts.push({
           title:    "Qarz muddati o'tdi",
-          message:  `${d.contact.name} — ${Number(d.remainAmount).toLocaleString()} so'm`,
+          message:  `${d.contact.name} вЂ” ${Number(d.remaining).toLocaleString()} so'm`,
           type:     'danger',
           category: 'debt',
           link:     '/debts',
@@ -142,7 +142,7 @@ export class NotificationsService {
         const days = Math.ceil((c.endDate!.getTime() - Date.now()) / 86400000);
         alerts.push({
           title:    'Shartnoma tugayapti',
-          message:  `"${c.title}" — ${days} kun qoldi`,
+          message:  `"${c.title}" вЂ” ${days} kun qoldi`,
           type:     'warning',
           category: 'contract',
           link:     `/contracts/${c.id}`,
@@ -162,7 +162,7 @@ export class NotificationsService {
         const days    = Math.abs(Math.ceil((p.endDate!.getTime() - Date.now()) / 86400000));
         alerts.push({
           title:    overdue ? "Loyiha muddati o'tdi" : 'Loyiha muddati yaqin',
-          message:  `"${p.name}" — ${overdue ? `${days} kun kechikdi` : `${days} kun qoldi`}`,
+          message:  `"${p.name}" вЂ” ${overdue ? `${days} kun kechikdi` : `${days} kun qoldi`}`,
           type:     overdue ? 'danger' : 'warning',
           category: 'contract',
           link:     `/construction/${p.id}`,
@@ -217,3 +217,4 @@ export class NotificationsService {
     });
   }
 }
+

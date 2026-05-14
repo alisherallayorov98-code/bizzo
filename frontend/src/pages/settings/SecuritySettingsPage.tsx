@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Eye, EyeOff, Shield, CheckCircle } from 'lucide-react'
+import { Eye, EyeOff, Shield, CheckCircle, Bell, BellOff, BellRing } from 'lucide-react'
 import { Button } from '@components/ui/Button/Button'
 import { Input }  from '@components/ui/Input/Input'
 import { useMutation } from '@tanstack/react-query'
 import { settingsService } from '@services/settings.service'
+import { usePushNotifications } from '@hooks/usePushNotifications'
 import { cn } from '@utils/cn'
 import toast from 'react-hot-toast'
 import { useT } from '@i18n/index'
@@ -160,6 +161,54 @@ export default function SecuritySettingsPage() {
         >
           {t('settings.changePassword')}
         </Button>
+      </div>
+
+      <PushNotificationsSection />
+    </div>
+  )
+}
+
+function PushNotificationsSection() {
+  const { state, isSubscribing, subscribe, unsubscribe, sendTest } = usePushNotifications()
+
+  const stateInfo = {
+    loading:       { icon: BellRing,  label: 'Yuklanmoqda...',             color: 'text-[var(--color-text-muted)]' },
+    unsupported:   { icon: BellOff,   label: 'Brauzer qo\'llab-quvvatlamaydi', color: 'text-[var(--color-text-muted)]' },
+    denied:        { icon: BellOff,   label: 'Ruxsat rad etilgan',          color: 'text-red-400' },
+    subscribed:    { icon: Bell,      label: 'Yoqilgan',                    color: 'text-emerald-500' },
+    unsubscribed:  { icon: BellOff,   label: "O'chirilgan",                 color: 'text-[var(--color-text-muted)]' },
+  }[state]
+  const StateIcon = stateInfo.icon
+
+  return (
+    <div className="pt-4 border-t border-[var(--color-border-primary)]">
+      <div className="flex items-center gap-2 mb-3">
+        <Shield size={15} className="text-[var(--color-accent-primary)]" />
+        <p className="text-sm font-semibold text-[var(--color-text-primary)]">Push bildirishnomalar</p>
+      </div>
+
+      <div className="flex items-center justify-between p-3 rounded-lg border border-[var(--color-border-primary)]"
+        style={{ background: 'var(--color-bg-tertiary)' }}>
+        <div className="flex items-center gap-2">
+          <StateIcon size={15} className={stateInfo.color} />
+          <span className="text-sm text-[var(--color-text-secondary)]">{stateInfo.label}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {state === 'subscribed' && (
+            <Button variant="ghost" size="sm" onClick={sendTest}>
+              Test
+            </Button>
+          )}
+          {(state === 'subscribed') ? (
+            <Button variant="outline" size="sm" loading={isSubscribing} onClick={unsubscribe}>
+              O'chirish
+            </Button>
+          ) : state === 'unsubscribed' ? (
+            <Button variant="primary" size="sm" loading={isSubscribing} onClick={subscribe}>
+              Yoqish
+            </Button>
+          ) : null}
+        </div>
       </div>
     </div>
   )

@@ -5,7 +5,8 @@ import {
   Factory, Wrench, FileText, Bell, Activity,
   Upload, ArrowDownToLine, ArrowUpFromLine,
   ClipboardList, TrendingUp, DollarSign, ScanLine,
-  Repeat, Banknote,
+  Repeat, Banknote, Zap, ArrowLeftRight,
+  FileCheck, Megaphone, Target,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -97,11 +98,13 @@ export const CORE_NAV_ITEMS: NavItem[] = [
     icon:       Warehouse,
     permission: 'warehouse.view',
     subTabs: [
-      { id: 'overview',  label: "Umumiy ko'rinish", path: '/warehouse',           icon: Warehouse       },
-      { id: 'movements', label: 'Harakatlar',       path: '/warehouse/movements', icon: Activity        },
-      { id: 'incoming',  label: 'Kirim',            path: '/warehouse/incoming',  icon: ArrowDownToLine },
-      { id: 'outgoing',  label: 'Chiqim',           path: '/warehouse/outgoing',  icon: ArrowUpFromLine },
-      { id: 'inventory', label: 'Inventarizatsiya', path: '/warehouse/inventory', icon: ClipboardList   },
+      { id: 'overview',   label: "Umumiy ko'rinish", path: '/warehouse',            icon: Warehouse       },
+      { id: 'movements',  label: 'Harakatlar',       path: '/warehouse/movements',  icon: Activity        },
+      { id: 'incoming',   label: 'Kirim',            path: '/warehouse/incoming',   icon: ArrowDownToLine },
+      { id: 'outgoing',   label: 'Chiqim',           path: '/warehouse/outgoing',   icon: ArrowUpFromLine },
+      { id: 'inventory',  label: 'Inventarizatsiya', path: '/warehouse/inventory',  icon: ClipboardList   },
+      { id: 'transfers',  label: 'O\'tkazmalar',     path: '/warehouse/transfers',  icon: ArrowLeftRight  },
+      { id: 'purchases',  label: 'Xarid buyurtmalari', path: '/purchase/orders',   icon: ShoppingCart    },
     ],
   },
   {
@@ -177,6 +180,24 @@ export const CORE_NAV_ITEMS: NavItem[] = [
     path:  '/recurring',
     icon:  Repeat,
   },
+  {
+    id:    'automation',
+    label: 'Avtomatlashtirish',
+    tKey:  'nav.automation',
+    path:  '/automation',
+    icon:  Zap,
+    subTabs: [
+      { id: 'rules',      label: 'Qoidalar',   path: '/automation',       icon: Zap      },
+      { id: 'logs',       label: 'Jurnal',      path: '/automation/logs',  icon: Activity },
+    ],
+  },
+  {
+    id:    'campaigns',
+    label: 'Kampaniyalar',
+    tKey:  'nav.campaigns',
+    path:  '/campaigns',
+    icon:  Megaphone,
+  },
 ]
 
 // ============================================
@@ -206,9 +227,11 @@ export const MODULE_NAV_ITEMS: NavItem[] = [
     icon:   ShoppingCart,
     module: 'SALES_CRM',
     subTabs: [
-      { id: 'pipeline', label: 'Pipeline',   path: '/sales/pipeline', icon: TrendingUp  },
-      { id: 'deals',    label: 'Bitimlar',   path: '/sales/deals',    icon: DollarSign  },
-      { id: 'invoices', label: 'Hisob-fakt', path: '/sales/invoices', icon: FileText    },
+      { id: 'pipeline',    label: 'Pipeline',        path: '/sales/pipeline',    icon: TrendingUp  },
+      { id: 'deals',       label: 'Bitimlar',        path: '/sales/deals',       icon: DollarSign  },
+      { id: 'invoices',    label: 'Hisob-fakt',      path: '/sales/invoices',    icon: FileText    },
+      { id: 'quotations',  label: 'Taklifnomalar',   path: '/sales/quotations',  icon: FileCheck   },
+      { id: 'forecast',    label: 'Savdo prognozi',  path: '/sales/forecast',    icon: Target      },
     ],
   },
   {

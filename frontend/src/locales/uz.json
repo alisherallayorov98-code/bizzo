@@ -649,7 +649,9 @@
     "allActions": "Barcha amallar",
     "noAuditLogs": "Log yozuvlari topilmadi",
     "integrationsSubtitle": "SMS, Telegram va boshqa xizmatlar bilan ulanish",
-    "logs": "Loglar"
+    "logs": "Loglar",
+    "exchangeRates": "Valyuta kurslari",
+    "saveRates": "Kurslarni saqlash"
   },
   "construction": {
     "moduleName": "Qurilish",

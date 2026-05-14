@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+﻿import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { PrismaService } from '../../prisma/prisma.service'
 import { NotificationsService } from './notifications.service'
@@ -44,7 +44,7 @@ export class NotificationsCronService {
       where: {
         contact:      { companyId },
         type:         'RECEIVABLE',
-        remainAmount: { gt: 0 },
+        remaining: { gt: 0 },
         dueDate:      { lt: new Date() },
       },
       include: {
@@ -63,7 +63,7 @@ export class NotificationsCronService {
       const daysOverdue = Math.floor(
         (Date.now() - new Date(debt.dueDate!).getTime()) / (1000 * 60 * 60 * 24),
       )
-      const amount = Number(debt.remainAmount).toLocaleString('uz-UZ')
+      const amount = Number(debt.remaining).toLocaleString('uz-UZ')
       const message =
         `Hurmatli ${debt.contact.name}, sizning ${amount} so'm miqdoridagi qarzingizning muddati ${daysOverdue} kun oldin tugagan. Iltimos, to'lovni amalga oshiring.`
 
@@ -77,7 +77,7 @@ export class NotificationsCronService {
     // Telegram bildirishnoma: admin kanaliga
     const telegramDebts = overdueDebts.map(d => ({
       contactName: d.contact.name,
-      amount:      Number(d.remainAmount),
+      amount:      Number(d.remaining),
       currency:    'UZS',
       daysOverdue: Math.floor(
         (Date.now() - new Date(d.dueDate!).getTime()) / (1000 * 60 * 60 * 24),
@@ -91,3 +91,4 @@ export class NotificationsCronService {
     }
   }
 }
+

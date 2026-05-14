@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common'
+﻿import { Injectable, Logger } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { PrismaService }        from '../../prisma/prisma.service'
 import { NotificationsService } from '../notifications/notifications.service'
@@ -14,7 +14,7 @@ export class DebtsCronService {
     private readonly telegram:       TelegramService,
   ) {}
 
-  // Har kuni soat 09:00 — yangi muddati o'tganlarni belgilash + ogohlantirish
+  // Har kuni soat 09:00 вЂ” yangi muddati o'tganlarni belgilash + ogohlantirish
   @Cron(CronExpression.EVERY_DAY_AT_9AM)
   async checkOverdueDebts() {
     const companies = await this.prisma.company.findMany({
@@ -28,11 +28,11 @@ export class DebtsCronService {
         const newOverdue = await this.prisma.debtRecord.findMany({
           where: {
             companyId,
-            remainAmount: { gt: 0 },
+            remaining: { gt: 0 },
             dueDate:      { lt: new Date() },
             isOverdue:    false,
           },
-          select: { id: true, remainAmount: true },
+          select: { id: true, remaining: true },
         })
 
         if (newOverdue.length > 0) {
@@ -41,11 +41,11 @@ export class DebtsCronService {
             data:  { isOverdue: true },
           })
 
-          const total = newOverdue.reduce((s, d) => s + Number(d.remainAmount), 0)
+          const total = newOverdue.reduce((s, d) => s + Number(d.remaining), 0)
           await this.notifications.create({
             companyId,
             title:    `${newOverdue.length} ta qarz muddati o'tdi`,
-            message:  `Jami: ${total.toLocaleString('uz-UZ')} so'm — tezkor choralar ko'ring`,
+            message:  `Jami: ${total.toLocaleString('uz-UZ')} so'm вЂ” tezkor choralar ko'ring`,
             type:     'danger',
             category: 'debt',
             link:     '/debts?overdue=true',
@@ -54,8 +54,8 @@ export class DebtsCronService {
 
         // Telegramga: barcha aktiv muddati o'tgan qarzlar (eng katta 10 ta)
         const allOverdue = await this.prisma.debtRecord.findMany({
-          where: { companyId, remainAmount: { gt: 0 }, isOverdue: true },
-          orderBy: { remainAmount: 'desc' },
+          where: { companyId, remaining: { gt: 0 }, isOverdue: true },
+          orderBy: { remaining: 'desc' },
           take: 10,
           include: {
             contact: { select: { name: true } },
@@ -67,7 +67,7 @@ export class DebtsCronService {
           try {
             await this.telegram.notifyDebtOverdue(companyId, allOverdue.map(d => ({
               contactName: d.contact?.name ?? 'Noma\'lum',
-              amount:      Number(d.remainAmount),
+              amount:      Number(d.remaining),
               currency:    d.currency ?? 'UZS',
               daysOverdue: d.dueDate
                 ? Math.max(0, Math.floor((now - d.dueDate.getTime()) / (1000 * 60 * 60 * 24)))
@@ -87,7 +87,7 @@ export class DebtsCronService {
     this.logger.log('Debt overdue check completed')
   }
 
-  // Har dushanba soat 09:30 — haftalik qarz xulosasi (TG)
+  // Har dushanba soat 09:30 вЂ” haftalik qarz xulosasi (TG)
   @Cron('0 30 9 * * MON')
   async weeklyDebtSummary() {
     const companies = await this.prisma.company.findMany({
@@ -98,13 +98,13 @@ export class DebtsCronService {
     for (const { id: companyId } of companies) {
       try {
         const debts = await this.prisma.debtRecord.aggregate({
-          where: { companyId, remainAmount: { gt: 0 } },
-          _sum:   { remainAmount: true },
+          where: { companyId, remaining: { gt: 0 } },
+          _sum:   { remaining: true },
           _count: true,
         })
         const overdue = await this.prisma.debtRecord.aggregate({
-          where: { companyId, remainAmount: { gt: 0 }, isOverdue: true },
-          _sum:   { remainAmount: true },
+          where: { companyId, remaining: { gt: 0 }, isOverdue: true },
+          _sum:   { remaining: true },
           _count: true,
         })
 
@@ -116,13 +116,13 @@ export class DebtsCronService {
         if (!notifyChannelId) continue
 
         const text = [
-          '<b>📊 Haftalik qarz xulosasi</b>',
+          '<b>рџ“Љ Haftalik qarz xulosasi</b>',
           ``,
           `Jami faol qarzlar: <b>${debts._count}</b> ta`,
-          `Umumiy summa: <b>${Number(debts._sum.remainAmount ?? 0).toLocaleString('uz-UZ')}</b> so'm`,
+          `Umumiy summa: <b>${Number(debts._sum.remaining ?? 0).toLocaleString('uz-UZ')}</b> so'm`,
           ``,
           `Muddati o'tgan: <b>${overdue._count}</b> ta`,
-          `Summa: <b>${Number(overdue._sum.remainAmount ?? 0).toLocaleString('uz-UZ')}</b> so'm`,
+          `Summa: <b>${Number(overdue._sum.remaining ?? 0).toLocaleString('uz-UZ')}</b> so'm`,
         ].join('\n')
 
         try {
@@ -136,3 +136,4 @@ export class DebtsCronService {
     }
   }
 }
+
