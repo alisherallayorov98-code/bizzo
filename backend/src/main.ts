@@ -133,6 +133,13 @@ async function bootstrap() {
     logger.log('📦 OpenAPI JSON: /api/docs-json (Postman → Import → Link)');
   }
 
+  // Deploy platformasi (Railway/Render/Fly) uchun prefix'siz /health endpoint
+  // Global prefix (api/v1) dan tashqarida — platform healthcheck uchun
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.get('/health', (_req: any, res: any) => {
+    res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+  });
+
   const port = process.env.PORT || 4000;
   await app.listen(port);
   logger.log(`🚀 Backend ishlamoqda: http://localhost:${port}/api/v1`);
