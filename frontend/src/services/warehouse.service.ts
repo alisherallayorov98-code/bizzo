@@ -3,7 +3,7 @@ import api from '@config/api'
 // ============================================
 // TYPES
 // ============================================
-export type MovementType = 'IN' | 'OUT' | 'TRANSFER' | 'ADJUSTMENT' | 'PRODUCTION_IN' | 'PRODUCTION_OUT' | 'WASTE_IN' | 'WASTE_OUT'
+export type MovementType = 'IN' | 'OUT' | 'TRANSFER' | 'ADJUSTMENT' | 'PRODUCTION_IN' | 'PRODUCTION_OUT' | 'WASTE_IN' | 'WASTE_OUT' | 'RETURN_IN' | 'RETURN_OUT'
 
 export interface Warehouse {
   id:              string

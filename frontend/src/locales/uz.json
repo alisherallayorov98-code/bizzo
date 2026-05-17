@@ -247,6 +247,8 @@
     "productionOut": "Ishlab chiqarish chiqim",
     "wasteIn": "Chiqindi kirim",
     "wasteOut": "Chiqindi chiqim",
+    "returnIn": "Qaytarish (kirim)",
+    "returnOut": "Qaytarish (chiqim)",
     "movementsNotFound": "Harakatlar topilmadi",
     "noMovementsHint": "Kirim yoki chiqim harakatlari yo'q",
     "description": "Barcha omborlardagi mahsulot qoldiqlari",

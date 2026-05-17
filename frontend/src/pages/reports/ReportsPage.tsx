@@ -897,8 +897,18 @@ function ConstructionReport({ filters }: { filters: any }) {
   if (!data) return null
 
   const { summary } = data
+
+  const handleExportExcel = () => {
+    exportToExcel([
+      { name: 'Qurilish Loyihalari', data: data.projects },
+    ], `qurilish-${filters.dateFrom ?? new Date().toISOString().slice(0, 10)}`)
+  }
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-end">
+        <Button variant="secondary" size="sm" leftIcon={<FileSpreadsheet size={14} />} onClick={handleExportExcel}>Excel</Button>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Jami loyihalar',  value: String(summary.totalProjects),   color: '' },
@@ -969,8 +979,20 @@ function ProductionReport({ filters }: { filters: any }) {
   if (!data) return null
 
   const { summary } = data
+
+  const handleExportExcel = () => {
+    const sheets: { name: string; data: Record<string, unknown>[] }[] = []
+    if (data.batches?.length)         sheets.push({ name: 'Partiyalar',       data: data.batches })
+    if (data.outputByProduct?.length) sheets.push({ name: 'Mahsulot Chiqimi', data: data.outputByProduct })
+    if (!sheets.length) return
+    exportToExcel(sheets, `ishlab-chiqarish-${filters.dateFrom ?? new Date().toISOString().slice(0, 10)}`)
+  }
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-end">
+        <Button variant="secondary" size="sm" leftIcon={<FileSpreadsheet size={14} />} onClick={handleExportExcel}>Excel</Button>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Jami partiyalar',    value: String(summary.totalBatches), color: '' },
@@ -1054,8 +1076,27 @@ function PnLReport({ filters }: { filters: { dateFrom: string; dateTo: string } 
   const s = data.summary
   const fmt = (n: number) => formatCurrency(n)
 
+  const handleExportExcel = () => {
+    const sheets: { name: string; data: Record<string, unknown>[] }[] = [
+      {
+        name: "P&L Xulosa",
+        data: [{
+          totalRevenue: s.totalRevenue, totalCOGS: s.totalCOGS,
+          grossProfit: s.grossProfit,   grossMargin: `${s.grossMargin}%`,
+          totalSalary: s.totalSalary,   totalCashExp: s.totalCashExp,
+          ebit: s.ebit,                 netProfit: s.netProfit,
+        }],
+      },
+    ]
+    if (data.byMonth?.length) sheets.push({ name: 'Oylik P&L', data: data.byMonth })
+    exportToExcel(sheets, `pnl-${filters.dateFrom}`)
+  }
+
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <Button variant="secondary" size="sm" leftIcon={<FileSpreadsheet size={14} />} onClick={handleExportExcel}>Excel</Button>
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard label="Daromad"      value={fmt(s.totalRevenue)}  color="text-emerald-500" />
         <StatCard label="Tannarx (COGS)" value={fmt(s.totalCOGS)} color="text-red-400" />
@@ -1116,8 +1157,27 @@ function BalanceSheetReport() {
 
   const fmt = (n: number) => formatCurrency(n)
 
+  const handleExportExcel = () => {
+    exportToExcel([{
+      name: 'Balans Varaqasi',
+      data: [
+        { Kategoriya: 'AKTIVLAR', Modda: 'Tovar zaxirasi',    Summa: data.assets.stock },
+        { Kategoriya: 'AKTIVLAR', Modda: 'Debitorlik',        Summa: data.assets.receivables },
+        { Kategoriya: 'AKTIVLAR', Modda: 'Kassa / Avanslar',  Summa: data.assets.cash },
+        { Kategoriya: 'AKTIVLAR', Modda: 'JAMI AKTIVLAR',     Summa: data.assets.total },
+        { Kategoriya: 'PASSIVLAR', Modda: 'Kreditorlik',      Summa: data.liabilities.payables },
+        { Kategoriya: 'PASSIVLAR', Modda: 'JAMI PASSIVLAR',   Summa: data.liabilities.total },
+        { Kategoriya: 'KAPITAL',   Modda: 'Umumiy daromad',   Summa: data.totalRevenue },
+        { Kategoriya: 'KAPITAL',   Modda: 'SOF KAPITAL',      Summa: data.equity },
+      ],
+    }], `balans-${new Date().toISOString().slice(0, 10)}`)
+  }
+
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <Button variant="secondary" size="sm" leftIcon={<FileSpreadsheet size={14} />} onClick={handleExportExcel}>Excel</Button>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wider mb-3">AKTIVLAR</p>
@@ -1192,8 +1252,26 @@ function CashFlowReport({ filters }: { filters: { dateFrom: string; dateTo: stri
   const s = data.summary
   const fmt = (n: number) => formatCurrency(n)
 
+  const handleExportExcel = () => {
+    const sheets: { name: string; data: Record<string, unknown>[] }[] = [
+      {
+        name: 'Pul Oqimi Xulosa',
+        data: [{
+          totalInflow: s.totalInflow, totalExpenses: s.totalExpenses,
+          netCashFlow: s.netCashFlow, totalOutflow: s.totalOutflow,
+          totalCashExp: s.totalCashExp,
+        }],
+      },
+    ]
+    if (data.byMonth?.length) sheets.push({ name: 'Oylik Pul Oqimi', data: data.byMonth })
+    exportToExcel(sheets, `pul-oqimi-${filters.dateFrom}`)
+  }
+
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-end">
+        <Button variant="secondary" size="sm" leftIcon={<FileSpreadsheet size={14} />} onClick={handleExportExcel}>Excel</Button>
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <StatCard label="Kiruvchi pul"  value={fmt(s.totalInflow)}  color="text-emerald-500" />
         <StatCard label="Chiquvchi pul" value={fmt(s.totalExpenses)} color="text-red-400" />

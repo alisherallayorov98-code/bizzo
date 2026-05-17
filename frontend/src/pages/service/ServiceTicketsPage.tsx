@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Wrench, Plus, Search, AlertCircle,
-  CheckCircle, Clock, XCircle, ChevronDown,
+  CheckCircle, Clock, XCircle, ChevronDown, Eye,
 } from 'lucide-react'
 import { PageHeader }       from '@components/layout/PageHeader/PageHeader'
 import { Card }             from '@components/ui/Card/Card'
@@ -161,19 +161,127 @@ function NewTicketModal({ open, onClose }: { open: boolean; onClose: () => void 
 }
 
 // ============================================
+// TIKET TAFSILOT / TAHRIRLASH MODALI
+// ============================================
+function TicketDetailModal({ ticket, onClose }: { ticket: ServiceTicket; onClose: () => void }) {
+  const update = useUpdateServiceTicket()
+
+  const [title,       setTitle]       = useState(ticket.title)
+  const [description, setDescription] = useState(ticket.description ?? '')
+  const [status,      setStatus]      = useState<ServiceStatus>(ticket.status)
+  const [priority,    setPriority]    = useState<ServicePriority>(ticket.priority)
+  const [isDirty,     setIsDirty]     = useState(false)
+
+  const handleSave = async () => {
+    await update.mutateAsync({ id: ticket.id, title, description, status, priority })
+    onClose()
+  }
+
+  const mark = (field: string, val: any) => {
+    setIsDirty(true)
+    if (field === 'title')       setTitle(val)
+    if (field === 'description') setDescription(val)
+    if (field === 'status')      setStatus(val)
+    if (field === 'priority')    setPriority(val)
+  }
+
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      title={`Tiket — ${ticket.contact?.name ?? '—'}`}
+      size="md"
+      footer={
+        <>
+          <Button variant="secondary" size="sm" onClick={onClose}>Yopish</Button>
+          {isDirty && (
+            <Button variant="primary" size="sm" loading={update.isPending} onClick={handleSave}>
+              Saqlash
+            </Button>
+          )}
+        </>
+      }
+    >
+      <div className="space-y-4 py-1">
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-text-secondary">Sarlavha *</label>
+          <input
+            value={title}
+            onChange={e => mark('title', e.target.value)}
+            className="w-full rounded-lg border border-border-primary bg-bg-secondary text-sm text-text-primary px-3 py-2 focus:outline-none focus:border-accent-primary"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-text-secondary">Tavsif</label>
+          <textarea
+            rows={4}
+            value={description}
+            onChange={e => mark('description', e.target.value)}
+            className="w-full rounded-lg border border-border-primary bg-bg-secondary text-sm text-text-primary px-3 py-2 focus:outline-none focus:border-accent-primary resize-none"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-text-secondary">Holat</label>
+            <select
+              value={status}
+              onChange={e => mark('status', e.target.value)}
+              className="w-full h-9 rounded-lg border border-border-primary bg-bg-secondary text-sm text-text-primary px-3 focus:outline-none focus:border-accent-primary"
+            >
+              {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-text-secondary">Muhimlik</label>
+            <select
+              value={priority}
+              onChange={e => mark('priority', e.target.value)}
+              className="w-full h-9 rounded-lg border border-border-primary bg-bg-secondary text-sm text-text-primary px-3 focus:outline-none focus:border-accent-primary"
+            >
+              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 text-xs text-text-muted pt-1 border-t border-border-primary">
+          <div>
+            <span className="font-medium">Yaratilgan:</span>{' '}
+            {ticket.createdAt ? formatDate(ticket.createdAt) : '—'}
+          </div>
+          <div>
+            <span className="font-medium">Muddat:</span>{' '}
+            {ticket.dueDate ? formatDate(ticket.dueDate) : '—'}
+          </div>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+// ============================================
 // ASOSIY SAHIFA
 // ============================================
 export default function ServiceTicketsPage() {
-  const [search,       setSearch]       = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
-  const [newOpen,      setNewOpen]      = useState(false)
+  const [search,          setSearch]          = useState('')
+  const [statusFilter,    setStatusFilter]    = useState<string>('')
+  const [priorityFilter,  setPriorityFilter]  = useState<string>('')
+  const [newOpen,         setNewOpen]         = useState(false)
+  const [viewTicket,      setViewTicket]      = useState<ServiceTicket | null>(null)
 
   const debouncedSearch = useDebounce(search, 400)
   const { data: stats } = useServiceTicketStats()
   const { data, isLoading } = useServiceTickets({
-    search:    debouncedSearch || undefined,
-    status:    statusFilter    || undefined,
-  })
+    search:   debouncedSearch   || undefined,
+    status:   statusFilter      || undefined,
+    priority: priorityFilter    || undefined,
+  } as any)
 
   const updateTicket = useUpdateServiceTicket()
   const deleteTicket = useDeleteServiceTicket()
@@ -262,6 +370,20 @@ export default function ServiceTicketsPage() {
             </select>
             <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
           </div>
+
+          <div className="relative">
+            <select
+              value={priorityFilter}
+              onChange={e => setPriorityFilter(e.target.value)}
+              className="appearance-none h-8 pl-3 pr-8 rounded-lg border border-border-primary bg-bg-secondary text-sm text-text-primary focus:outline-none focus:border-accent-primary"
+            >
+              <option value="">Barcha muhimlik</option>
+              {Object.entries(PRIORITY_CONFIG).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+            <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -300,8 +422,9 @@ export default function ServiceTicketsPage() {
                   return (
                     <tr
                       key={ticket.id}
+                      onClick={() => setViewTicket(ticket)}
                       className={cn(
-                        'border-b border-border-primary transition-colors group',
+                        'border-b border-border-primary transition-colors group cursor-pointer',
                         isOverdue ? 'bg-danger/[0.02] hover:bg-danger/5' : 'hover:bg-bg-tertiary/50',
                       )}
                     >
@@ -355,8 +478,16 @@ export default function ServiceTicketsPage() {
                       </td>
 
                       {/* Amallar */}
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="xs"
+                            leftIcon={<Eye size={12} />}
+                            onClick={() => setViewTicket(ticket)}
+                          >
+                            Ko'rish
+                          </Button>
                           {ticket.status === 'OPEN' && (
                             <Button
                               variant="secondary"
@@ -376,15 +507,6 @@ export default function ServiceTicketsPage() {
                               Hal qilindi
                             </Button>
                           )}
-                          {!['RESOLVED', 'CLOSED'].includes(ticket.status) && (
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              onClick={() => updateTicket.mutate({ id: ticket.id, status: 'CLOSED' })}
-                            >
-                              Yopish
-                            </Button>
-                          )}
                         </div>
                       </td>
                     </tr>
@@ -397,6 +519,9 @@ export default function ServiceTicketsPage() {
       </Card>
 
       <NewTicketModal open={newOpen} onClose={() => setNewOpen(false)} />
+      {viewTicket && (
+        <TicketDetailModal ticket={viewTicket} onClose={() => setViewTicket(null)} />
+      )}
     </div>
   )
 }

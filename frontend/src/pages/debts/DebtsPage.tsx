@@ -37,9 +37,15 @@ type MainTab = 'RECEIVABLE' | 'PAYABLE' | 'AVANS_GIVEN' | 'AVANS_RECEIVED'
 const METHOD_LABELS: Record<string, string> = {
   CASH: 'Naqd', CARD: 'Karta', TRANSFER: "O'tkazma", AVANS: 'Avans', OTHER: 'Boshqa',
 }
-const METHOD_COLORS: Record<string, string> = {
-  CASH: '#10B981', CARD: '#3B82F6', TRANSFER: '#8B5CF6', AVANS: '#F59E0B', OTHER: '#6B7280',
+const METHOD_COLORS: Record<string, { color: string; bg: string }> = {
+  CASH:     { color: 'var(--color-success)',        bg: 'var(--color-success-bg, rgba(16,185,129,0.12))'     },
+  CARD:     { color: 'var(--color-accent-primary)', bg: 'var(--color-accent-subtle)'                         },
+  TRANSFER: { color: 'var(--color-info)',           bg: 'var(--color-info-bg, rgba(59,130,246,0.12))'        },
+  AVANS:    { color: 'var(--color-warning)',        bg: 'var(--color-warning-bg, rgba(245,158,11,0.12))'     },
+  OTHER:    { color: 'var(--color-text-muted)',     bg: 'var(--color-bg-tertiary)'                           },
 }
+const getMethodColor  = (m: string) => (METHOD_COLORS[m] ?? METHOD_COLORS.OTHER).color
+const getMethodBg     = (m: string) => (METHOD_COLORS[m] ?? METHOD_COLORS.OTHER).bg
 
 // ─── To'lov tarixi modali — to'liq yuklaydi ──────────────────────────────────
 
@@ -115,8 +121,8 @@ function PaymentHistoryModal({ debtId, onClose }: { debtId: string; onClose: () 
                   style={{ background: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border-primary)' }}>
                   <div className="flex items-center gap-3">
                     <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                      style={{ background: `${METHOD_COLORS[p.method] ?? '#6B7280'}20` }}>
-                      <CreditCard size={13} style={{ color: METHOD_COLORS[p.method] ?? '#6B7280' }} />
+                      style={{ background: getMethodBg(p.method) }}>
+                      <CreditCard size={13} style={{ color: getMethodColor(p.method) }} />
                     </div>
                     <div>
                       <p className="text-sm font-semibold tabular-nums" style={{ color: 'var(--color-text-primary)' }}>
@@ -235,9 +241,9 @@ function AddPaymentModal({ debt, onClose }: { debt: DebtRecord; onClose: () => v
               <button key={m} type="button" onClick={() => { setMethod(m); setAvansId('') }}
                 className="py-2 rounded-lg text-xs font-medium transition-all"
                 style={{
-                  background: method === m ? `${METHOD_COLORS[m]}20` : 'var(--color-bg-tertiary)',
-                  border:     `1px solid ${method === m ? METHOD_COLORS[m] : 'var(--color-border-primary)'}`,
-                  color:      method === m ? METHOD_COLORS[m] : 'var(--color-text-muted)',
+                  background: method === m ? getMethodBg(m) : 'var(--color-bg-tertiary)',
+                  border:     `1px solid ${method === m ? getMethodColor(m) : 'var(--color-border-primary)'}`,
+                  color:      method === m ? getMethodColor(m) : 'var(--color-text-muted)',
                 }}>
                 {METHOD_LABELS[m]}
               </button>
@@ -787,7 +793,7 @@ export default function DebtsPage() {
                 style={{ background: 'var(--color-bg-tertiary)' }}>
                 <div className="flex items-center gap-2">
                   <span className="text-xs px-1.5 py-0.5 rounded font-medium"
-                    style={{ background: `${METHOD_COLORS[p.method] ?? '#6B7280'}20`, color: METHOD_COLORS[p.method] ?? '#6B7280' }}>
+                    style={{ background: getMethodBg(p.method), color: getMethodColor(p.method) }}>
                     {METHOD_LABELS[p.method] ?? p.method}
                   </span>
                   <span className="text-sm font-semibold tabular-nums" style={{ color: 'var(--color-success)' }}>

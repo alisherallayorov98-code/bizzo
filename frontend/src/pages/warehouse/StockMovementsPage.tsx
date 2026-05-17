@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   ArrowDownCircle, ArrowUpCircle, RefreshCw,
-  Settings, Plus, Filter, AlertTriangle,
+  Settings, Plus, Filter, AlertTriangle, FileSpreadsheet,
 } from 'lucide-react'
 import { PageHeader } from '@components/layout/PageHeader/PageHeader'
 import { Button } from '@components/ui/Button/Button'
@@ -12,6 +12,7 @@ import { TableRowSkeleton } from '@components/ui/Skeleton/Skeleton'
 import { useMovements } from '@features/warehouse/hooks/useWarehouse'
 import type { MovementType } from '@services/warehouse.service'
 import { formatCurrency } from '@utils/formatters'
+import { exportToExcel } from '@utils/exporters'
 import { cn } from '@utils/cn'
 import { useT } from '@i18n/index'
 
@@ -27,6 +28,8 @@ const MOVEMENT_CONFIG: Record<MovementType, { tKey: string; variant: 'success' |
   PRODUCTION_OUT: { tKey: 'warehouse.productionOut',variant: 'danger',  icon: <ArrowUpCircle size={13} /> },
   WASTE_IN:       { tKey: 'warehouse.wasteIn',      variant: 'warning', icon: <ArrowDownCircle size={13} /> },
   WASTE_OUT:      { tKey: 'warehouse.wasteOut',     variant: 'danger',  icon: <ArrowUpCircle size={13} /> },
+  RETURN_IN:      { tKey: 'warehouse.returnIn',     variant: 'info',    icon: <ArrowDownCircle size={13} /> },
+  RETURN_OUT:     { tKey: 'warehouse.returnOut',    variant: 'warning', icon: <ArrowUpCircle size={13} /> },
 }
 
 function MovementTypeBadge({ type }: { type: MovementType }) {
@@ -46,11 +49,13 @@ function MovementTypeBadge({ type }: { type: MovementType }) {
 // FILTER TABS
 // ============================================
 const TABS = [
-  { id: '',           tKey: 'common.all' },
-  { id: 'IN',         tKey: 'warehouse.in' },
-  { id: 'OUT',        tKey: 'warehouse.out' },
-  { id: 'TRANSFER',   tKey: 'warehouse.transfer' },
-  { id: 'ADJUSTMENT', tKey: 'warehouse.adjustment' },
+  { id: '',            tKey: 'common.all' },
+  { id: 'IN',          tKey: 'warehouse.in' },
+  { id: 'OUT',         tKey: 'warehouse.out' },
+  { id: 'TRANSFER',    tKey: 'warehouse.transfer' },
+  { id: 'ADJUSTMENT',  tKey: 'warehouse.adjustment' },
+  { id: 'RETURN_IN',   tKey: 'warehouse.returnIn' },
+  { id: 'RETURN_OUT',  tKey: 'warehouse.returnOut' },
 ]
 
 // ============================================
@@ -72,6 +77,24 @@ export default function StockMovementsPage() {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit',
     })
+  }
+
+  const handleExport = () => {
+    if (!data?.data.length) return
+    exportToExcel([{
+      name: 'Harakatlar',
+      data: data.data.map(m => ({
+        Sana:    formatDate(m.createdAt),
+        Mahsulot: m.product.name,
+        Kod:     m.product.code || '',
+        Tur:     m.type,
+        Ombor:   m.warehouse.name,
+        Miqdor:  m.quantity,
+        Birlik:  m.product.unit,
+        Narx:    m.price,
+        Summa:   m.totalAmount,
+      })),
+    }], `harakatlar-${new Date().toISOString().slice(0, 10)}`)
   }
 
   return (
@@ -133,6 +156,15 @@ export default function StockMovementsPage() {
           <div className="ml-auto flex items-center gap-2">
             <Button variant="secondary" size="xs" leftIcon={<Filter size={12} />}>
               {t('common.filter')}
+            </Button>
+            <Button
+              variant="secondary"
+              size="xs"
+              leftIcon={<FileSpreadsheet size={12} />}
+              onClick={handleExport}
+              disabled={!data?.data.length}
+            >
+              Excel
             </Button>
           </div>
         </div>
@@ -198,13 +230,13 @@ export default function StockMovementsPage() {
                     <td className="px-4 py-3 text-right">
                       <span className={cn(
                         'text-sm font-medium tabular-nums',
-                        m.type === 'IN' || m.type === 'PRODUCTION_IN' || m.type === 'WASTE_IN'
+                        m.type === 'IN' || m.type === 'PRODUCTION_IN' || m.type === 'WASTE_IN' || m.type === 'RETURN_IN'
                           ? 'text-success'
-                          : m.type === 'OUT' || m.type === 'PRODUCTION_OUT' || m.type === 'WASTE_OUT'
+                          : m.type === 'OUT' || m.type === 'PRODUCTION_OUT' || m.type === 'WASTE_OUT' || m.type === 'RETURN_OUT'
                             ? 'text-danger'
                             : 'text-text-primary',
                       )}>
-                        {m.type === 'OUT' || m.type === 'PRODUCTION_OUT' || m.type === 'WASTE_OUT' ? '-' : '+'}
+                        {m.type === 'OUT' || m.type === 'PRODUCTION_OUT' || m.type === 'WASTE_OUT' || m.type === 'RETURN_OUT' ? '-' : '+'}
                         {m.quantity} {m.product.unit}
                       </span>
                     </td>
