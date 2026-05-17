@@ -1,4 +1,4 @@
-import { CURRENCIES } from './useCurrency'
+import { CURRENCIES, useExchangeRates } from './useCurrency'
 
 interface CurrencySelectorProps {
   value:    string
@@ -52,7 +52,6 @@ export function CurrencyBadge({ amount, currency }: { amount: number; currency?:
 
 // Exchange rate display strip
 export function RatesStrip() {
-  const { useExchangeRates } = require('./useCurrency')
   const { data: rates } = useExchangeRates()
   if (!rates) return null
 
