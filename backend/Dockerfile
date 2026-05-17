@@ -30,4 +30,4 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY prisma ./prisma
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist-seed/seed.js || true && node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss || true && node dist-seed/seed.js || true && node dist/main.js"]
